@@ -45,6 +45,7 @@ import TauScale
 import ScaleSolar
 import State
 import Hydrostat
+import ScaleT4250g20
 import ScaleT5000
 import ScaleT10000
 import LevelPopsServer
@@ -1134,9 +1135,13 @@ pGasSun = Hydrostat.hydroFormalSoln(numDeps, gravSun, tauRos, kappaSun, tempSun,
         
 temp = [ [0.0 for i in range(numDeps)] for j in range(2) ]
 if (teff < F0Vtemp):
-    #//We're a cool star! - rescale from Teff=5000 reference model!
-    #print("cool star branch")
-    temp = ScaleT5000.phxRefTemp(teff, numDeps, tauRos)
+    if (logg > 3.5):
+        #//We're a cool dwarf! - rescale from Teff=5000 reference model!
+        #print("cool star branch")
+        temp = ScaleT5000.phxRefTemp(teff, numDeps, tauRos)
+    else:
+        #We're a cool giant - rescale from teff=4250, log(g) = 2.0 model
+        temp = ScaleT4250g20.phxRefTemp(teff, numDeps, tauRos)
 elif (teff >= F0Vtemp): 
     #//We're a HOT star! - rescale from Teff=10000 reference model! 
     temp = ScaleT10000.phxRefTemp(teff, numDeps, tauRos)
@@ -1148,13 +1153,19 @@ guessPe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
 guessNe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
 #//double[][] guessKappa = new double[2][numDeps];
 if (teff < F0Vtemp):
-    #//We're a cool star - rescale from  Teff=5000 reference model!
-    #// logAz[1] = log_e(N_He/N_H)
-    guessPGas = ScaleT5000.phxRefPGas(grav, zScale, logAz[1], numDeps, tauRos)
-    guessPe = ScaleT5000.phxRefPe(teff, grav, numDeps, tauRos, zScale, logAz[1])
-    guessNe = ScaleT5000.phxRefNe(numDeps, temp, guessPe) 
-    #//Ne = ScaleSolar.phxSunNe(grav, numDeps, tauRos, temp, kappaScale);
-    #//guessKappa = ScaleSolar.phxSunKappa(numDeps, tauRos, kappaScale);
+    if (logg > 3.5):
+        #//We're a cool dwarf - rescale from  Teff=5000 reference model!
+        #// logAz[1] = log_e(N_He/N_H)
+        guessPGas = ScaleT5000.phxRefPGas(grav, zScale, logAz[1], numDeps, tauRos)
+        guessPe = ScaleT5000.phxRefPe(teff, grav, numDeps, tauRos, zScale, logAz[1])
+        guessNe = ScaleT5000.phxRefNe(numDeps, temp, guessPe) 
+        #//Ne = ScaleSolar.phxSunNe(grav, numDeps, tauRos, temp, kappaScale);
+        #//guessKappa = ScaleSolar.phxSunKappa(numDeps, tauRos, kappaScale);
+    else:
+        #We're a cool giant - rescale from teff=4250, log(g) = 2.0 model
+        guessPGas = ScaleT4250g20.phxRefPGas(grav, zScale, logAz[1], numDeps, tauRos)
+        guessPe = ScaleT4250g20.phxRefPe(teff, grav, numDeps, tauRos, zScale, logAz[1])
+        guessNe = ScaleT4250g20.phxRefNe(numDeps, temp, guessPe)                 
 elif (teff >= F0Vtemp):
     #//We're a HOT star!! - rescale from Teff=10000 reference model 
     #// logAz[1] = log_e(N_He/N_H)
@@ -1560,8 +1571,8 @@ for pIter in range(nOuterIter):
         guessPGas[1][iTau] = pGas[1][iTau]
      
     #Graphically inspect convergence:  Issue 'matplotlib qt5' in console before running code
-    #pylab.plot(tauRos[1][:], newPe[1][:])
     #pylab.plot(tauRos[1][:], pGas[1][:])
+    #pylab.plot(tauRos[1][:], newPe[1][:])
 
 #//end Pgas-kappa iteration, nOuter
     
@@ -3282,8 +3293,8 @@ with open(lineFile, 'w', encoding='utf-8') as lineHandle:
     lineHandle.write("User-defined two-level atom and line: Equivalent width: " + str(WlambdaLine) + " pm \n")
     lineHandle.write("wave (nm)   normalized flux \n")
     for i in range(numPoints):
-        waveSS = cm2nm*lineLambdas[i]
-        outLine = str(waveSS) + " " + str(lineFlux2[0][i]) + "\n"
+        lineWave = cm2nm*lineLambdas[i]
+        outLine = str(lineWave) + " " + str(lineFlux2[0][i]) + "\n"
         lineHandle.write(outLine)
     lineHandle.write("\n")
     lineHandle.write("log_10 energy level populations (cm^-3) \n")

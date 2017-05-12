@@ -633,13 +633,13 @@ def stark(linePoints, lam0In, logAij, logGammaCol,
 #} //end method stark()
 
 
-"""
-def lineSource(int numDeps, double[][] tau, double[][] temp, double lambda2) {
-"""
-"""#// Make line source function:
-#// Equivalenth two-level atom (ETLA) approx
-#//CAUTION: input lambda in nm"""
-"""
+
+def lineSource(numDeps, tau, temp, lambda2):
+
+    """#// Make line source function:
+    #// Equivalenth two-level atom (ETLA) approx
+    #//CAUTION: input lambda in nm"""
+    
     lineSource = [0.0 for i in range(numDeps)]
 
     #//thermal photon creation/destruction probability
@@ -677,4 +677,4 @@ def lineSource(int numDeps, double[][] tau, double[][] temp, double lambda2) {
         lineSource[i] = math.log(linSrc)
         
 
-    return lineSource"""
+    return lineSource
