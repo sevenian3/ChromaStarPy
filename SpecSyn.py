@@ -15,6 +15,9 @@ Created on Fri Apr 28 17:03:30 2017
 
 import math
 import ToolBox
+#plotting:
+import matplotlib
+import pylab
 
 def masterLambda(numLams, numMaster, numNow, masterLams, numPoints, listLineLambdas):
         
@@ -82,22 +85,25 @@ def masterKappa(numDeps, numLams, numMaster, numNow, masterLams, masterLamsOut, 
     #//double[][] kappa2 = new double[2][numTot];
     #//double[][] lineKap2 = new double[2][numTot];
     #double kappa2, lineKap2, totKap;
-    lineKap2 = 1.0e-99 #//initialization
+    logLineKap2 = -49.0 #//initialization
 
     #//int numCnt = lambdaScale.length;
     #//int numLine = lineLambdas.length - 1;
-    kappa1D = [0.0 for i in range(numNow)]
-    lineKap1D = [0.0 for i in range(numPoints)]
+    #kappa1D = [0.0 for i in range(numNow)]
+    logKappa1D = [0.0 for i in range(numNow)]
+    #lineKap1D = [0.0 for i in range(numPoints)]
+    logLineKap1D = [0.0 for i in range(numPoints)]
     #//System.out.println("iL   masterLams    logMasterKappa");
     for iD in range(numDeps):
 
         #//Extract 1D *linear* opacity vectors for interpol()
         for k in range(numNow):
-            kappa1D[k] = math.exp(logMasterKaps[k][iD]) #//now wavelength dependent 
-            
+            #kappa1D[k] = math.exp(logMasterKaps[k][iD]) #//now wavelength dependent 
+            logKappa1D[k] = logMasterKaps[k][iD] #//now wavelength dependent 
 
         for k in range(numPoints):
-            lineKap1D[k] = math.exp(listLogKappaL[k][iD])
+            #lineKap1D[k] = math.exp(listLogKappaL[k][iD])
+            logLineKap1D[k] = listLogKappaL[k][iD]
             #//     if (iD%10 == 1){
             #//        System.out.println("iD " + iD + " k " + k + " listLineLambdas " + listLineLambdas[k] + " lineKap1D " + lineKap1D[k]);
             #//     }
@@ -105,26 +111,32 @@ def masterKappa(numDeps, numLams, numMaster, numNow, masterLams, masterLamsOut, 
 
         #//Interpolate continuum and line opacity onto master lambda scale, and add them lambda-wise:
         for iL in range(numTot):
-            kappa2 = ToolBox.interpol(masterLams, kappa1D, masterLamsOut[iL])
-            lineKap2 = 1.0e-49 #//re-initialization
+            #kappa2 = ToolBox.interpol(masterLams, kappa1D, masterLamsOut[iL])
+            logKappa2 = ToolBox.interpol(masterLams, logKappa1D, masterLamsOut[iL])
+            #lineKap2 = 1.0e-49 #//re-initialization
+            logLineKap2 = -49.0 #//re-initialization
             if ( (masterLamsOut[iL] >= listLineLambdas[0]) and (masterLamsOut[iL] <= listLineLambdas[numPoints-1]) ):
                 
-                lineKap2 = ToolBox.interpol(listLineLambdas, lineKap1D, masterLamsOut[iL])
-                if (lineKap2 <= 0.0):
-                    lineKap2 = 1.0e-49
+                #lineKap2 = ToolBox.interpol(listLineLambdas, lineKap1D, masterLamsOut[iL])
+                logLineKap2 = ToolBox.interpol(listLineLambdas, logLineKap1D, masterLamsOut[iL])
+                #if (lineKap2 <= 0.0):
+                #    lineKap2 = 1.0e-49
                 #//lineKap2 = 1.0e-99;  //test
                 
             #//test lineKap2 = 1.0e-99;  //test
             #// if (iD%10 == 1){
             #//   System.out.println("iD " + iD + " iL " + iL + " masterLamsOut " + masterLamsOut[iL] + " kappa2 " + kappa2 + " lineKap2 " + lineKap2);
             #//}
-            totKap = kappa2 + lineKap2
+            #totKap = kappa2 + lineKap2
+            totKap = math.exp(logKappa2) + math.exp(logLineKap2)
             logMasterKapsOut[iL][iD] = math.log(totKap)
             #//if (iD == 36) {
             #//    System.out.format("%02d   %12.8e   %12.8f%n", iL, masterLams[iL], logE * logMasterKappa[iL][iD]);
             #//}
-        #} iL loop
+        #} iL loop    
     #}  iD loop 
+    #pylab.plot(masterLamsOut, [logMasterKaps[i][12] for i in range(numTot)]) 
+    #pylab.plot(masterLamsOut, [logMasterKaps[i][12] for i in range(numTot)], '.')      
 
     return logMasterKapsOut;
 #}
