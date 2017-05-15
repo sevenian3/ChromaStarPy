@@ -75,6 +75,18 @@ import PostProcess
 import matplotlib
 import pylab
 
+#color platte for pylab plotting
+palette = ['black', 'brown','red','orange','yellow','green','blue','indigo','violet']
+numClrs = len(palette)
+
+#Initial pylab plot set-up
+#For RGB log_e(Pgas, Pe):
+#pylab.ylim(-15, 10)
+#For RGB log_e(Ne):
+pylab.ylim(15, 35)
+#For RGB log_e(N_TiO):
+#pylab.ylim(-10, 15)
+
 #General file for printing ad hoc quantities
 dbgHandle = open("debug.out", 'w')
 
@@ -1364,6 +1376,8 @@ for pIter in range(nOuterIter):
     for iD in range(numDeps):
         newNe[1][iD] = newPe[1][iD] - temp[1][iD] - Useful.logK()
         newNe[0][iD] = math.exp(newNe[1][iD])
+        guessNe[1][iD] = newNe[1][iD]
+        guessNe[0][iD] = newNe[0][iD]
     
 #//
 #//Refine the number densities of the chemical elements at all depths  
@@ -1571,8 +1585,10 @@ for pIter in range(nOuterIter):
         guessPGas[1][iTau] = pGas[1][iTau]
      
     #Graphically inspect convergence:  Issue 'matplotlib qt5' in console before running code
-    #pylab.plot(tauRos[1][:], pGas[1][:])
-    #pylab.plot(tauRos[1][:], newPe[1][:])
+    thisClr = palette[pIter%numClrs]
+    #pylab.plot(tauRos[1][:], pGas[1][:], thisClr)
+    #pylab.plot(tauRos[1][:], newPe[1][:], thisClr)
+    #pylab.plot(tauRos[1][:], newNe[1][:], thisClr)
 
 #//end Pgas-kappa iteration, nOuter
     
@@ -1925,7 +1941,8 @@ for neIter2 in range(nInnerIter):
         
     #diagnostic plots:
     #Graphically inspect convergence:  Issue 'matplotlib qt5' in console before running code
-    #pylab.plot(tauRos[1][:], newNe[1][:])  
+    thisClr = palette[neIter2%numClrs]
+    pylab.plot(tauRos[1][:], newNe[1][:])  
     #pylab.plot(tauRos[1][:], masterMolPops[0][:])
         
 #} //end Ne - ionzation fraction -molecular equilibrium iteration neIter2
@@ -2372,12 +2389,14 @@ for iLine in range(numLines2):
 		  or ( list2Stage[iLine] == 2) or (list2Stage[iLine] == 3) 
         or  ( list2Stage[iLine] == 4) or (list2Stage[iLine] == 5) ):
             if ( (list2Lam0[iLine] > lambdaStart) and (list2Lam0[iLine] < lambdaStop) ): 
-			       #//No! ifThisLine[iLine] = true;
-                gaussLine_ptr[gaussLineCntr] = iLine
-                gaussLineCntr+=1
-                if (isFirstLine == True):
-                    firstLine = iLine
-                    isFirstLine = False
+                #special test condition
+                #if (list2Element[iLine] == "Na"):
+			           #//No! ifThisLine[iLine] = true;
+                    gaussLine_ptr[gaussLineCntr] = iLine
+                    gaussLineCntr+=1
+                    if (isFirstLine == True):
+                        firstLine = iLine
+                        isFirstLine = False
 
 #//
 #} //iLine loop
@@ -2588,9 +2607,11 @@ for iLine in range(numGaussLines):
             
 
     masterLamsOut = SpecSyn.masterLambda(numLams, numMaster, numNow, masterLams, listNumPoints, listLineLambdas)
-    logMasterKapsOut = SpecSyn.masterKappa(numDeps, numLams, numMaster, numNow, masterLams, masterLamsOut, logMasterKaps, listNumPoints, listLineLambdas, listLogKappaL)
+    logMasterKapsOut = SpecSyn.masterKappa(numDeps, numLams, numMaster, numNow, masterLams, masterLamsOut, \
+                                           logMasterKaps, listNumPoints, listLineLambdas, listLogKappaL)
     numNow = numNow + listNumPoints
-
+    #pylab.plot(masterLamsOut, [logMasterKapsOut[i][12] for i in range(numNow)]) 
+    #pylab.plot(masterLamsOut, [logMasterKapsOut[i][12] for i in range(numNow)], '.')      
     #//update masterLams and logMasterKaps:
 
     for iL in range(numNow):
@@ -2726,6 +2747,7 @@ sweepHelp[0] = masterLams[0] #//An auspicous start :-)
 lastLam = 0 #//index of last masterLam wavelength NOT swept out
 iSweep = 1 #//current sweepHelp index
 #//
+
 for iLam in range(1, numMaster):
     if ( (masterLams[iLam] - masterLams[lastLam]) >= sweepDelta):
         #//Kept - ie. NOT swept out:
@@ -2754,6 +2776,22 @@ for iD in range(numDeps):
       
 #} //iD loop
 
+#Special code to test sweeper by forcing it to NOT sweep anything:
+    # - IF this is uncommented, then sweeper above should be commented
+"""for iLam in range(1, numMaster):
+    #//Kept - ie. NOT swept out:
+    sweepHelp[iSweep] = masterLams[iLam]
+    iSweep+=1
+numKept = iSweep-1
+sweptLams = [0.0 for i in range(numKept)]
+for iKept in range(numKept):
+    sweptLams[iKept] = sweepHelp[iKept]
+#//Interpolate the total extinction array onto the swept wavelength grid:
+logSweptKaps = [ [ 0.0 for i in range(numDeps) ] for j in range(numKept) ]
+for iD in range(numDeps):
+    for iL in range(numKept):
+        logSweptKaps[iL][iD] = logMasterKaps[iL][iD]
+#end special sweeper test block"""
 #//
 #////
 #//Continuum monochromatic optical depth array:
@@ -2829,6 +2867,9 @@ for il in range(numKept):
 #} //il loop
 
 masterFlux = Flux.flux3(masterIntens, sweptLams, cosTheta, phi, cgsRadius, omegaSini, macroVkm)
+
+#pylab.plot(sweptLams, masterFlux[0])
+#pylab.plot(sweptLams, masterFlux[0], '.')
 
 for il in range(numKept):
     #//// Teff test - Also needed for convection module!:
@@ -3027,8 +3068,11 @@ for i in range(numDeps):
     mmwAmu[i] = mmw[i] / Useful.amu()
     depthsKm[i] = 1.0e-5 * depths[i]
 
+outPath = "Outputs/"
+
+outFile = outPath + strucFile
 #print vertical atmospheric structure
-with open(strucFile, 'w', encoding='utf-8') as strucHandle:
+with open(outFile, 'w', encoding='utf-8') as strucHandle:
 #with open(strucFile, 'w') as strucHandle:    
     strucHandle.write(inputParamString + "\n")
     strucHandle.write("cgs units, unless otherwise noted" + "\n")
@@ -3056,7 +3100,8 @@ for i in range(numSpecSyn):
 print("Number of lines treated with Voigt profiles: ", numGaussLines)
 
 #Print rectified high resolution spectrum of synthesis region
-with open(specFile, 'w', encoding='utf-8') as specHandle:
+outFile = outPath + specFile
+with open(outFile, 'w', encoding='utf-8') as specHandle:
 #with open(specFile, 'w') as specHandle:    
     specHandle.write(inputParamString + "\n")
     specHandle.write("Number of lines treated with Voigt profiles: " + str(numGaussLines) + "\n")
@@ -3066,7 +3111,8 @@ with open(specFile, 'w', encoding='utf-8') as specHandle:
         specHandle.write(outLine)
        
 #Print absolute spectral energy distribution (SED)
-with open(sedFile, 'w', encoding='utf-8') as sedHandle:
+outFile = outPath + sedFile
+with open(outFile, 'w', encoding='utf-8') as sedHandle:
 #with open(sedFile, 'w') as sedHandle:
     sedHandle.write(inputParamString)
     sedHandle.write("Number of lines treated with Voigt profiles: " + str(numGaussLines) + "\n")
@@ -3079,7 +3125,8 @@ with open(sedFile, 'w', encoding='utf-8') as sedHandle:
 
 #Pring narrow band Gaussian filter quantities: 
 #    limb darkening curve (LDC) and discrete fourier cosine transform of LDC
-with open(ldcFile, 'w', encoding='utf-8') as ldcHandle:
+outFile = outPath + ldcFile
+with open(outFile, 'w', encoding='utf-8') as ldcHandle:
 #with open(ldcFile, 'w') as ldcHandle:    
     ldcHandle.write(inputParamString)
     ldcHandle.write("Narrow band limb darkening curve (LDC) \n")
@@ -3287,7 +3334,8 @@ WlambdaLine = PostProcess.eqWidthSynth(lineFlux2, lineLambdas)
 #//
 #//"""
 #Print rectified high resolution spectrum of synthesis region
-with open(lineFile, 'w', encoding='utf-8') as lineHandle:
+outFile = outPath + lineFile
+with open(outFile, 'w', encoding='utf-8') as lineHandle:
 #with open(lineFile, 'w') as lineHandle:
     lineHandle.write(inputParamString + "\n")
     lineHandle.write("User-defined two-level atom and line: Equivalent width: " + str(WlambdaLine) + " pm \n")
