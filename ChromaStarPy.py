@@ -73,29 +73,45 @@ import PostProcess
 
 #plotting:
 import matplotlib
+#%matplotlib inline
 import pylab
+
+
+#############################################
+#
+#
+#
+#    Initial set-up:
+#     - import all python modules
+#     - set input parameters for *everything* (atmospheric modeling
+#        spectrum synthesis, user-defined 2-level atom & line, 
+#        post-processing, ...)
+#     - prepare reference solar model and template models
+#        for re-scaling to initial guess
+#     
+#
+#
+##############################################
+
 
 #color platte for pylab plotting
 palette = ['black', 'brown','red','orange','yellow','green','blue','indigo','violet']
 numClrs = len(palette)
 
-#Initial pylab plot set-up
-#For RGB log_e(Pgas, Pe):
-#pylab.ylim(-15, 10)
-#For RGB log_e(Ne):
-pylab.ylim(15, 35)
-#For RGB log_e(N_TiO):
-#pylab.ylim(-10, 15)
 
 #General file for printing ad hoc quantities
 dbgHandle = open("debug.out", 'w')
+
+absPath = "C:/Users/ishort/Documents/ChromaStarPy/"
+outPath = absPath + "Outputs/"
 
 lbl = ""
 inLine = ""
 fields = [" " for i in range(2)] 
 
 #with open("ChromaStarPy.input.txt", 'r', encoding='utf-8') as inputHandle:
-with open("ChromaStarPy.input.txt", 'r') as inputHandle:    
+inFile = absPath + "ChromaStarPy.input.txt"
+with open(inFile, 'r') as inputHandle:    
     
     #These MUST be in the following order in the input file, 
     #one lable/value pair per line and the lable and the value
@@ -564,7 +580,7 @@ if (RV > 200.0):
     RV = 200.0
     RVStr = "200"
     
-vacAir = "vacuum" #//default initialization
+#vacAir = "vacuum" #//test
 
 #// Representative spectral line and associated atomic parameters
 #//
@@ -1199,9 +1215,127 @@ for i in range(numDeps):
 for iElem in range(nelemAbnd):
     for iD in range(numDeps):
         masterStagePops[iElem][0][iD] = logNz[iElem][iD]
-      
 
+warning = "";
+if (teff < 6000):
+    #//warning = "<span style='color:red'><em>T</em><sub>eff</sub> < 6000 K <br />Cool star mode";
+    warning = "Cool star mode"
+    print(warning)
+else:
+    #//warning = "<span style='color:blue'><em>T</em><sub>eff</sub> > 6000 K <br />Hot star mode</span>";
+    warning = "Hot star mode"
+    print(warning)
+    
+spectralClass = " "
+luminClass = "V"
+if (teff < 3000.0):
+    spectralClass = "L"
+elif ((teff >= 3000.0) and (teff < 3900.0)):
+    spectralClass = "M"
+elif ((teff >= 3900.0) and (teff < 5200.0)):
+    spectralClass = "K";
+elif ((teff >= 5200.0) and (teff < 5950.0)): 
+    spectralClass = "G"
+elif ((teff >= 5950.0) and (teff < 7300.0)):
+    spectralClass = "F";
+elif ((teff >= 7300.0) and (teff < 9800.0)):
+    spectralClass = "A"
+elif ((teff >= 9800.0) and (teff < 30000.0)):
+    spectralClass = "B"
+elif (teff >= 30000.0):
+    spectralClass = "O"
+    
+
+if ((logg >= 0.0) and (logg < 1.0)):
+    luminClass = "I"
+elif ((logg >= 1.0) and (logg < 1.5)):
+    luminClass = "II"
+elif ((logg >= 1.5) and (logg < 3.0)):
+    luminClass = "III"
+elif ((logg >= 3.0) and (logg < 4.0)):
+    luminClass = "IV"
+elif ((logg >= 4.0) and (logg < 5.0)):
+    luminClass = "V"
+elif ((logg >= 5.0) and (logg < 6.0)):
+    luminClass = "VI"
+elif (logg >= 6.0):
+    luminClass = "WD"
+    
+
+spectralType = spectralClass + " " + luminClass
+print("Spectral class: ", spectralType)      
+#Initial guess atmospheric structure output: 
+#Convert everything to log_10 OR re-scaled units for plotting, printing, etc:
+    
+log10e = math.log10(math.e)
+
+log10tauRos = [0.0 for i in range(numDeps)]
+log10guessTemp = [0.0 for i in range(numDeps)]
+log10guessPgas = [0.0 for i in range(numDeps)]
+log10guessPe = [0.0 for i in range(numDeps)]
+log10guessNe = [0.0 for i in range(numDeps)]
+log10NH = [0.0 for i in range(numDeps)]
+
+#log10mmw = [0.0 for i in range(numDeps)]
+for i in range(numDeps):
+    log10tauRos[i] = log10e * tauRos[1][i]
+    log10guessTemp[i] = log10e * temp[1][i]
+    log10guessPgas[i] = log10e * guessPGas[1][i]
+    log10guessPe[i] = log10e * guessPe[1][i]
+    log10guessNe[i] = log10e * guessNe[1][i]
+    log10NH[i] = log10e * logNH[i]
+
+### Uncomment to inspect initial guess:    
+
+"""#Inspect initial guess
+pylab.title = "Pressure structure"
+pylab.xlabel = "log_10 Tau_Ros"
+pylab.ylabel = "log_10 Pgas, Pe (dyne/cm^2)"
+pylab.xlim(-6.5, 2.5)
+yMin = min(log10guessPe) - 0.5
+yMax = max(log10guessPgas) + 0.5
+pylab.ylim(yMin, yMax)
+
+pylab.plot(log10tauRos, log10guessPgas, color='blue')
+pylab.plot(log10tauRos, log10guessPe, color='green', linestyle='-')
+"""
+#
+#
 #// END initial guess for Sun section
+#
+#
+###################################################################
+#
+#
+#
+#   Converge atmospheric structure 
+#
+#    - Includes *initial* ionization equilibrium *without* molecules (for now)
+#
+#
+#
+###################################################################
+
+#Initial pylab plot set-up
+pylab.title = "Pressure structure"
+pylab.xlabel = "log_10 Tau_Ros"
+pylab.ylabel = "log_10 Pgas, Pe (dyne/cm^2)"
+pylab.xlim(-6.5, 2.5)
+yMax = max(log10guessPgas) + 0.5
+yMin = min(log10guessPe) - 0.5
+pylab.ylim(yMin, yMax)
+
+log10temp = [0.0 for i in range(numDeps)]
+log10pgas = [0.0 for i in range(numDeps)]
+log10pe = [0.0 for i in range(numDeps)]
+log10prad = [0.0 for i in range(numDeps)]
+log10ne = [0.0 for i in range(numDeps)]
+log10rho = [0.0 for i in range(numDeps)]
+log10kappaRos = [0.0 for i in range(numDeps)]
+log10kappa500 = [0.0 for i in range(numDeps)]
+mmwAmu = [0.0 for i in range(numDeps)]
+depthsKm = [0.0 for i in range(numDeps)]
+#log10mmw = [0.0 for i in range(numDeps)]
 #//
 #// *********************
 #//Jul 2016: Replace the following procedure for model building with the following PSEUDOCODE:
@@ -1583,13 +1717,19 @@ for pIter in range(nOuterIter):
 #// Now we can update guessPGas:
         guessPGas[0][iTau] = pGas[0][iTau]
         guessPGas[1][iTau] = pGas[1][iTau]
-     
-    #Graphically inspect convergence:  Issue 'matplotlib qt5' in console before running code
-    thisClr = palette[pIter%numClrs]
-    #pylab.plot(tauRos[1][:], pGas[1][:], thisClr)
-    #pylab.plot(tauRos[1][:], newPe[1][:], thisClr)
-    #pylab.plot(tauRos[1][:], newNe[1][:], thisClr)
+        log10pgas[i] = log10e * pGas[1][i]
+        log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
+        log10prad[i] = log10e * pRad[1][i]
+        log10ne[i] = log10e * newNe[1][i]
 
+    #Uncomment this block to inspect iteration-by-iteration convergence
+    #Graphically inspect convergence:  Issue 'matplotlib qt5' in console before running code
+    """
+    thisClr = palette[pIter%numClrs]
+    pylab.plot(log10tauRos, log10pgas, color=thisClr)
+    pylab.plot(log10tauRos, log10pe, color=thisClr, linestyle='-')     
+    #pylab.plot(tauRos[1][:], newNe[1][:], thisClr)
+    """
 #//end Pgas-kappa iteration, nOuter
     
 #//diagnostic
@@ -1614,7 +1754,9 @@ for pIter in range(nOuterIter):
 
  #       // Then construct geometric depth scale from tau, kappa and rho
 depths = DepthScale.depthScale(numDeps, tauRos, kappaRos, rho)
-    
+
+ifTcorr = False
+ifConvec = False    
 #//int numTCorr = 10;  //test
 numTCorr = 0
 for i in range(numTCorr):
@@ -1640,13 +1782,76 @@ for i in range(numTCorr):
       }
      }
      */"""
-ifTcorr = False
-ifConvec = False
+
 #if ((ifTcorr == True) or (ifConvec == True)):
     #//Recall hydrostat with updates temps            
     #//Recall state withupdated Press                    
     #//recall kappas withupdates rhos
     #//Recall depths with re-updated kappas
+
+#Atmospheric structure output: 
+#Convert everything to log_10 OR re-scaled units for plotting, printing, etc:
+    
+
+for i in range(numDeps):
+    log10temp[i] = log10e * temp[1][i]
+    log10pgas[i] = log10e * pGas[1][i]
+    log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
+    log10prad[i] = log10e * pRad[1][i]
+    log10ne[i] = log10e * newNe[1][i]
+    log10rho[i] = log10e * rho[1][i]
+    log10NH[i] = log10e * logNH[i]
+    log10kappaRos[i] = log10e * kappaRos[1][i]
+    log10kappa500[i] = log10e * kappa500[1][i]
+    mmwAmu[i] = mmw[i] / Useful.amu()
+    depthsKm[i] = 1.0e-5 * depths[i]
+
+#Uncomment to inspect T_kin(tau):
+"""
+pylab.title = "Temperature structure"
+pylab.xlabel = "log_10 Tau_Ros"
+pylab.ylabel = "Tkin (K)"
+pylab.xlim(-6.5, 2.5)
+yMax = 1.1 * max(temp[0])
+yMin = 0.9 * min(temp[0])
+pylab.ylim(yMin, yMax)
+
+pylab.plot(log10tauRos, temp[0], color='blue')
+"""
+
+#Uncomment to inspect density structure
+"""
+pylab.title = "Density structure"
+pylab.xlabel = "log_10 Tau_Ros"
+pylab.ylabel = "log_10 rho (g cm^-3)"
+pylab.xlim(-6.5, 2.5)
+yMax = max(log10rho) + 0.5
+yMin = min(log10rho) - 0.5
+pylab.ylim(yMin, yMax)
+
+pylab.plot(log10tauRos, log10rho, color='blue')
+"""
+
+#Uncomment to inspect Pressure structure:
+"""
+pylab.title = "Pressure structure"
+pylab.xlabel = "log_10 Tau_Ros"
+pylab.ylabel = "log_10 Pgas, Pe (dyne/cm^2)"
+pylab.xlim(-6.5, 2.5)
+yMax = max(log10pgas) + 0.5
+yMin = min(log10pe) - 0.5
+pylab.ylim(yMin, yMax)
+"""
+
+###################################################
+#
+#
+#
+# Re-converge Ionization/chemical equilibrium WITH molecules
+#
+#
+#
+####################################################
 
 #//
 #// Now that the atmospheric structure is settled: 
@@ -1654,6 +1859,16 @@ ifConvec = False
 #// all elements and populate the ionization stages of all the species for spectrum synthesis:
 #//
 #//stuff to save ion stage pops at tau=1:
+    
+#Initial pylab plot set-up
+pylab.title = "Pressure structure"
+pylab.xlabel = "log_10 Tau_Ros"
+pylab.ylabel = "log_10 Pgas, Pe (dyne/cm^2)"
+pylab.xlim(-6.5, 2.5)
+yMax = max(log10pgas) + 0.5
+yMin = min(log10pe) - 0.5
+pylab.ylim(yMin, yMax)
+
 iTauOne = ToolBox.tauPoint(numDeps, tauRos, unity)
 
 #//
@@ -1942,12 +2157,52 @@ for neIter2 in range(nInnerIter):
     #diagnostic plots:
     #Graphically inspect convergence:  Issue 'matplotlib qt5' in console before running code
     thisClr = palette[neIter2%numClrs]
-    pylab.plot(tauRos[1][:], newNe[1][:])  
-    #pylab.plot(tauRos[1][:], masterMolPops[0][:])
-        
+    
+    for i in range(numDeps):
+        log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
+        log10ne[i] = log10e * newNe[1][i]
+
+    #Uncomment to inspect chem equil convergence
+    """        
+    thisClr = palette[neIter2%numClrs]
+    pylab.plot(log10tauRos, log10pe)
+    #pylab.plot(log10tauRos[1], log10ne)  
+    #pylab.plot(tauRos[1][:], masterMolPops[0][:]) 
+    """     
 #} //end Ne - ionzation fraction -molecular equilibrium iteration neIter2
 
 #//
+#Some atmospheric structure output AGAIN after chemical equilibrium: 
+#Convert everything to log_10 OR re-scaled units for plotting, printing, etc:
+
+
+#log10mmw = [0.0 for i in range(numDeps)]
+for i in range(numDeps):
+    log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
+    log10ne[i] = log10e * newNe[1][i]
+
+#Uncomment to inspect final Pe(tau) structure acocunting for molecules:
+"""    
+#Final convergence
+pylab.xlim(-6.5, 2.5)
+yMax = 1.1 * max(log10pgas)
+yMin = 0.9 * min(log10pe)
+pylab.ylim(yMin, yMax)
+
+pylab.plot(log10tauRos, log10pgas, color='blue')
+pylab.plot(log10tauRos, log10pe, color='green', linestyle='-')
+"""
+############################################################
+#
+#
+#
+# Surface radiation field
+#
+#  - flux distribution (SED)
+#  - high resolution synthetic spectrum
+#
+#
+###############################################################
 
 #//Okay - Now all the emergent radiation stuff:
 #// Set up theta grid
@@ -2063,7 +2318,7 @@ dataPath = "InputData/"
 #//
 #// *** NOTE: bArrSize must have been noted from the stadout of LineListServer and be consistent
 #// with whichever line list is linked to gsLineListBytes.dat, and be st manually here:
-lineListBytes = dataPath + "atomLineListFeb2017Bytes.dat"
+lineListBytes = absPath + dataPath + "atomLineListFeb2017Bytes.dat"
 #lineListBytes = "gsLineListBytes.dat"
 #//
 
@@ -2883,6 +3138,8 @@ logFluxSurfBol = math.log(fluxSurfBol)
 logTeffFlux = (logFluxSurfBol - Useful.logSigma()) / 4.0
 teffFlux = math.exp(logTeffFlux)
 
+print("Recovered Teff = " + str(teffFlux))
+
 #//Extract linear monochromatic continuum limb darkening coefficients (LDCs) ("epsilon"s):
 ldc = [0.0 for i in range(numLams)]
 ldc = LDC.ldc(numLams, lambdaScale, numThetas, cosTheta, contIntens)
@@ -2985,70 +3242,15 @@ tuneBandIntens = PostProcess.tuneColor(masterLams2, masterIntens, numThetas, num
 ft = PostProcess.fourier(numThetas, cosTheta, tuneBandIntens)
 numK = len(ft[0])
     
-warning = "";
-if (teff < 6000):
-    #//warning = "<span style='color:red'><em>T</em><sub>eff</sub> < 6000 K <br />Cool star mode";
-    warning = "Cool star mode"
-    print(warning)
-else:
-    #//warning = "<span style='color:blue'><em>T</em><sub>eff</sub> > 6000 K <br />Hot star mode</span>";
-    warning = "Hot star mode"
-    print(warning)
-    
 
-spectralClass = " "
-luminClass = "V"
-if (teff < 3000.0):
-    spectralClass = "L"
-elif ((teff >= 3000.0) and (teff < 3900.0)):
-    spectralClass = "M"
-elif ((teff >= 3900.0) and (teff < 5200.0)):
-    spectralClass = "K";
-elif ((teff >= 5200.0) and (teff < 5950.0)): 
-    spectralClass = "G"
-elif ((teff >= 5950.0) and (teff < 7300.0)):
-    spectralClass = "F";
-elif ((teff >= 7300.0) and (teff < 9800.0)):
-    spectralClass = "A"
-elif ((teff >= 9800.0) and (teff < 30000.0)):
-    spectralClass = "B"
-elif (teff >= 30000.0):
-    spectralClass = "O"
-    
-
-if ((logg >= 0.0) and (logg < 1.0)):
-    luminClass = "I"
-elif ((logg >= 1.0) and (logg < 1.5)):
-    luminClass = "II"
-elif ((logg >= 1.5) and (logg < 3.0)):
-    luminClass = "III"
-elif ((logg >= 3.0) and (logg < 4.0)):
-    luminClass = "IV"
-elif ((logg >= 4.0) and (logg < 5.0)):
-    luminClass = "V"
-elif ((logg >= 5.0) and (logg < 6.0)):
-    luminClass = "VI"
-elif (logg >= 6.0):
-    luminClass = "WD"
-    
-
-spectralType = spectralClass + " " + luminClass
-print("Spectral class: ", spectralType)
 
 
 #Atmospheric structure output: 
 #Convert everything to log_10 OR re-scaled units for plotting, printing, etc:
     
-log10e = math.log10(math.e)
 
-log10tauRos = [0.0 for i in range(numDeps)]
 log10temp = [0.0 for i in range(numDeps)]
-log10pgas = [0.0 for i in range(numDeps)]
-log10pe = [0.0 for i in range(numDeps)]
-log10prad = [0.0 for i in range(numDeps)]
-log10ne = [0.0 for i in range(numDeps)]
 log10rho = [0.0 for i in range(numDeps)]
-log10NH = [0.0 for i in range(numDeps)]
 log10kappaRos = [0.0 for i in range(numDeps)]
 log10kappa500 = [0.0 for i in range(numDeps)]
 mmwAmu = [0.0 for i in range(numDeps)]
@@ -3068,7 +3270,7 @@ for i in range(numDeps):
     mmwAmu[i] = mmw[i] / Useful.amu()
     depthsKm[i] = 1.0e-5 * depths[i]
 
-outPath = "Outputs/"
+
 
 outFile = outPath + strucFile
 #print vertical atmospheric structure
@@ -3087,12 +3289,27 @@ with open(outFile, 'w', encoding='utf-8') as strucHandle:
 numWave = numKept
 wave = [0.0 for i in range(numWave)]
 log10Wave = [0.0 for i in range(numWave)]
-logFlux = [0.0 for i in range(numWave)]
+log10Flux = [0.0 for i in range(numWave)]
 for i in range(numWave):
-    wave[i] = 1.0e7 * masterLams2[i]
-    log10Wave[i] =math.log(masterLams2[i])
-    logFlux[i] = log10e * masterFlux[1][i]
-    
+    wave[i] = cm2nm * masterLams2[i]
+    log10Wave[i] = math.log10(masterLams2[i])
+    log10Flux[i] = log10e * masterFlux[1][i]
+
+
+#Uncomment to inspect SED
+"""
+pylab.title = "Spectral energy distribution (SED)"
+pylab.ylabel = "log_10 F_lambda (ergs s^-1 cm^-2 cm^-1)"
+pylab.xlabel = "log_10 lambda (nm)"
+xMin = min(log10Wave) - 0.1
+xMax = max(log10Wave) + 0.1
+pylab.xlim(xMin, xMax)
+yMax = max(log10Flux) + 0.5
+yMin = min(log10Flux) - 0.5
+pylab.ylim(yMin, yMax)
+#
+pylab.plot(log10Wave, log10Flux)
+"""    
 waveSS = [0.0 for i in range(numSpecSyn)]
 for i in range(numSpecSyn):
     waveSS[i] = cm2nm * specSynLams2[i]
@@ -3118,10 +3335,32 @@ with open(outFile, 'w', encoding='utf-8') as sedHandle:
     sedHandle.write("Number of lines treated with Voigt profiles: " + str(numGaussLines) + "\n")
     sedHandle.write("wave (nm)  log10(flux) (cgs) \n")
     for i in range(numKept):
-        wave = cm2nm * masterLams2[i]
-        flux = log10e * masterFlux[1][i]
-        outLine = str(wave) + " " + str(flux) + "\n"
+        flux = log10Flux[i]
+        outLine = str(wave[i]) + " " + str(flux) + "\n"
         sedHandle.write(outLine)
+   
+#Uncomment to inspect synthetic spectrum:
+     
+pylab.title = "Synthetic spectrum"
+pylab.ylabel = "F_lambda/F^C_lambda"
+pylab.xlabel = "lambda (nm)"
+pylab.xlabel = "log_10 lambda (nm)"
+xMin = min(waveSS)
+xMax = max(waveSS)
+pylab.xlim(xMin, xMax)
+pylab.ylim(0.0, 2.0)
+pylab.plot(waveSS, specSynFlux[0])
+#Add spectral line labels:
+for i in range(numGaussLines):
+    thisLam = cm2nm * list2Lam0[gaussLine_ptr[i]]
+    thisLam = round(thisLam, 2)
+    thisLbl = list2Element[gaussLine_ptr[i]] + " " + \
+    list2StageRoman[gaussLine_ptr[i]] + " " + str(thisLam)
+    xPoint = [thisLam, thisLam]
+    yPoint = [1.05, 1.1]
+    pylab.plot(xPoint, yPoint, color='black')
+    pylab.text(thisLam, 1.7, thisLbl, rotation=270)
+
 
 #Pring narrow band Gaussian filter quantities: 
 #    limb darkening curve (LDC) and discrete fourier cosine transform of LDC
@@ -3141,8 +3380,30 @@ with open(outFile, 'w', encoding='utf-8') as ldcHandle:
     for i in range(numK):
         outLine = str(ft[0][i]) + " " + str(ft[1][i]) + "\n"
         ldcHandle.write(outLine)
-        
 
+#Uncomment to inspect narrow band limb darkening curve (LDC)
+"""         
+pylab.title = "Narrow band limb darkening"
+pylab.ylabel = "I_lambda/I_lambda(0)"
+pylab.xlabel = "cos(theta) (RAD)"
+pylab.xlim(-0.1, 1.1)
+pylab.ylim(0, 1.1)
+pylab.plot(cosTheta[1], normTuneBandIntens)
+"""
+
+#Uncomment to inspect discrete fourier cosine transform of LDC
+"""
+pylab.title = "Fourier cosine transform of I_lambda(theta)"
+pylab.ylabel = "I_theta"
+pylab.xlabel = "Angular freq (RAD/RAD)"
+xMin = 0.9 * min(ft[0])
+xMax = 1.1 * max(ft[0])
+pylab.xlim(xMin, xMax)
+yMin = 0.9 * min(ft[1])
+yMax = 1.1 * max(ft[1])
+pylab.ylim(yMin, yMax)
+pylab.plot(ft[0], ft[1])
+"""
 #// *****************************
 #// 
 #//
@@ -3334,6 +3595,7 @@ WlambdaLine = PostProcess.eqWidthSynth(lineFlux2, lineLambdas)
 #//
 #//"""
 #Print rectified high resolution spectrum of synthesis region
+lineWave = [0.0 for i in range(numPoints)]
 outFile = outPath + lineFile
 with open(outFile, 'w', encoding='utf-8') as lineHandle:
 #with open(lineFile, 'w') as lineHandle:
@@ -3341,8 +3603,8 @@ with open(outFile, 'w', encoding='utf-8') as lineHandle:
     lineHandle.write("User-defined two-level atom and line: Equivalent width: " + str(WlambdaLine) + " pm \n")
     lineHandle.write("wave (nm)   normalized flux \n")
     for i in range(numPoints):
-        lineWave = cm2nm*lineLambdas[i]
-        outLine = str(lineWave) + " " + str(lineFlux2[0][i]) + "\n"
+        lineWave[i] = cm2nm*lineLambdas[i]
+        outLine = str(lineWave[i]) + " " + str(lineFlux2[0][i]) + "\n"
         lineHandle.write(outLine)
     lineHandle.write("\n")
     lineHandle.write("log_10 energy level populations (cm^-3) \n")
@@ -3356,7 +3618,19 @@ with open(outFile, 'w', encoding='utf-8') as lineHandle:
         outLine = str(log10tauRos[i]) + " " + str(nl) + " " + str(nI) + " " + str(nII) + " " + str(nIII) + " " + str(nIV) + "\n" 
         lineHandle.write(outLine)
 
-      
+#Uncomment to inspect spectral line of user-defined 2-level atom
+"""
+pylab.title = "Continuum normalized spectrum"
+pylab.ylabel = "F_lambda/F^C_lambda"
+pylab.xlabel = "lambda (nm)"
+xMin = min(lineWave)
+xMax = max(lineWave)
+pylab.xlim(xMin, xMax)
+pylab.ylim(0, 1.2)
+        
+pylab.plot(lineWave, lineFlux2[0])
+"""  
+     
 dbgHandle.close()
         
         
