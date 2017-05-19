@@ -1841,7 +1841,12 @@ pylab.xlim(-6.5, 2.5)
 yMax = max(log10pgas) + 0.5
 yMin = min(log10pe) - 0.5
 pylab.ylim(yMin, yMax)
+
+pylab.plot(log10tauRos, log10pgas, color='blue')
+pylab.plot(log10tauRos, log10pe, color='green', linestyle='-')
+pylab.plot(log10tauRos, log10prad, color='red')
 """
+
 
 ###################################################
 #
@@ -2191,6 +2196,7 @@ pylab.ylim(yMin, yMax)
 
 pylab.plot(log10tauRos, log10pgas, color='blue')
 pylab.plot(log10tauRos, log10pe, color='green', linestyle='-')
+pylab.plot(log10tauRos, log10prad, color='red')
 """
 ############################################################
 #
