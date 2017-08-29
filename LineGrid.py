@@ -207,7 +207,7 @@ def lineGridGauss(lam0In, massIn, xiTIn, numDeps, teff, numCore):
 #//
 #//
    
-def lineGridVoigt(lam0In, massIn, xiTIn, numDeps, teff, numCore, numWing):
+def lineGridVoigt(lam0In, massIn, xiTIn, numDeps, teff, numCore, numWing, species):
 
     c = Useful.c()
     logC = Useful.logC()
@@ -262,6 +262,16 @@ def lineGridVoigt(lam0In, massIn, xiTIn, numDeps, teff, numCore, numWing):
     #//double maxWingDeltaLogV = 1.5 * ln10; //maximum base e logarithmic shift from line centre in Doppler widths
     minWingDeltaLogV = math.log(maxCoreV + 1.5)
     maxWingDeltaLogV = 9.0 + minWingDeltaLogV
+    
+    if(species=="HI" and teff>=7000): 
+        maxCoreV = 3.5 
+        minWingDeltaLogV = math.log(maxCoreV + 1.5)
+        maxWingDeltaLogV = 12.0 + minWingDeltaLogV
+
+#//console.log("2)"+maxWingDeltaLogV);
+      
+
+    
 
     #double logV, ii, jj;
 

@@ -36,8 +36,8 @@ c******************************************************************************
 
     masterRScat = [ [ 0.0 for i in range(numDeps) ] for j in range(numLams) ]
 
-    logUH1 = [0.0 for i in range(2)]
-    logUHe1 = [0.0 for i in range(2)]
+    logUH1 = [0.0 for i in range(5)]
+    logUHe1 = [0.0 for i in range(5)]
 
     logStatWH1 = 0.0
     logStatWHe1 = 0.0
@@ -53,16 +53,17 @@ c******************************************************************************
 #// He I: Z=2 --> iZ=1:
     sigHe1 = [0.0 for i in range(numDeps)]
     species = "HI"
-    logUH1 = PartitionFn.getPartFn(species)
+    logUH1 = PartitionFn.getPartFn2(species)
     species = "HeI"
-    logUHe1 = PartitionFn.getPartFn(species)
+    logUHe1 = PartitionFn.getPartFn2(species)
 
     #//System.out.println("iD     PopsH1     PopsHe1");
     for iD in range(numDeps):
 #//neutral stage
 #//Assumes ground state stat weight, g_1, is 1.0
-        theta = 5040.0 / temp[0][iD]
+        #theta = 5040.0 / temp[0][iD]
 #// U[0]: theta = 1.0, U[1]: theta = 0.5
+        """
         if (theta <= 0.5):
             logStatWH1 = logUH1[1]
             logStatWHe1 = logUHe1[1]
@@ -75,7 +76,39 @@ c******************************************************************************
         else: 
             logStatWH1 = logUH1[0]
             logStatWHe1 = logUHe1[0]
-              
+        """
+        
+#// NEW Interpolation with temperature for new partition function: lburns
+        thisTemp = temp[0][iD];
+        if (thisTemp <= 130):
+            logStatWH1 = logUH1[0]
+            logStatWHe1 = logUHe1[0]
+        elif (thisTemp > 130 and thisTemp <= 500):
+            logStatWH1 = logUH1[1] * (thisTemp - 130)/(500 - 130) \
+                       + logUH1[0] * (500 - thisTemp)/(500 - 130)
+            logStatWHe1 = logUHe1[1] * (thisTemp - 130)/(500 - 130) \
+                       + logUHe1[0] * (500 - thisTemp)/(500 - 130)
+        elif (thisTemp > 500 and thisTemp <= 3000):
+            logStatWH1 = logUH1[2] * (thisTemp - 500)/(3000 - 500) \
+                       + logUH1[1] * (3000 - thisTemp)/(3000 - 500)
+            logStatWHe1 = logUHe1[2] * (thisTemp - 500)/(3000 - 500) \
+                       + logUHe1[1] * (3000 - thisTemp)/(3000 - 500)
+        elif (thisTemp > 3000 and thisTemp <= 8000):
+            logStatWH1 = logUH1[3] * (thisTemp - 3000)/(8000 - 3000) \
+                       + logUH1[2] * (8000 - thisTemp)/(8000 - 3000)
+            logStatWHe1 = logUHe1[3] * (thisTemp - 3000)/(8000 - 3000) \
+                       + logUHe1[2] * (8000 - thisTemp)/(8000 - 3000)
+        elif (thisTemp > 8000 and thisTemp < 10000):
+            logStatWH1 = logUH1[4] * (thisTemp - 8000)/(10000 - 8000) \
+                       + logUH1[3] * (10000 - thisTemp)/(10000 - 8000)
+            logStatWHe1 = logUHe1[4] * (thisTemp - 8000)/(10000 - 8000) \
+                       + logUHe1[3] * (10000 - thisTemp)/(10000 - 8000)
+        else:
+            #// for temperatures of greater than or equal to 10000K lburns
+            logStatWH1 = logUH1[4]
+            logStatWHe1 = logUHe1[4]
+        
+        
         logGroundPopsH1[iD] = stagePops[0][0][iD] - logStatWH1 
         logGroundPopsHe1[iD] = stagePops[1][0][iD] - logStatWHe1
 

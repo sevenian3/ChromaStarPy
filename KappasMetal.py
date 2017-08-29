@@ -29,13 +29,13 @@ http://www.as.utexas.edu/~chris/moog.html
     
     masterBF = [ [ 0.0 for i in range(numDeps) ] for j in range(numLams) ]     
 
-    logUC1 = [0.0 for i in range(2)]
-    logUMg1 = [0.0 for i in range(2)]
-    logUMg2 = [0.0 for i in range(2)]
-    logUAl1 = [0.0 for i in range(2)]
-    logUSi1 = [0.0 for i in range(2)]
-    logUSi2 = [0.0 for i in range(2)]
-    logUFe1 = [0.0 for i in range(2)]
+    logUC1 = [0.0 for i in range(5)]
+    logUMg1 = [0.0 for i in range(5)]
+    logUMg2 = [0.0 for i in range(5)]
+    logUAl1 = [0.0 for i in range(5)]
+    logUSi1 = [0.0 for i in range(5)]
+    logUSi2 = [0.0 for i in range(5)]
+    logUFe1 = [0.0 for i in range(5)]
 
     logStatWC1 = 0.0
     logStatWMg1 = 0.0
@@ -73,26 +73,27 @@ http://www.as.utexas.edu/~chris/moog.html
     aFe1 = [0.0 for i in range(numDeps)] 
 
     species = "CI"
-    logUC1 = PartitionFn.getPartFn(species)
+    logUC1 = PartitionFn.getPartFn2(species)
     species = "MgI"
-    logUMg1 = PartitionFn.getPartFn(species)
+    logUMg1 = PartitionFn.getPartFn2(species)
     species = "MgII"
-    logUMg2 = PartitionFn.getPartFn(species)
+    logUMg2 = PartitionFn.getPartFn2(species)
     species = "AlI"
-    logUAl1 = PartitionFn.getPartFn(species)
+    logUAl1 = PartitionFn.getPartFn2(species)
     species = "SiI"
-    logUSi1 = PartitionFn.getPartFn(species)
+    logUSi1 = PartitionFn.getPartFn2(species)
     species = "SiII"
-    logUSi2 = PartitionFn.getPartFn(species)
+    logUSi2 = PartitionFn.getPartFn2(species)
     species = "FeI"
-    logUFe1 = PartitionFn.getPartFn(species)
+    logUFe1 = PartitionFn.getPartFn2(species)
 
 #//System.out.println("iD     PpC1     PpMg1      PpMg2     PpAl1     PpSi1     PpSi2     PpFe1"); 
     for iD in range(numDeps):
 #//neutral stage
 #//Assumes ground state stat weight, g_1, is 1.0
-        theta = 5040.0 / temp[0][iD]
+        #theta = 5040.0 / temp[0][iD]
 #// U[0]: theta = 1.0, U[1]: theta = 0.5
+        """
         if (theta <= 0.5):
             logStatWC1 = logUC1[1]
             logStatWMg1 = logUMg1[1]
@@ -125,14 +126,99 @@ http://www.as.utexas.edu/~chris/moog.html
             logStatWSi1 = logUSi1[0]
             logStatWSi2 = logUSi2[0]
             logStatWFe1 = logUFe1[0]
+        """
 
-            logGroundPopsC1[iD] = stagePops[5][0][iD] - logStatWC1 
-            logGroundPopsMg1[iD] = stagePops[11][0][iD] - logStatWMg1 
-            logGroundPopsMg2[iD] = stagePops[11][1][iD] - logStatWMg2 
-            logGroundPopsAl1[iD] = stagePops[12][0][iD] - logStatWAl1 
-            logGroundPopsSi1[iD] = stagePops[13][0][iD] - logStatWSi1 
-            logGroundPopsSi2[iD] = stagePops[13][1][iD] - logStatWSi2 
-            logGroundPopsFe1[iD] = stagePops[25][0][iD] - logStatWFe1
+#// NEW Interpolation involving temperature for new partition function: lburns
+        thisTemp = temp[0][iD]
+        if (thisTemp <= 130):
+            logStatWC1 = logUC1[0]
+            logStatWMg1 = logUMg1[0]
+            logStatWMg2 = logUMg2[0]
+            logStatWAl1 = logUAl1[0]
+            logStatWSi1 = logUSi1[0]
+            logStatWSi2 = logUSi2[0]
+            logStatWFe1 = logUFe1[0]
+        elif (thisTemp > 130 and thisTemp <= 500):
+            #// Add in interpolation here lburns
+            logStatWC1 = logUC1[1] * (thisTemp - 130)/(500 - 130) \
+                + logUC1[0] * (500 - thisTemp)/(500 - 130)
+            logStatWMg1 = logUMg1[1] * (thisTemp - 130)/(500 - 130) \
+                + logUMg1[0] * (500 - thisTemp)/(500 - 130)
+            logStatWMg2 = logUMg2[1] * (thisTemp - 130)/(500 - 130) \
+                + logUMg2[0] * (500 - thisTemp)/(500 - 130)
+            logStatWAl1 = logUAl1[1] * (thisTemp - 130)/(500 - 130) \
+                + logUAl1[0] * (500 - thisTemp)/(500 - 130)
+            logStatWSi1 = logUSi1[1] * (thisTemp - 130)/(500 - 130) \
+                + logUSi1[0] * (500 - thisTemp)/(500 - 130)
+            logStatWSi2 = logUSi2[1] * (thisTemp - 130)/(500 - 130) \
+                + logUSi2[0] * (500 - thisTemp)/(500 - 130)
+            logStatWFe1 = logUFe1[1] * (thisTemp - 130)/(500 - 130) \
+                + logUFe1[0] * (500 - thisTemp)/(500 - 130)
+        elif (thisTemp > 500 and thisTemp <= 3000):
+            logStatWC1 = logUC1[2] * (thisTemp - 500)/(3000 - 500) \
+                + logUC1[1] * (3000 - thisTemp)/(3000 - 500)
+            logStatWMg1 = logUMg1[2] * (thisTemp - 500)/(3000 - 500) \
+                + logUMg1[1] * (3000 - thisTemp)/(3000 - 500)
+            logStatWMg2 = logUMg2[2] * (thisTemp - 500)/(3000 - 500) \
+                + logUMg2[1] * (3000 - thisTemp)/(3000 - 500) 
+            logStatWAl1 = logUAl1[2] * (thisTemp - 500)/(3000 - 500) \
+                + logUAl1[1] * (3000 - thisTemp)/(3000 - 500) 
+            logStatWSi1 = logUSi1[2] * (thisTemp - 500)/(3000 - 500) \
+                + logUSi1[1] * (3000 - thisTemp)/(3000 - 500)
+            logStatWSi2 = logUSi2[2] * (thisTemp - 500)/(3000 - 500) \
+                + logUSi2[1] * (3000 - thisTemp)/(3000 - 500)
+            logStatWFe1 = logUFe1[2] * (thisTemp - 500)/(3000 - 500) \
+                + logUFe1[1] * (3000 - thisTemp)/(3000 - 500)
+        elif (thisTemp > 3000 and thisTemp <= 8000):
+            logStatWC1 = logUC1[3] * (thisTemp - 3000)/(8000 - 3000) \
+                + logUC1[2] * (8000 - thisTemp)/(8000 - 3000)
+            logStatWMg1 = logUMg1[3] * (thisTemp - 3000)/(8000 - 3000) \
+                + logUMg1[2] * (8000 - thisTemp)/(8000 - 3000)
+            logStatWMg2 = logUMg2[3] * (thisTemp - 3000)/(8000 - 3000) \
+                + logUMg2[2] * (8000 - thisTemp)/(8000 - 3000) 
+            logStatWAl1 = logUAl1[3] * (thisTemp - 3000)/(8000 - 3000) \
+                + logUAl1[2] * (8000 - thisTemp)/(8000 - 3000)
+            logStatWSi1 = logUSi1[3] * (thisTemp - 3000)/(8000 - 3000) \
+                + logUSi1[2] * (8000 - thisTemp)/(8000 - 3000) 
+            logStatWSi2 = logUSi2[3] * (thisTemp - 3000)/(8000 - 3000) \
+                + logUSi2[2] * (8000 - thisTemp)/(8000 - 3000)
+            logStatWFe1 = logUFe1[3] * (thisTemp - 3000)/(8000 - 3000) \
+                + logUFe1[2] * (8000 - thisTemp)/(8000 - 3000)
+        elif (thisTemp > 8000 and thisTemp < 10000):
+            logStatWC1 = logUC1[4] * (thisTemp - 8000)/(10000 - 8000) \
+                + logUC1[3] * (10000 - thisTemp)/(10000 - 8000)
+            logStatWMg1 = logUMg1[4] * (thisTemp - 8000)/(10000 - 8000) \
+                + logUMg1[3] * (10000 - thisTemp)/(10000 - 8000)
+            logStatWMg2 = logUMg2[4] * (thisTemp - 8000)/(10000 - 8000) \
+                + logUMg2[3] * (10000 - thisTemp)/(10000 - 8000)
+            logStatWAl1 = logUAl1[4] * (thisTemp - 8000)/(10000 - 8000) \
+                + logUAl1[3] * (10000 - thisTemp)/(10000 - 8000)
+            logStatWSi1 = logUSi1[4] * (thisTemp - 8000)/(10000 - 8000) \
+                + logUSi1[3] * (10000 - thisTemp)/(10000 - 8000) 
+            logStatWSi2 = logUSi2[4] * (thisTemp - 8000)/(10000 - 8000) \
+                + logUSi2[3] * (10000 - thisTemp)/(10000 - 8000) 
+            logStatWFe1 = logUFe1[4] * (thisTemp - 8000)/(10000 - 8000) \
+                + logUFe1[3] * (10000 - thisTemp)/(10000 - 8000)
+        else:
+            #// for temperatures greater than or equal to 10000
+            logStatWC1 = logUC1[4]
+            logStatWMg1 = logUMg1[4]
+            logStatWMg2 = logUMg2[4]
+            logStatWAl1 = logUAl1[4]
+            logStatWSi1 = logUSi1[4]
+            logStatWSi2 = logUSi2[4]
+            logStatWFe1 = logUFe1[4]
+            
+
+        
+
+        logGroundPopsC1[iD] = stagePops[5][0][iD] - logStatWC1 
+        logGroundPopsMg1[iD] = stagePops[11][0][iD] - logStatWMg1 
+        logGroundPopsMg2[iD] = stagePops[11][1][iD] - logStatWMg2 
+        logGroundPopsAl1[iD] = stagePops[12][0][iD] - logStatWAl1 
+        logGroundPopsSi1[iD] = stagePops[13][0][iD] - logStatWSi1 
+        logGroundPopsSi2[iD] = stagePops[13][1][iD] - logStatWSi2 
+        logGroundPopsFe1[iD] = stagePops[25][0][iD] - logStatWFe1
 
             #// if (iD%5 == 1){ 
             #//     System.out.format("%03d, %21.15f, %21.15f, %21.15f, %21.15f, %21.15f, %21.15f, %21.15f %n", 

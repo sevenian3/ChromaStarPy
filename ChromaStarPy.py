@@ -3,6 +3,50 @@
 Spyder Editor
 
 This is the main source file for ChromaStarPy.  We start here.
+
+"""
+
+"""
+/*
+ * The openStar project: stellar atmospheres and spectra
+ *
+ * grayStarServer
+ * V3.0, November 2015
+ * JQuery version
+ * 
+ * C. Ian Short
+ * Saint Mary's University
+ * Department of Astronomy and Physics
+ * Institute for Computational Astrophysics (ICA)
+ * Halifax, NS, Canada
+ *  * ian.short@smu.ca
+ * www.ap.smu.ca/~ishort/
+ *
+ *
+ *  * Co-developers:
+ *  *
+ *  * Lindsey Burns (SMU) - 2017 - "lburns"
+ *  * Jason Bayer (SMU) - 2017 - "JB"
+ *
+ * 
+ * Open source pedagogical computational stellar astrophysics
+ *
+ * 1D, static, plane-parallel, LTE, multi-gray stellar atmospheric model
+ * Voigt spectral line profile
+ *
+ * Suitable for pedagogical purposes only
+ * 
+ * Logic developed in Java SE 8.0, JDK 1.8
+ * 
+ * Ported to JavaScript for deployment
+ *
+ * System requirements for Java version: Java run-time environment (JRE)
+ * System requirements for JavaScript version: JavaScript intrepretation enabld in WWW browser (usually by default)
+ *
+ * Code provided "as is" - there is no formal support 
+ *
+ */
+
 """
 
 """/*
@@ -134,6 +178,15 @@ with open(inFile, 'r') as inputHandle:
     inLine = inputHandle.readline()
     fields = inLine.split(",")
     lbl = fields[0].strip(); xiTStr = fields[1].strip()   #km/s
+    inLine = inputHandle.readline()
+    fields = inLine.split(",")
+    lbl = fields[0].strip(); logHeFeStr = fields[1].strip()   #[He/Fe]
+    inLine = inputHandle.readline()
+    fields = inLine.split(",")
+    lbl = fields[0].strip(); logCOStr = fields[1].strip()   #[C/O]
+    inLine = inputHandle.readline()
+    fields = inLine.split(",")
+    lbl = fields[0].strip(); logAlphaFeStr = fields[1].strip()   #[alpha-elements/Fe]    
     
     #Spectrum synthesis
     inLine = inputHandle.readline()   #Section header
@@ -174,13 +227,16 @@ with open(inFile, 'r') as inputHandle:
     inLine = inputHandle.readline()    
     fields = inLine.split(",")
     lbl = fields[0].strip(); RVStr = fields[1].strip()   #km/s
+    #print("RVStr ", RVStr)
     inLine = inputHandle.readline()    
     fields = inLine.split(",")
     lbl = fields[0].strip(); vacAir = fields[1].strip()
+    #print("vacAir ", vacAir)
     inLine = inputHandle.readline() 
     fields = inLine.split(",")
     #spectral lines sampled with "coarse" or "fine" lambda grid
     lbl = fields[0].strip(); sampling = fields[1].strip()
+    #print("sampling ", sampling)
     
     #Performance vs realism
     inLine = inputHandle.readline()   #Section header
@@ -302,9 +358,9 @@ massStar = float(massStarStr)
 
 #// Sanity check:
 F0Vtemp = 7300.0;  #// Teff of F0 V star (K)                           
-if (teff < 3700.0): 
-    teff = 3700.0
-    teffStr = "3700"
+if (teff < 3000.0): 
+    teff = 3000.0
+    teffStr = "3000"
 
 if (teff > 50000.0):
     teff = 50000.0
@@ -369,6 +425,40 @@ if (xiT < 0.0):
 if (xiT > 8.0): 
     xiT = 8.0
     xitStr = "8.0"
+    
+#// Add new variables to hold values for new metallicity controls lburns
+logHeFe = float(logHeFeStr)  #// lburns
+logCO = float(logCOStr) #// lburns
+logAlphaFe = float(logAlphaFeStr) #// lburns
+
+#// For new metallicity commands lburns
+#// For logHeFe: (lburns)
+if (logHeFe < -1.0):
+    logHeFe = -1.0;
+    logHeFeStr = "-1.0";
+    
+if (logHeFe > 1.0):
+    logHeFe = 1.0
+    logHeFeStr = "1.0"
+    
+#// For logCO: (lburns)
+if (logCO < -2.0):
+    logCO = -2.0
+    logCOStr = "-2.0"
+
+if (logCO > 2.0):
+    logCO = 2.0
+    logCOStr = "2.0"
+
+#// For logAlphaFe: (lburns)
+if (logAlphaFe < -0.5):
+    logAlphaFe = -0.5
+    logAlphaFeStr = "-0.5"
+
+if (logAlphaFe > 0.5):
+    logAlphaFe = 0.5
+    logAlphaFeStr = "0.5"
+
         
 
 #// Argument 6: minimum ratio of monochromatic line center to background continuous
@@ -734,7 +824,8 @@ userLam0 = userLam0 * nm2cm #// line centre lambda from nm to cm
 #Create output file
 
 #File for structure output:
-strucStem = "Teff" + teffStr + "Logg" + loggStr + "Z" + logZStr + "M" + massStarStr+"xiT"+xiTStr
+strucStem = "Teff" + teffStr + "Logg" + loggStr + "Z" + logZStr + "M" + massStarStr+"xiT"+xiTStr + \
+"HeFe" + logHeFeStr + "CO" + logCOStr + "AlfFe" + logAlphaFeStr
 strucFile = "struc." + strucStem + ".out"
 specFile = "spec." + strucStem + "L"+lambdaStartStr+"-"+lambdaStopStr+"xiT"+xiTStr+"LThr"+lineThreshStr+ \
 "Mac"+macroVStr+"Rot"+rotVStr+"-"+rotIStr+"RV"+RVStr + ".out"
@@ -745,11 +836,12 @@ lineFile = "line." + strucStem + "L0" + userLam0Str + ".out"
 
 #Echo input parameters *actually used* to console:
 inputParamString = "Teff " + str(teff) + " logg " + str(logg) + " [Fe/H] " + str(log10ZScale) + " massStar " + \
-      str(massStar) + " xiT " + str(xiT) + " lineThresh " + str(lineThresh) + " voigtThresh " + \
+      str(massStar) + " xiT " + str(xiT) + "HeFe" + logHeFeStr + "CO" + logCOStr + "AlfFe" + logAlphaFeStr + \
+       " lineThresh " + str(lineThresh) + " voigtThresh " + \
       str(voigtThresh) + " lambda0 " + str(lambdaStart) + " lambda1 " + str(lambdaStop) + " logGamCol " + \
       str(logGammaCol) + " logKapFudge " + str(logKapFudge) + " macroV " + str(macroV) + " rotV " + str(rotV) + \
       " rotI " + str(rotI) + " RV " + str(RV) + " nInner " + str(nInnerIter) + " nOuter " + str(nOuterIter) + \
-      " ifTiO " + str(ifTiO) + " sampling " + sampling
+      " ifTiO " + ifTiOStr + " sampling " + sampling
 print(inputParamString)
 #// Wavelengths in Air : 
 #    if ($("#air").is(":checked")) {
@@ -796,7 +888,7 @@ for i in range(3):
 lamSetup[0] = 260.0 * nm2cm  #// test Start wavelength, cm
 #lamSetup[0] = 100.0 * 1.0e-7;  // test Start wavelength, cm
 lamSetup[1] = 2600.0 * nm2cm #// test End wavelength, cm
-lamSetup[2] = 350;  #// test number of lambda
+lamSetup[2] = 150;  #// test number of lambda
 #//int numLams = (int) (( lamSetup[1] - lamSetup[0] ) / lamSetup[2]) + 1;  
 numLams = int(lamSetup[2])
 
@@ -1107,6 +1199,33 @@ if (teff <= jolaTeff):
 ATot = 0.0
 thisAz = 0.0 
 eheuScale = 0.0
+
+#// Set value of eheuScale for new metallicity options. 06/17 lburns
+if (logHeFe != 0.0):
+    eheu[1] = eheu[1] + logHeFe
+
+if (logAlphaFe != 0.0):
+    eheu[7] = eheu[7] + logAlphaFe
+    eheu[9] = eheu[9] + logAlphaFe;
+    eheu[11] = eheu[11] + logAlphaFe
+    eheu[13] = eheu[13] + logAlphaFe
+    eheu[15] = eheu[15] + logAlphaFe
+    eheu[17] = eheu[17] + logAlphaFe
+    eheu[19] = eheu[19] + logAlphaFe
+    eheu[21] = eheu[21] + logAlphaFe
+        
+if (logCO > 0.0):
+    eheu[5] = eheu[5] + logCO
+    #//console.log("logCO " + logCO);
+        
+if (logCO < 0.0):
+    eheu[7] = eheu[7] + Math.abs(logCO)
+    #//console.log("logCO " + logCO);
+        
+#//console.log("logCO " + logCO);
+
+
+
 for i in range(nelemAbnd):
      eheuScale = eheu[i]  #//default initialization //still base 10
      if (i > 1): #//if not H or He
@@ -1226,44 +1345,341 @@ else:
     warning = "Hot star mode"
     print(warning)
     
+#//Add subclass to each spectral class (lburns)
 spectralClass = " "
-luminClass = "V"
-if (teff < 3000.0):
-    spectralClass = "L"
-elif ((teff >= 3000.0) and (teff < 3900.0)):
-    spectralClass = "M"
-elif ((teff >= 3900.0) and (teff < 5200.0)):
-    spectralClass = "K";
-elif ((teff >= 5200.0) and (teff < 5950.0)): 
-    spectralClass = "G"
-elif ((teff >= 5950.0) and (teff < 7300.0)):
-    spectralClass = "F";
-elif ((teff >= 7300.0) and (teff < 9800.0)):
-    spectralClass = "A"
-elif ((teff >= 9800.0) and (teff < 30000.0)):
-    spectralClass = "B"
-elif (teff >= 30000.0):
-    spectralClass = "O"
+subClass = " " #//Create a variable for the subclass of the star. lburns
+luminClass = "V" #//defaults to V
+#//Determine the spectralClass and subClass of main sequence stars, subdwarfs and white dwarfs
+#//var luminClass = "V" or luminClass = "VI" or luminClass = "WD"
+if (((logg >= 4.0) and (logg < 5.0)) or ((logg >= 5.0) and (logg < 6.0)) or (logg >= 5.0)):
+    if (teff < 3000.0):
+        spectralClass = "L";
+    elif ((teff >= 3000.0) and (teff < 3900.0)):
+        spectralClass = "M";
+        if ((teff >= 3000.0) and (teff <= 3030.0)):
+            subClass = "6";
+        elif ((teff > 3030.0) and (teff <= 3170.0)):
+            subClass = "5";
+        elif ((teff > 3170.0) and (teff <= 3290.0)):
+            subClass = "4";
+        elif ((teff > 3290.0) and (teff <= 3400.0)):
+            subClass = "3";
+        elif ((teff > 3400.0) and (teff <= 3520.0)):
+            subClass = "2";
+        elif ((teff > 3520.0) and (teff <= 3660.0)):
+            subClass = "1";
+        elif ((teff > 3660.0) and (teff < 3900.0)):
+            subClass = "0";
+        
+    elif ((teff >= 3900.0) and (teff < 5200.0)):
+        spectralClass = "K";
+        if ((teff >= 3900.0) and (teff <= 4150.0)):
+            subClass = "7";
+        elif ((teff > 4150.0) and (teff <= 4410.0)):
+            subClass = "5";
+        elif ((teff > 4410.0) and (teff <= 4540.0)):
+            subClass = "4";
+        elif ((teff > 4540.0) and (teff <= 4690.0)):
+            subClass = "3";
+        elif ((teff > 4690.0) and (teff <= 4990.0)):
+            subClass = "1";
+        elif ((teff > 4990.0) and (teff < 5200.0)):
+            subClass = "0";
+        
+    elif ((teff >= 5200.0) and (teff < 5950.0)):
+        spectralClass = "G";
+        if ((teff >= 5200.0) and (teff <= 5310.0)):
+            subClass = "8";
+        elif ((teff > 5310.0) and (teff <= 5790.0)):
+            subClass = "2";
+        elif ((teff > 5790.0) and (teff < 5950.0)):
+            subClass = "0";
+        
+    elif ((teff >= 5950.0) and (teff < 7300.0)):
+        spectralClass = "F";
+        if ((teff >= 5950.0) and (teff <= 6250.0)):
+            subClass = "8";
+        elif ((teff > 6250.0) and (teff <= 6650.0)):
+            subClass = "5";
+        elif ((teff > 6650.0) and (teff <= 7050.0)):
+            subClass = "2";
+        elif ((teff > 7050.0) and (teff < 7300.0)):
+            subClass = "0";
+        
+    elif ((teff >= 7300.0) and (teff < 9800.0)):
+        spectralClass = "A";
+        if ((teff >= 7300.0) and (teff <= 7600.0)):
+            subClass = "8";
+        elif ((teff > 7600.0) and (teff <= 8190.0)):
+            subClass = "5";
+        elif ((teff > 8190.0) and (teff <= 9020.0)):
+            subClass = "2";
+        elif ((teff > 9020.0) and (teff <= 9400.0)):
+            subClass = "1";
+        elif ((teff > 9400.0) and (teff < 9800.0)):
+            subClass = "0";
+        
+    elif ((teff >= 9800.0) and (teff < 30000.0)):
+        spectralClass = "B";
+        if ((teff >= 9300.0) and (teff <= 10500.0)):
+            subClass = "9";
+        elif ((teff > 10500.0) and (teff <= 11400.0)):
+            subClass = "8";
+        elif ((teff > 11400.0) and (teff <= 12500.0)):
+            subClass = "7";
+        elif ((teff > 12500.0) and (teff <= 13700.0)):
+            subClass = "6";
+        elif ((teff > 13700.0) and (teff <= 15200.0)):
+            subClass = "5";
+        elif ((teff > 15200.0) and (teff <= 18800.0)):
+            subClass = "3";
+        elif ((teff > 18800.0) and (teff <= 20900.0)):
+            subClass = "2";
+        elif ((teff > 20900.0) and (teff <= 25400.0)):
+            subClass = "1";
+        elif ((teff > 25400.0) and (teff < 30000.0)):
+            subClass = "0";
+        
+    elif (teff >= 30000.0):
+        spectralClass = "O";
+        if ((teff >= 30000.0) and (teff <= 35800.0)):
+            subClass = "8";
+        elif ((teff > 35800.0) and (teff <= 37500.0)):
+            subClass = "7";
+        elif ((teff > 37500.0) and (teff <= 39500.0)):
+            subClass = "6";
+        elif ((teff > 39500.0) and (teff <= 42000.0)):
+            subClass = "5";
+        
     
 
+#//Determine the spectralClass and subClass of giants and subgiants. lburns
+#//var luminClass = "III" or luminClass = "IV"
+#//Determine the spectralClass and subClass of giants and subgiants. lburns
+#//var luminClass = "III" or luminClass = "IV"
+if (((logg >= 1.5) and (logg < 3.0)) or ((logg >= 3.0) and (logg < 4.0))):
+    if (teff < 3000.0):
+        spectralClass = "L";
+    elif ((teff >= 3000.0) and (teff < 3700.0)):
+        spectralClass = "M";
+        if ((teff >= 3000.0) and (teff <= 3330.0)):
+            subClass = "6";
+        elif ((teff > 3330.0) and (teff <= 3380.0)):
+            subclass = "5";
+        elif ((teff > 3380.0) and (teff <= 3440.0)):
+            subClass = "4";
+        elif ((teff > 3440.0) and (teff <= 3480.0)):
+            subClass = "3";
+        elif ((teff > 3480.0) and (teff <= 3540.0)):
+            subClass = "2";
+        elif ((teff > 3540.0) and (teff <= 3600.0)):
+            subClass = "1";
+        elif ((teff > 3600.0) and (teff < 3700.0)):
+            subClass = "0";
+        
+    elif ((teff >= 3700.0) and (teff < 4700.0)):
+        spectralClass = "K"
+        if ((teff >= 3700.0) and (teff <= 3870.0)):
+            subClass = "7";
+        elif ((teff > 3870.0) and (teff <= 4050.0)):
+            subClass = "5";
+        elif ((teff > 4050.0) and (teff <= 4150.0)):
+            subClass = "4";
+        elif ((teff > 4150.0) and (teff <= 4260.0)):
+            subClass = "3";
+        elif ((teff > 4260.0) and (teff <= 4510.0)):
+            subClass = "1";
+        elif ((teff > 4510.0) and (teff < 4700.0)):
+            subClass = "0";
+        
+    elif ((teff >= 4700.0) and (teff < 5500.0)):
+        spectralClass = "G";
+        if ((teff >= 4700.0) and (teff <= 4800.0)):
+            subClass = "8";
+        elif ((teff > 4800.0) and (teff <= 5300.0)):
+            subClass = "2";
+        elif ((teff > 5300.0) and (teff < 5500.0)):
+            subClass = "0";
+        
+    elif ((teff >= 5500.0) and (teff < 7500.0)):
+        spectralClass = "F";
+        if ((teff >= 5500.0) and (teff <= 6410.0)):
+            subClass = "5";
+        elif ((teff > 6410.0) and (teff <= 7000.0)):
+            subClass = "2";
+        elif ((teff > 7000.0) and (teff < 7500.0)):
+            subClass = "0";
+        
+    elif ((teff >= 7500.0) and (teff < 10300.0)):
+        spectralClass = "A";
+        if ((teff >= 7500.0) and (teff <= 7830.0)):
+            subClass = "8";
+        elif ((teff > 7830.0) and (teff <= 8550.0)):
+            subClass = "5";
+        elif ((teff > 8550.0) and (teff <= 9460.0)):
+            subClass = "2";
+        elif ((teff > 9460.0) and (teff <= 9820.0)):
+            subClass = "1";
+        elif ((teff > 9820.0) and (teff < 10300.0)):
+            subClass = "0";
+        
+    elif ((teff >= 10300.0) and (teff < 29300.0)):
+        spectralClass = "B";
+        if ((teff >= 10300.0) and (teff <= 10900.0)):
+            subClass = "9";
+        elif ((teff > 10900.0) and (teff <= 11700.0)):
+            subClass = "8";
+        elif ((teff > 11700.0) and (teff <= 12700.0)):
+            subClass = "7";
+        elif ((teff > 12700.0) and (teff <= 13800.0)):
+            subClass = "6";
+        elif ((teff > 13800.0) and (teff <= 15100.0)):
+            subClass = "5";
+        elif ((teff > 15100.0) and (teff <= 18300.0)):
+            subClass = "3";
+        elif ((teff > 18300.0) and (teff <= 20200.0)):
+            subClass = "2";
+        elif ((teff > 20200.0) and (teff <= 24500.0)):
+            subClass = "1";
+        elif ((teff > 24500.0) and (teff < 29300.0)):
+            subClass = "0";
+        
+    elif ((teff >= 29300.0) and (teff < 40000.0)):
+        spectralClass = "O";
+        if ((teff >= 29300.0) and (teff <= 35000.0)):
+            subClass = "8";
+        elif ((teff > 35000.0) and (teff <= 36500.0)):
+            subClass = "7";
+        elif ((teff > 36500.0) and (teff <= 37800.0)):
+            subClass = "6";
+        elif ((teff > 37800.0) and (teff < 40000.0)):
+            subClass = "5";
+        
+    
+
+
+#//Determine the spectralClass and subClass of supergiants and bright giants. lburns
+#//var luminClass = "I" or luminClass = "II"
+if (((logg >= 0.0) and (logg < 1.0)) or ((logg >= 1.0) and (logg < 1.5))):
+    if (teff < 2700.0):
+        spectralClass = "L";
+    elif ((teff >= 2700.0) and (teff < 3650.0)):
+        spectralClass = "M";
+        if ((teff >= 2700.0) and (teff <= 2710.0)):
+            subClass = "6";
+        elif ((teff > 2710.0) and (teff <= 2880.0)):
+            subClass = "5";
+        elif ((teff > 2880.0) and (teff <= 3060.0)):
+            subClass = "4";
+        elif ((teff > 3060.0) and (teff <= 3210.0)):
+            subClass = "3";
+        elif ((teff > 3210.0) and (teff <= 3370.0)):
+            subClass = "2";
+        elif ((teff > 3370.0) and (teff <= 3490.0)):
+            subClass = "1";
+        elif ((teff > 3490.0) and (teff < 3650.0)):
+            subClass = "0";
+        
+    elif ((teff >= 3650.0) and (teff < 4600.0)):
+        spectralClass = "K";
+        if ((teff >= 3650.0) and (teff <= 3830.0)):
+            subClass = "7";
+        elif ((teff > 3830.0) and (teff <= 3990.0)):
+            subClass = "5";
+        elif ((teff > 3990.0) and (teff <= 4090.0)):
+            subClass = "4";
+        elif ((teff > 4090.0) and (teff <= 4190.0)):
+            subClass = "3";
+        elif ((teff > 4190.0) and (teff <= 4430.0)):
+            subClass = "1";
+        elif ((teff > 4430.0) and (teff < 4600.0)):
+            subClass = "0";
+        
+    elif ((teff >= 4600.0) and (teff < 5500.0)):
+        spectralClass = "G";
+        if ((teff >= 4600.0) and (teff <= 4700.0)):
+            subClass = "8";
+        elif ((teff > 4700.0) and (teff <= 5190.0)):
+            subClass = "2";
+        elif ((teff > 5190.0) and (teff < 5500.0)):
+            subClass = "0";
+        
+    elif ((teff >= 5500.0) and (teff < 7500.0)):
+        spectralClass = "F";
+        if ((teff >= 5500.0) and (teff <= 5750.0)):
+            subClass = "8";
+        elif ((teff > 5750.0) and (teff <= 6370.0)):
+            subClass = "5";
+        elif ((teff > 6370.0) and (teff <= 7030.0)):
+            subClass = "2";
+        elif ((teff > 7030.0) and (teff < 7500.0)):
+            subClass = "0";
+        
+    elif ((teff >= 7500.0) and (teff < 10000.0)):
+        spectralClass = "A";
+        if ((teff >= 7500.0) and (teff <= 7910.0)):
+            subClass = "8";
+        elif ((teff > 7910.0) and (teff <= 8610.0)):
+            subClass = "5";
+        elif ((teff > 8610.0) and (teff <= 9380.0)):
+            subClass = "2";
+        elif ((teff > 9380.0) and (teff < 10000.0)):
+            subClass = "0";
+        
+    elif ((teff >= 10000.0) and (teff < 27000.0)):
+        spectralClass = "B";
+        if ((teff >= 10000.0) and (teff <= 10500.0)):
+            subClass = "9";
+        elif ((teff > 10500.0) and (teff <= 11100.0)):
+            subClass = "8";
+        elif ((teff > 11100.0) and (teff <= 11800.0)):
+            subClass = "7";
+        elif ((teff > 11800.0) and (teff <= 12600.0)):
+            subClass = "6";
+        elif ((teff > 12600.0) and (teff <= 13600.0)):
+            subClass = "5";
+        elif ((teff > 13600.0) and (teff <= 16000.0)):
+            subClass = "3";
+        elif ((teff > 16000.0) and (teff <= 17600.0)):
+            subClass = "2";
+        elif ((teff > 17600.0) and (teff <= 21400.0)):
+            subClass = "1";
+        elif ((teff > 21400.0) and (teff < 27000.0)):
+            subClass = "0";
+        
+    elif ((teff >= 27000.0) and (teff < 42000.0)):
+        spectralClass = "O";
+        if ((teff >= 27000.0) and (teff <= 34000.0)):
+            subClass = "8";
+        elif ((teff > 34000.0) and (teff <= 36200.0)):
+            subClass = "7";
+        elif ((teff > 36200.0) and (teff <= 38500.0)):
+            subClass = "6";
+        elif ((teff > 38500.0) and (teff < 42000.0)):
+            subClass = "5";
+        
+    
+
+
+#//Determine luminClass based on logg
 if ((logg >= 0.0) and (logg < 1.0)):
-    luminClass = "I"
+    luminClass = "I";
 elif ((logg >= 1.0) and (logg < 1.5)):
-    luminClass = "II"
+    luminClass = "II";
 elif ((logg >= 1.5) and (logg < 3.0)):
-    luminClass = "III"
+    luminClass = "III";
 elif ((logg >= 3.0) and (logg < 4.0)):
-    luminClass = "IV"
+    luminClass = "IV";
 elif ((logg >= 4.0) and (logg < 5.0)):
-    luminClass = "V"
+    luminClass = "V";
 elif ((logg >= 5.0) and (logg < 6.0)):
-    luminClass = "VI"
-elif (logg >= 6.0):
-    luminClass = "WD"
+    luminClass = "VI";
+elif ((logg >= 5.0)):
+    luminClass = "WD";
     
 
-spectralType = spectralClass + " " + luminClass
-print("Spectral class: ", spectralType)      
+spectralType = spectralClass + subClass + " " + luminClass
+print("Spectral type: ", spectralType)      
 #Initial guess atmospheric structure output: 
 #Convert everything to log_10 OR re-scaled units for plotting, printing, etc:
     
@@ -1328,6 +1744,7 @@ pylab.ylim(yMin, yMax)
 log10temp = [0.0 for i in range(numDeps)]
 log10pgas = [0.0 for i in range(numDeps)]
 log10pe = [0.0 for i in range(numDeps)]
+pe = [0.0 for i in range(numDeps)]
 log10prad = [0.0 for i in range(numDeps)]
 log10ne = [0.0 for i in range(numDeps)]
 log10rho = [0.0 for i in range(numDeps)]
@@ -1382,10 +1799,12 @@ tauOneStagePops = [ [ 0.0 for i in range(numStages) ] for j in range(nelemAbnd) 
 unity = 1.0
 zScaleList = 1.0 #//initialization   
 #  double[][] log10UwAArr = new double[numStages][2];
-log10UwAArr = [ [ 0.0 for i in range(2) ] for j in range(numStages)] 
+log10UwAArr = [ [ 0.0 for i in range(5) ] for j in range(numStages)] 
 for i in range(numStages):
-    log10UwAArr[i][0] = 0.0 #//default initialization - logarithmic
-    log10UwAArr[i][1] = 0.0 #//default initialization - logarithmic
+    for k in range(len(log10UwAArr[0])):
+        log10UwAArr[i][k] = 0.0 #//lburns default initialization - logarithmic
+    
+
   
  
 #//Ground state ionization E - Stage I (eV) 
@@ -1408,8 +1827,8 @@ for i in range(nMols):
   
 #//We will interpolate in atomic partition fns tabulated at two temperatures
 
-thisUwAV = [ 0.0 for i in range(2) ]
-thisUwBV = [ 0.0 for i in range(2) ]
+thisUwAV = [ 0.0 for i in range(5) ]
+thisUwBV = [ 0.0 for i in range(5) ]
 #//We will interpolate in molecular partition fns tabulated at five temperatures
 #  double thisDissE; 
 thisQwAB = [ 0.0 for i in range(5) ]
@@ -1443,7 +1862,7 @@ newTemp = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
 #//for diatomic molecules
 logNumBArr = [ [ 0.0 for i in range(numDeps) ] for j in range(numAssocMols) ]
 #//We will interpolate in atomic partition fns tabulated at two temperatures
-log10UwBArr = [ [ 0.0 for i in range(2) ] for j in range(numAssocMols) ] #//base 10 log
+log10UwBArr = [ [ 0.0 for i in range(5) ] for j in range(numAssocMols) ] #//base 10 log
 
 dissEArr = [ 0.0 for i in range(numAssocMols) ]
 #//We will interpolate in molecular partition fns tabulated at five temperatures
@@ -1465,8 +1884,8 @@ mnameBtemplate = " "
 #// converging the Pgas-Pe-N_H-N_He relation for computing the mean opacity for HSE
 #//
 thisTemp = [ 0.0 for i in range(2) ]
-log10UwUArr = [ 0.0 for i in range(2) ]
-log10UwLArr = [ 0.0 for i in range(2) ]
+log10UwUArr = [ 0.0 for i in range(5) ]
+log10UwLArr = [ 0.0 for i in range(5) ]
 #double chiI, peNumerator, peDenominator, logPhi, logPhiOverPe, logOnePlusPhiOverPe, logPeNumerTerm, logPeDenomTerm;
 
 #//Begin Pgas-kapp iteration
@@ -1490,9 +1909,9 @@ for pIter in range(nOuterIter):
                 chiI = IonizationEnergy.getIonE(species)
                 #//THe following is a 2-element vector of temperature-dependent partitio fns, U, 
                 #// that are base 10 log_10 U
-                log10UwLArr = PartitionFn.getPartFn(species) #//base 10 log_10 U
+                log10UwLArr = PartitionFn.getPartFn2(species) #//base 10 log_10 U
                 species = cname[iElem] + "II"
-                log10UwUArr = PartitionFn.getPartFn(species) #//base 10 log_10 U
+                log10UwUArr = PartitionFn.getPartFn2(species) #//base 10 log_10 U
                 logPhi = LevelPopsServer.sahaRHS(chiI, log10UwUArr, log10UwLArr, thisTemp)
                 logPhiOverPe = logPhi - guessPe[1][iD]
                 logOnePlusPhiOverPe = math.log(1.0 + math.exp(logPhiOverPe)) 
@@ -1532,8 +1951,9 @@ for pIter in range(nOuterIter):
         for j in range(numDeps):
             logNumBArr[i][j] = -49.0
            
-        log10UwBArr[i][0] = 0.0
-        log10UwBArr[i][1] = 0.0
+        for k in range(len(log10UwBArr[i])):
+            log10UwBArr[i][k] = 0.0 #// default initialization lburns
+                   
         dissEArr[i] = 29.0  #//eV
         for kk in range(5): 
             logQwABArr[i][kk] = math.log(300.0)
@@ -1550,9 +1970,11 @@ for pIter in range(nOuterIter):
     #//For element A of main molecule being treated in *molecular* equilibrium:
     #//For safety, assign default values where possible
     nmrtrDissE = 15.0 #//prohitively high by default
-    nmrtrLog10UwB = [ 0.0 for i in range(2) ]
-    nmrtrLog10UwB[0] = 0.0
-    nmrtrLog10UwB[1] = 0.0
+    nmrtrLog10UwB = [ 0.0 for i in range(5) ]
+    for k in range(len(nmrtrLog10UwB)):
+        nmrtrLog10UwB[k] = 0.0 #// default initialization lburns
+       
+
     nmrtrLog10UwA = 0.0
     nmrtrLogQwAB = [ 0.0 for i in range(5) ]
     for kk in range(5):
@@ -1576,22 +1998,22 @@ for pIter in range(nOuterIter):
         chiIArr[0] = IonizationEnergy.getIonE(species)
         #//THe following is a 2-element vector of temperature-dependent partitio fns, U, 
         #// that are base 10 log_10 U
-        log10UwAArr[0] = PartitionFn.getPartFn(species) #//base 10 log_10 U
+        log10UwAArr[0] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
         species = cname[iElem] + "II"
         chiIArr[1] = IonizationEnergy.getIonE(species)
-        log10UwAArr[1] = PartitionFn.getPartFn(species) #//base 10 log_10 U
+        log10UwAArr[1] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
         species = cname[iElem] + "III"
         chiIArr[2] = IonizationEnergy.getIonE(species)
-        log10UwAArr[2] = PartitionFn.getPartFn(species) #//base 10 log_10 U
+        log10UwAArr[2] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
         species = cname[iElem] + "IV"
         chiIArr[3] = IonizationEnergy.getIonE(species)
-        log10UwAArr[3] = PartitionFn.getPartFn(species) #//base 10 log_10 U
+        log10UwAArr[3] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
         species = cname[iElem] + "V"
         chiIArr[4] = IonizationEnergy.getIonE(species)
-        log10UwAArr[4] = PartitionFn.getPartFn(species) #//base 10 log_10 U
+        log10UwAArr[4] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
         species = cname[iElem] + "VI"
         chiIArr[5] = IonizationEnergy.getIonE(species)
-        log10UwAArr[5] = PartitionFn.getPartFn(species) #//base 10 log_10 U
+        log10UwAArr[5] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
         #//double logN = (eheu[iElem] - 12.0) + logNH;
 
         thisNumMols = 0 #//default initialization
@@ -1639,7 +2061,7 @@ for pIter in range(nOuterIter):
           
                 dissEArr[iMol] = IonizationEnergy.getDissE(mname[mname_ptr[iMol]])
                 species = cname[specB_ptr[iMol]] + "I" #//neutral stage
-                log10UwBArr[iMol] = PartitionFn.getPartFn(species) #//base 10 log_10 U
+                log10UwBArr[iMol] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
                 #//logQwABArr[iMol] = defaultQwAB;
                 logQwABArr[iMol] = PartitionFn.getMolPartFn(mname[mname_ptr[iMol]])
                 #//Compute the reduced mass, muAB, in g:
@@ -1713,23 +2135,25 @@ for pIter in range(nOuterIter):
     pRad = Hydrostat.radPress(numDeps, temp)
 
 #//Update Pgas guess for iteration:
-    for iTau in range(numDeps):
+    for i in range(numDeps):
 #// Now we can update guessPGas:
-        guessPGas[0][iTau] = pGas[0][iTau]
-        guessPGas[1][iTau] = pGas[1][iTau]
+        guessPGas[0][i] = pGas[0][i]
+        guessPGas[1][i] = pGas[1][i]
         log10pgas[i] = log10e * pGas[1][i]
         log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
+        pe[i] = newNe[1][i] + Useful.logK() + temp[1][i]
         log10prad[i] = log10e * pRad[1][i]
         log10ne[i] = log10e * newNe[1][i]
 
     #Uncomment this block to inspect iteration-by-iteration convergence
     #Graphically inspect convergence:  Issue 'matplotlib qt5' in console before running code
-    """
+
     thisClr = palette[pIter%numClrs]
+    #pylab.plot(log10tauRos, log10pgas, color=thisClr)
     pylab.plot(log10tauRos, log10pgas, color=thisClr)
-    pylab.plot(log10tauRos, log10pe, color=thisClr, linestyle='-')     
+    pylab.plot(log10tauRos, log10pe, color=thisClr, linestyle='--')     
     #pylab.plot(tauRos[1][:], newNe[1][:], thisClr)
-    """
+
 #//end Pgas-kappa iteration, nOuter
     
 #//diagnostic
@@ -1886,8 +2310,10 @@ for i in range(numAssocMols):
     for j in range(numDeps):
         logNumBArr[i][j] = -49.0
            
-    log10UwBArr[i][0] = 0.0
-    log10UwBArr[i][1] = 0.0
+    for k in range(len(log10UwBArr[i])):
+        log10UwBArr[i][k] = 0.0 #// default initialization lburns
+           
+    
     dissEArr[i] = 29.0  #//eV
     for kk in range(5):
         logQwABArr[i][kk] = math.log(300.0)
@@ -1905,9 +2331,11 @@ specBStage = 0 #//default that applies to most cases
 #//For element A of main molecule being treated in *molecular* equilibrium:
 #//For safety, assign default values where possible
 nmrtrDissE = 15.0 #//prohitively high by default
-nmrtrLog10UwB = [0.0 for i in range(2)]
-nmrtrLog10UwB[0] = 0.0
-nmrtrLog10UwB[1] = 0.0
+nmrtrLog10UwB = [0.0 for i in range(5)]
+for k in range(len(nmrtrLog10UwB)):
+    nmrtrLog10UwB[k] = 0.0 #// default initialization lburns
+       
+
 nmrtrLog10UwA = 0.0
 nmrtrLogQwAB = [0.0 for i in range(5)]
 for kk in range(5):
@@ -1933,22 +2361,22 @@ for neIter2 in range(nInnerIter):
         chiIArr[0] = IonizationEnergy.getIonE(species)
         #//The following is a 2-element vector of temperature-dependent partitio fns, U,
         #// that are base 10 log_10 U
-        log10UwAArr[0] = PartitionFn.getPartFn(species) #//base 10 log_10 U
+        log10UwAArr[0] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
         species = cname[iElem] + "II"
         chiIArr[1] = IonizationEnergy.getIonE(species)
-        log10UwAArr[1] = PartitionFn.getPartFn(species) #//base 10 log_10 U
+        log10UwAArr[1] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
         species = cname[iElem] + "III"
         chiIArr[2] = IonizationEnergy.getIonE(species)
-        log10UwAArr[2] = PartitionFn.getPartFn(species) #//base 10 log_10 U
+        log10UwAArr[2] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
         species = cname[iElem] + "IV"
         chiIArr[3] = IonizationEnergy.getIonE(species)
-        log10UwAArr[3]= PartitionFn.getPartFn(species) #//base 10 log_10 U
+        log10UwAArr[3]= PartitionFn.getPartFn2(species) #//base 10 log_10 U
         species = cname[iElem] + "V"
         chiIArr[4] = IonizationEnergy.getIonE(species)
-        log10UwAArr[4]= PartitionFn.getPartFn(species) #//base 10 log_10 U
+        log10UwAArr[4]= PartitionFn.getPartFn2(species) #//base 10 log_10 U
         species = cname[iElem] + "VI"
         chiIArr[5] = IonizationEnergy.getIonE(species)
-        log10UwAArr[5]= PartitionFn.getPartFn(species) #//base 10 log_10 U
+        log10UwAArr[5]= PartitionFn.getPartFn2(species) #//base 10 log_10 U
     
         thisNumMols = 0 #//default initialization
         for iMol in range(numAssocMols):
@@ -1991,7 +2419,7 @@ for neIter2 in range(nInnerIter):
 
                 dissEArr[iMol] = IonizationEnergy.getDissE(mname[mname_ptr[iMol]])
                 species = cname[specB_ptr[iMol]] + "I" #//neutral stage
-                log10UwBArr[iMol] = PartitionFn.getPartFn(species) #//base 10 log_10 U
+                log10UwBArr[iMol] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
                 #//logQwABArr[iMol] = defaultQwAB
                 logQwABArr[iMol] = PartitionFn.getMolPartFn(mname[mname_ptr[iMol]])
                 #//Compute the reduced mass, muAB, in g:
@@ -2022,7 +2450,7 @@ for neIter2 in range(nInnerIter):
 #// element A
 #// mname_ptr[] is an array of pointers pointing to the molecules themselves that are
 #// associated with element A
-    log10UwA = [0.0 for i in range(2)]
+    log10UwA = [0.0 for i in range(5)]
 
     for iMol in range(nMols):
 
@@ -2036,7 +2464,7 @@ for neIter2 in range(nInnerIter):
        
 #// Get its partition fn:
         species = cname[specA_ptr] + "I" #//neutral stage
-        log10UwA = PartitionFn.getPartFn(species) #//base 10 log_10 U
+        log10UwA = PartitionFn.getPartFn2(species) #//base 10 log_10 U
         for jj in range(nelemAbnd):
             if (mnameB[iMol] == cname[jj]):
                 specB2_ptr = jj
@@ -2096,7 +2524,7 @@ for neIter2 in range(nInnerIter):
                 
                 dissEArr[im] = IonizationEnergy.getDissE(mname[mname_ptr[im]])
                 species = cname[specB_ptr[im]] + "I"
-                log10UwBArr[im] = PartitionFn.getPartFn(species) #//base 10 log_10 U
+                log10UwBArr[im] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
                 #//logQwABArr[im] = defaultQwAB;
                 logQwABArr[im] = PartitionFn.getMolPartFn(mname[mname_ptr[im]])
                 #//Compute the reduced mass, muAB, in g:
@@ -2107,8 +2535,10 @@ for neIter2 in range(nInnerIter):
                 #// the population - pick this out for the numerator in the master fraction:
                 if (mname[mname_ptr[im]] == mname[iMol]):
                     nmrtrDissE = dissEArr[im]
-                    nmrtrLog10UwB[0] = log10UwBArr[im][0]
-                    nmrtrLog10UwB[1] = log10UwBArr[im][1]
+                    for k in range(len(nmrtrLog10UwB)):
+                        nmrtrLog10UwB[k] = log10UwBArr[im][k] #// default initialization lburns
+              
+
                     for kk in range(5):
                         nmrtrLogQwAB[kk] = logQwABArr[im][kk]
                     
@@ -2168,12 +2598,12 @@ for neIter2 in range(nInnerIter):
         log10ne[i] = log10e * newNe[1][i]
 
     #Uncomment to inspect chem equil convergence
-    """        
-    thisClr = palette[neIter2%numClrs]
-    pylab.plot(log10tauRos, log10pe)
-    #pylab.plot(log10tauRos[1], log10ne)  
-    #pylab.plot(tauRos[1][:], masterMolPops[0][:]) 
-    """     
+            
+    #thisClr = palette[neIter2%numClrs]
+    pylab.plot(log10tauRos, log10pe, color=thisClr, linestyle='-.')
+    ##pylab.plot(log10tauRos[1], log10ne)  
+    ##pylab.plot(tauRos[1][:], masterMolPops[0][:]) 
+         
 #} //end Ne - ionzation fraction -molecular equilibrium iteration neIter2
 
 #//
@@ -2226,7 +2656,7 @@ numThetas = len(cosTheta[0])
 #//        //For geometry calculations: phi = 0 is direction of positive x-axis of right-handed
 #//        // 2D Cartesian coord system in plane of sky with origin at sub-stellar point (phi
 #//        // increases CCW)
-numPhiPerQuad = 9
+numPhiPerQuad = 6 
 numPhi = 4 * numPhiPerQuad
 numPhiD = float(numPhi)
 phi = [0.0 for i in range(numPhi)]
@@ -2287,7 +2717,7 @@ jolaAlphQ = 0.0 #// alpha_Q - weight of Q branch (Delta J = 0)
 #//If NO Q branch (deltaLambda = 0): alpP = alpR = 0.5, alpQ = 0.0
 
 #//number of wavelength point sampling a JOLA band
-jolaNumPoints = 100 
+jolaNumPoints = 30 
 #//int jolaNumPoints = 10; 
 
 #// branch weights for transitions of DeltaLambda = +/- 1
@@ -2530,9 +2960,12 @@ gaussLine_ptr = [0 for i in range(numLines2)] #//array of pointers to lines that
 isFirstLine = True #//initialization
 firstLine = 0 #//default initialization
 #// This holds 2-element temperature-dependent base 10 logarithmic parition fn:
-thisUwV = [0.0 for i in range(2)]
-thisUwV[0] = 0.0 #//default initialization
-thisUwV[1] = 0.0
+thisUwV = [0.0 for i in range(5)]
+#// Below created a loop to initialize each value to zero for the five temperatures lburns
+for i in range(len(thisUwV)):
+    thisUwV[i] = 0.0  #//default initialization
+   
+
 
 
 for iLine in range(numLines2):
@@ -2582,7 +3015,7 @@ for iLine in range(numLines2):
                  species = cname[jj] + "VI"
                  logNums_ptr = 7
             
-            thisUwV = PartitionFn.getPartFn(species) #//base 10 log_10 U
+            thisUwV = PartitionFn.getPartFn2(species) #//base 10 log_10 U
             break   #//we found it
         
         iAbnd+=1
@@ -2624,7 +3057,7 @@ for iLine in range(numLines2):
               || (logE*(listLogKappaLDelta[0][30] - kappa[1][30]) > sedThresh) ){ 
                    if ( ( list2Stage[iLine] == 0) || (list2Stage[iLine] == 1) 
                     ||  ( list2Stage[iLine] == 2) || (list2Stage[iLine] == 3) ){
-                        if ( (list2Lam0[iLine] > lamUV) && (list2Lam0[iLine] < lamIR) ){
+                        if ( (list2Lam0[iLine] > lamUV) and (list2Lam0[iLine] < lamIR) ){
                            if ( (list2Lam0[iLine] < lambdaStart) || (list2Lam0[iLine] > lambdaStop) ){ 
                       //No! ifThisLine[iLine] = true;
                       sedLine_ptr[sedLineCntr] = iLine;
@@ -2696,7 +3129,7 @@ if (sampling == "coarse"):
     listNumWing = 3  #//per wing
 else: 
     listNumCore = 5  #//half-core
-    listNumWing = 9  #//per wing
+    listNumWing = 5  #//per wing
          
 #//Delta fn - for testing and strength triage
 #        //int listNumPoints = 1;
@@ -2745,8 +3178,10 @@ fluxSurfBol = 0
 hjertComp = HjertingComponents.hjertingComponents()
 
 #// This holds 2-element temperature-dependent base 10 logarithmic parition fn:
-thisUwV[0] = 0.0 #//default initialization
-thisUwV[1] = 0.0
+for k in range(len(thisUwV)):
+    thisUwV[k] = 0.0 #//default initialization
+
+
 
 listLineProf = [ [ 0.0 for i in range(numDeps) ] for j in range(listNumPoints) ]
 
@@ -2796,7 +3231,7 @@ for iLine in range(numGaussLines):
                 species = cname[jj] + "VI"
                 logNums_ptr = 7
                 
-            thisUwV = PartitionFn.getPartFn(species) #//base 10 log_10 U
+            thisUwV = PartitionFn.getPartFn2(species) #//base 10 log_10 U
             break   #//we found it
              #}
         iAbnd+=1
@@ -2832,7 +3267,7 @@ for iLine in range(numGaussLines):
     #//                    numDeps, teff, tauRos, temp, tempSun);
     #// Gaussian + Lorentzian approximation to profile (voigt()):
     listLinePoints = LineGrid.lineGridVoigt(list2Lam0[gaussLine_ptr[iLine]], list2Mass[gaussLine_ptr[iLine]], xiT, 
-                                            numDeps, teff, listNumCore, listNumWing)
+                                            numDeps, teff, listNumCore, listNumWing, species)
     #print("species: ", species)
     #if ( (list2Element[gaussLine_ptr[iLine]] == "Na") and (list2Stage[gaussLine_ptr[iLine]] == 0) ):
     #    outline = ("iLine "+ str(iLine)+ " gaussLine_ptr "+ str(gaussLine_ptr[iLine])+ " list2Lam0 "+ str(list2Lam0[gaussLine_ptr[iLine]])+ " list2LogAij "+ 
@@ -2843,7 +3278,7 @@ for iLine in range(numGaussLines):
  #//System.out.println("Calling Stark...");
         listLineProf = LineProf.stark(listLinePoints, list2Lam0[gaussLine_ptr[iLine]], list2LogAij[gaussLine_ptr[iLine]],
                       list2LogGammaCol[gaussLine_ptr[iLine]],
-                      numDeps, teff, tauRos, temp, pGas, newNe, tempSun, pGasSun, hjertComp)
+                      numDeps, teff, tauRos, temp, pGas, newNe, tempSun, pGasSun, hjertComp, species)
     else:
         #print("voigt branch called")
         listLineProf = LineProf.voigt(listLinePoints, list2Lam0[gaussLine_ptr[iLine]], list2LogAij[gaussLine_ptr[iLine]],
@@ -3346,7 +3781,8 @@ with open(outFile, 'w', encoding='utf-8') as sedHandle:
         sedHandle.write(outLine)
    
 #Uncomment to inspect synthetic spectrum:
-     
+
+"""     
 pylab.title = "Synthetic spectrum"
 pylab.ylabel = "F_lambda/F^C_lambda"
 pylab.xlabel = "lambda (nm)"
@@ -3366,7 +3802,7 @@ for i in range(numGaussLines):
     yPoint = [1.05, 1.1]
     pylab.plot(xPoint, yPoint, color='black')
     pylab.text(thisLam, 1.7, thisLbl, rotation=270)
-
+"""
 
 #Pring narrow band Gaussian filter quantities: 
 #    limb darkening curve (LDC) and discrete fourier cosine transform of LDC
@@ -3422,10 +3858,11 @@ pylab.plot(ft[0], ft[1])
 
 #    // Set up grid of line lambda points sampling entire profile (cm):
 numCore = 5 #//half-core
-numWing = 15 #//per wing 
+numWing = 5 #//per wing 
 numPoints = 2 * (numCore + numWing) - 1 #// + 1;  //Extra wavelength point at end for monochromatic continuum tau scale
 #//linePoints: Row 0 in cm (will need to be in nm for Plack.planck), Row 1 in Doppler widths
-linePoints = LineGrid.lineGridVoigt(userLam0, userMass, xiT, numDeps, teff, numCore, numWing) #//cm
+species = "Ca"  #Anything but Hydrogen - doesn't matter for now - ??
+linePoints = LineGrid.lineGridVoigt(userLam0, userMass, xiT, numDeps, teff, numCore, numWing, species) #//cm
 
 #// Get Einstein coefficient for spontaneous de-excitation from f_ij to compute natural 
 #// (radiation) roadening:  Assumes ration of statisitcal weight, g_j/g_i is unity
@@ -3446,8 +3883,11 @@ else:
 
 #//
 #// This holds 2-element temperature-dependent base 10 logarithmic parition fn:
-thisUwV[0] = 0.0 #//default initialization
-thisUwV[1] = 0.0
+
+for k in range(len(thisUwV)):
+    thisUwV[k] = 0.0 #//default initialization
+        
+
 logNums = [ [ 0.0 for i in range(numDeps) ] for j in range(numStages+2) ]
 
 thisLogN = [0.0 for i in range(numDeps)] 
@@ -3479,9 +3919,9 @@ for i in range(numDeps):
     
 fakeDissEArr = [ 0.0 for i in range(1) ]
 fakeDissEArr[0] = 29.0 #//eV
-fakeLog10UwBArr = [ [ 0.0 for i in range(2) ] for j in range(1) ]
-fakeLog10UwBArr[0][0] = 0.0
-fakeLog10UwBArr[0][1] = 0.0
+fakeLog10UwBArr = [ [ 0.0 for i in range(5) ] for j in range(1) ]
+for kk in range(len(fakeLog10UwBArr)):
+    fakeLog10UwBArr[0][kk] = 0.0
 fakeLogQwABArr = [ [ 0.0 for i in range(5) ] for j in range(fakeNumMols) ]
 
 for im in range(fakeNumMols):

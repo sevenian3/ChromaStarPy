@@ -399,7 +399,7 @@ def voigt(linePoints, lam0In, logAij, logGammaCol,
 
 def stark(linePoints, lam0In, logAij, logGammaCol,
           numDeps, teff, tauRos, temp, pGas, Ne,
-          tempSun, pGasSun, hjertComp):
+          tempSun, pGasSun, hjertComp, lineName):
 
     c = Useful.c()
     logC = Useful.logC()
@@ -466,13 +466,23 @@ def stark(linePoints, lam0In, logAij, logGammaCol,
     #// Stellar Photosphere, 3rd Ed. (D. Gray), Eq. 11.50,
     #//
     logTuneStark = math.log(1.0e9) #//convert DeltaI K parameters to deltaS STark profile parameters
-    logKStark = [0.0 for i in range(5)]
+    logKStark = [0.0 for i in range(11)]
     logKStark[0] = math.log(2.56e-03) + logTuneStark  #//Halpha
     logKStark[1] = math.log(7.06e-03) + logTuneStark   #//Hbeta
     logKStark[2] = math.log(1.19e-02) + logTuneStark  #//Hgamma
     logKStark[3] = math.log(1.94e-02) + logTuneStark  #//Hdelta
     logKStark[4] = math.log(2.95e-02) + logTuneStark  #//Hepsilon
+    logKStark[5] = math.log(4.62e-02) + logTuneStark  #//H8 JB
+    logKStark[6] = math.log(6.38e-02) + logTuneStark  #//H9 JB
+    logKStark[7] = math.log(8.52e-02) + logTuneStark  #//H10 JB
+    logKStark[8] = math.log(1.12e-01) + logTuneStark  #//H11 JB
+    logKStark[9] = math.log(1.43e-01) + logTuneStark  #//H12 JB
+    logKStark[10] = math.log(1.80e-01) + logTuneStark  #//H13 JB
+   #//logKStark[11] = Math.log(2.11) + logTuneStark; //H30 JB
+    
     thisLogK = [0.0 for i in range(4)] #//default initialization
+    #//double thisLogK = logKStark[10]; //default initialization
+    
     #//which Balmer line are we?  crude but effective:
     if (lam0In > 650.0e-7):
         thisLogK = logKStark[0]  #//Halpha
@@ -494,6 +504,14 @@ def stark(linePoints, lam0In, logAij, logGammaCol,
        #//System.out.println("Hepsilon");
        thisLogK = logKStark[4]  #//Hepsilon
     #}
+#//   if ((lam0In < 390.0e-7)){
+#//
+#////This won't work here - "species" is always just "HI":
+#//      int numberInName = (int) lineName.substring("HI".length());
+#//      //console.log(numberInName);
+#//      thisLogK = logKStark[numberInName-3];
+#//   }
+
 
 #//
     #double F0, logF0, lamOverF0, logLamOverF0; //electrostatic field strength (e.s.u.)

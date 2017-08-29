@@ -41,10 +41,12 @@ def levelPops(lam0In, logNStage, chiL, log10UwStage, gwL, numDeps, temp):
     #// Convert to natural logs:
     #double thisLogUw, Ttheta;
     thisLogUw = 0.0 # //default initialization
-    logUw = [ 0.0 for i in range(2) ]
+    logUw = [ 0.0 for i in range(5) ]
     logE10 = math.log(10.0)
-    logUw[0] = logE10*log10UwStage[0]
-    logUw[1] = logE10*log10UwStage[1]
+    for kk in range(len(logUw)):
+        logUw[kk] = logE10*log10UwStage[kk] #// lburns new loop
+        
+    
     logGwL = math.log(gwL)
 
     #//System.out.println("chiL before: " + chiL);
@@ -84,8 +86,12 @@ def levelPops(lam0In, logNStage, chiL, log10UwStage, gwL, numDeps, temp):
     for id in range(numDeps):
 
     #//Determine temperature dependenet partition functions Uw:
-        Ttheta = 5040.0 / temp[0][id]
-
+        
+        #Ttheta = 5040.0 / temp[0][id]
+#//NEW Determine temperature dependent partition functions Uw: lburns
+        thisTemp = temp[0][id]
+        
+        """
         if (Ttheta >= 1.0):
             thisLogUw = logUw[0]
         
@@ -95,7 +101,32 @@ def levelPops(lam0In, logNStage, chiL, log10UwStage, gwL, numDeps, temp):
         if (Ttheta > 0.5 and Ttheta < 1.0):
             thisLogUw = ( logUw[1] * (Ttheta - 0.5)/(1.0 - 0.5) ) \
                       + ( logUw[0] * (1.0 - Ttheta)/(1.0 - 0.5) )
+        """                      
+        if (thisTemp >= 10000):
+            thisLogUw = logUw[4]
         
+        if (thisTemp <= 130):
+            thisLogUw = logUw[0]
+        
+        if (thisTemp > 130 and thisTemp <= 500):
+            thisLogUw = logUw[1] * (thisTemp - 130)/(500 - 130) \
+                      + logUw[0] * (500 - thisTemp)/(500 - 130)
+        
+        if (thisTemp > 500 and thisTemp <= 3000):
+            thisLogUw = logUw[2] * (thisTemp - 500)/(3000 - 500) \
+                      + logUw[1] * (3000 - thisTemp)/(3000 - 500)
+        
+        if (thisTemp > 3000 and thisTemp <= 8000):
+            thisLogUw = logUw[3] * (thisTemp - 3000)/(8000 - 3000) \
+                      + logUw[2] * (8000 - thisTemp)/(8000 - 3000)
+        
+        if (thisTemp > 8000 and thisTemp < 10000):
+            thisLogUw = logUw[4] * (thisTemp - 8000)/(10000 - 8000) \
+                      + logUw[3] * (10000 - thisTemp)/(10000 - 8000)
+        
+
+
+                           
 
         #//System.out.println("LevPops: ionized branch taken, ionized =  " + ionized);
         #// Take stat weight of ground state as partition function:
@@ -167,15 +198,20 @@ def stagePops2(logNum, Ne, chiIArr, log10UwAArr,  \
     logE10 = math.log(10.0)
 #//We need one more stage in size of saha factor than number of stages we're actualy populating
     #double[][] logUw = new double[numStages+1][2];
-    logUw = [ [ 0.0 for i in range(2) ] for j in range(numStages+1) ]
+    logUw = [ [ 0.0 for i in range(5) ] for j in range(numStages+1) ]
     for i in range(numStages):
-        logUw[i][0] = logE10*log10UwAArr[i][0]
-        logUw[i][1] = logE10*log10UwAArr[i][1]
+        for kk in range(5):
+            logUw[i][kk] = logE10*log10UwAArr[i][kk]
+            #// lburns- what variable can we use instead of 5?
+        
         
         #//Assume ground state statistical weight (or partition fn) of highest stage is 1.0;
         #//var logGw5 = 0.0;
-    logUw[numStages][0] = 0.0
-    logUw[numStages][1] = 0.0
+
+    for kk in range(5):
+        logUw[numStages][kk] = 0.0
+         #// lburns
+    
 
         #//System.out.println("chiL before: " + chiL);
         #// If we need to subtract chiI from chiL, do so *before* converting to tiny numbers in ergs!
@@ -238,18 +274,23 @@ def stagePops2(logNum, Ne, chiIArr, log10UwAArr,  \
 
 #//For clarity: neutral stage of atom whose ionization equilibrium is being computed is element A
 #// for molecule formation:
-    logUwA = [ 0.0 for i in range(2) ]
+    logUwA = [ 0.0 for i in range(5) ]
     if (numMols > 0):
-        logUwA[0] = logUw[0][0]
-        logUwA[1] = logUw[0][1]
+        for kk in range(len(logUwA)):
+            logUwA[kk] = logUw[0][kk]
+         #// lburns
+        
       
 #// Array of elements B for all molecular species AB:
     #double[][] logUwB = new double[numMols][2];
-    logUwB = [ [ 0.0 for i in range(2) ] for j in range(numMols) ]
+    logUwB = [ [ 0.0 for i in range(5) ] for j in range(numMols) ]
     #//if (numMols > 0){
     for iMol in range(numMols):
-        logUwB[iMol][0] = logE10*log10UwBArr[iMol][0]
-        logUwB[iMol][1] = logE10*log10UwBArr[iMol][1]
+        for kk in range(5):
+            #print("iMol ", iMol, " kk ", kk)
+            logUwB[iMol][kk] = logE10*log10UwBArr[iMol][kk]
+            #// lburns new loop
+
         
       #//}
 #//// Molecular partition functions:
@@ -285,8 +326,9 @@ def stagePops2(logNum, Ne, chiIArr, log10UwAArr,  \
 
         #//Determine temperature dependent partition functions Uw:
         thisTemp = temp[0][id]
-        Ttheta = 5040.0 / thisTemp
-         
+        #Ttheta = 5040.0 / thisTemp
+
+        """         
         if (Ttheta >= 1.0):
             for iStg in range(numStages):
                 thisLogUw[iStg] = logUw[iStg][0]
@@ -308,10 +350,64 @@ def stagePops2(logNum, Ne, chiIArr, log10UwAArr,  \
             for iStg in range(numStages):
                 thisLogUw[iStg] = ( logUw[iStg][1] * (Ttheta - 0.5)/(1.0 - 0.5) ) \
                                 + ( logUw[iStg][0] * (1.0 - Ttheta)/(1.0 - 0.5) )
-           
+        """
+
+#// NEW Determine temperature dependent partition functions Uw: lburns
+        if (thisTemp <= 130):
+            for iStg in range(numStages):
+                thisLogUw[iStg] = logUw[iStg][0]
+            
             for iMol in range(numMols):
-                thisLogUwB[iMol] = ( logUwB[iMol][1] * (Ttheta - 0.5)/(1.0 - 0.5) ) \
-                                 + ( logUwB[iMol][0] * (1.0 - Ttheta)/(1.0 - 0.5) )
+                thisLogUwB[iMol] = logUwB[iMol][0]
+            
+        
+        if (thisTemp > 130 and thisTemp <= 500):
+            for iStg in range(numStages):
+                thisLogUw[iStg] = logUw[iStg][1] * (thisTemp - 130)/(500 - 130) \
+                                + logUw[iStg][0] * (500 - thisTemp)/(500 - 130)
+            
+            for iMol in range(numMols):
+                thisLogUwB[iMol] = logUwB[iMol][1] * (thisTemp - 130)/(500 - 130) \
+                                 + logUwB[iMol][0] * (500 - thisTemp)/(500 - 130)
+            
+        
+        if (thisTemp > 500 and thisTemp <= 3000):
+            for iStg in range(numStages):
+                thisLogUw[iStg] = logUw[iStg][2] * (thisTemp - 500)/(3000 - 500) \
+                                + logUw[iStg][1] * (3000 - thisTemp)/(3000 - 500)
+            
+            for iMol in range(numMols):
+                thisLogUwB[iMol] = logUwB[iMol][2] * (thisTemp - 500)/(3000 - 500) \
+                                 + logUwB[iMol][1] * (3000 - thisTemp)/(3000 - 500)
+            
+        
+        if (thisTemp > 3000 and thisTemp <= 8000):
+            for iStg in range(numStages):
+                thisLogUw[iStg] = logUw[iStg][3] * (thisTemp - 3000)/(8000 - 3000) \
+                                + logUw[iStg][2] * (8000 - thisTemp)/(8000 - 3000)
+            
+            for iMol in range(numMols):
+                thisLogUwB[iMol] = logUwB[iMol][3] * (thisTemp - 3000)/(8000 - 3000) \
+                                 + logUwB[iMol][2] * (8000 - thisTemp)/(8000 - 3000)
+            
+        
+        if (thisTemp > 8000 and thisTemp < 10000):
+            for iStg in range(numStages):
+                thisLogUw[iStg] = logUw[iStg][4] * (thisTemp - 8000)/(10000 - 8000) \
+                                + logUw[iStg][3] * (10000 - thisTemp)/(10000 - 8000)
+            
+            for iMol in range(numMols):
+                thisLogUwB[iMol] = logUwB[iMol][4] * (thisTemp - 8000)/(10000 - 8000) \
+                                 + logUwB[iMol][3] * (10000 - thisTemp)/(10000 - 8000)
+            
+        
+        if (thisTemp >= 10000):
+            for iStg in range(numStages):
+                thisLogUw[iStg] = logUw[iStg][4]
+            
+            for iMol in range(numMols):
+                thisLogUwB[iMol] = logUwB[iMol][4]
+            
            
         thisLogUw[numStages] = 0.0
         for iMol in range(numMols):
@@ -449,12 +545,14 @@ def sahaRHS(chiI, log10UwUArr, log10UwLArr, temp):
 
     logE10 = math.log(10.0)
 #//We need one more stage in size of saha factor than number of stages we're actualy populating
-    logUwU = [0.0 for i in range(2)]
-    logUwL = [0.0 for i in range(2)]   
-    logUwU[0] = logE10*log10UwUArr[0]
-    logUwU[1] = logE10*log10UwUArr[1]
-    logUwL[0] = logE10*log10UwLArr[0]
-    logUwL[1] = logE10*log10UwLArr[1]
+    logUwU = [0.0 for i in range(5)]
+    logUwL = [0.0 for i in range(5)]   
+    for kk in range(len(logUwL)):
+        logUwU[kk] = logE10*log10UwUArr[kk]
+        logUwL[kk] = logE10*log10UwLArr[kk]
+         
+
+    
 
     #//System.out.println("chiL before: " + chiL);
     #// If we need to subtract chiI from chiL, do so *before* converting to tiny numbers in ergs!
@@ -480,8 +578,9 @@ def sahaRHS(chiI, log10UwUArr, log10UwLArr, temp):
 #//
 #//Determine temperature dependent partition functions Uw:
     thisTemp = temp[0]
-    Ttheta = 5040.0 / thisTemp
-         
+    #Ttheta = 5040.0 / thisTemp
+
+    """         
     if (Ttheta >= 1.0):
         thisLogUwU = logUwU[0]
         thisLogUwL = logUwL[0]
@@ -495,6 +594,42 @@ def sahaRHS(chiI, log10UwUArr, log10UwLArr, temp):
         + ( logUwU[0] * (1.0 - Ttheta)/(1.0 - 0.5) )
         thisLogUwL = ( logUwL[1] * (Ttheta - 0.5)/(1.0 - 0.5) )
         + ( logUwL[0] * (1.0 - Ttheta)/(1.0 - 0.5) )
+    """
+
+    if (thisTemp <= 130):
+        thisLogUwU = logUwU[0]
+        thisLogUwL = logUwL[0]
+        
+    if (thisTemp > 130 and thisTemp <= 500):
+        thisLogUwU = logUwU[1] * (thisTemp - 130)/(500 - 130) \
+            + logUwU[0] * (500 - thisTemp)/(500 - 130)
+        thisLogUwL = logUwL[1] * (thisTemp - 130)/(500 - 130) \
+            + logUwL[0] * (500 - thisTemp)/(500 - 130)
+        
+    if (thisTemp > 500 and thisTemp <= 3000):
+        thisLogUwU = logUwU[2] * (thisTemp - 500)/(3000 - 500) \
+            + logUwU[1] * (3000 - thisTemp)/(3000 - 500)
+        thisLogUwL = logUwL[2] * (thisTemp - 500)/(3000 - 500) \
+            + logUwL[1] * (3000 - thisTemp)/(3000 - 500)
+        
+    if (thisTemp > 3000 and thisTemp <= 8000):
+        thisLogUwU = logUwU[3] * (thisTemp - 3000)/(8000 - 3000) \
+            + logUwU[2] * (8000 - thisTemp)/(8000 - 3000)
+        thisLogUwL = logUwL[3] * (thisTemp - 3000)/(8000 - 3000) \
+            + logUwL[2] * (8000 - thisTemp)/(8000 - 3000)
+        
+    if (thisTemp > 8000 and thisTemp < 10000): 
+        thisLogUwU = logUwU[4] * (thisTemp - 8000)/(10000 - 8000) \
+            + logUwU[3] * (10000 - thisTemp)/(10000 - 8000)
+        thisLogUwL = logUwL[4] * (thisTemp - 8000)/(10000 - 8000) \
+            + logUwL[3] * (10000 - thisTemp)/(10000 - 8000)
+        
+    if (thisTemp >= 10000):
+        thisLogUwU = logUwU[4]
+        thisLogUwL = logUwL[4]
+        
+ 
+
                   
 #//Ionization stage Saha factors: 
              
@@ -571,19 +706,25 @@ def molPops(nmrtrLogNumB, nmrtrDissE, log10UwA, nmrtrLog10UwB, nmrtrLogQwAB, nmr
 
 #//For clarity: neutral stage of atom whose ionization equilibrium is being computed is element A
 #// for molecule formation:
-    logUwA = [0.0 for i in range(2)]
-    logUwA[0] = logE10*log10UwA[0]
-    logUwA[1] = logE10*log10UwA[1]
-    nmrtrLogUwB = [0.0 for i in range(2)]
-    nmrtrLogUwB[0] = logE10*nmrtrLog10UwB[0]
-    nmrtrLogUwB[1] = logE10*nmrtrLog10UwB[1]
+    logUwA = [0.0 for i in range(5)]
+   
+    nmrtrLogUwB = [0.0 for i in range(5)]
+    
+    for kk in range(len(logUwA)):
+        logUwA[kk] = logE10*log10UwA[kk]
+        nmrtrLogUwB[kk] = logE10*nmrtrLog10UwB[kk]
+
+        #// lburns 
+    
 #// Array of elements B for all molecular species AB:
     #double[][] logUwB = new double[numMolsB][2];
-    logUwB = [ [ 0.0 for i in range(2) ] for j in range(numMolsB) ]
+    logUwB = [ [ 0.0 for i in range(5) ] for j in range(numMolsB) ]
     #//if (numMolsB > 0){
     for iMol in range(numMolsB):
-        logUwB[iMol][0] = logE10*log10UwBArr[iMol][0]
-        logUwB[iMol][1] = logE10*log10UwBArr[iMol][1]
+        for kk in range(5):
+            logUwB[iMol][kk] = logE10*log10UwBArr[iMol][kk]
+           # // lburns new loop
+        
         
     #//}
 #// Molecular partition functions:
@@ -635,8 +776,8 @@ def molPops(nmrtrLogNumB, nmrtrDissE, log10UwA, nmrtrLog10UwB, nmrtrLogQwAB, nmr
 
 #//Determine temparature dependent partition functions Uw:
         thisTemp = temp[0][id]
-        Ttheta = 5040.0 / thisTemp
-
+        #Ttheta = 5040.0 / thisTemp
+        """
         if (Ttheta >= 1.0):
             thisLogUwA = logUwA[0]
             nmrtrThisLogUwB = nmrtrLogUwB[0]
@@ -658,6 +799,65 @@ def molPops(nmrtrLogNumB, nmrtrDissE, log10UwA, nmrtrLog10UwB, nmrtrLogQwAB, nmr
             for iMol in range(numMolsB):
                 thisLogUwB[iMol] = ( logUwB[iMol][1] * ((Ttheta - 0.5)/(1.0 - 0.5)) ) \
                 + ( logUwB[iMol][0] * ((1.0 - Ttheta)/(1.0 - 0.5)) )
+        """
+
+#// NEW Determine temperature dependent partition functions Uw: lburns
+        thisTemp = temp[0][id]
+        if (thisTemp <= 130):
+            thisLogUwA = logUwA[0]
+            nmrtrThisLogUwB = nmrtrLogUwB[0]
+            for iMol in range(numMolsB):
+                thisLogUwB[iMol] = logUwB[iMol][0]
+            
+        
+        if (thisTemp > 130 and thisTemp <= 500):
+            thisLogUwA = logUwA[1] * (thisTemp - 130)/(500 - 130) \
+                       + logUwA[0] * (500 - thisTemp)/(500 - 130)
+            nmrtrThisLogUwB = nmrtrLogUwB[1] * (thisTemp - 130)/(500 - 130) \
+                            + nmrtrLogUwB[0] * (500 - thisTemp)/(500 - 130)
+            for iMol in range(numMolsB):
+                thisLogUwB[iMol] = logUwB[iMol][1] * (thisTemp - 130)/(500 - 130) \
+                                 + logUwB[iMol][0] * (500 - thisTemp)/(500 - 130)
+            
+        
+        if (thisTemp > 500 and thisTemp <= 3000):
+            thisLogUwA = logUwA[2] * (thisTemp - 500)/(3000 - 500) \
+                       + logUwA[1] * (3000 - thisTemp)/(3000 - 500)
+            nmrtrThisLogUwB = nmrtrLogUwB[2] * (thisTemp - 500)/(3000 - 500) \
+                            + nmrtrLogUwB[1] * (3000 - thisTemp)/(3000 - 500)
+            for iMol in range(numMolsB):
+                thisLogUwB[iMol] = logUwB[iMol][2] * (thisTemp - 500)/(3000 - 500) \
+                                 + logUwB[iMol][1] * (3000 - thisTemp)/(3000 - 500)
+            
+        
+        if (thisTemp > 3000 and thisTemp <= 8000):
+            thisLogUwA = logUwA[3] * (thisTemp - 3000)/(8000 - 3000) \
+                       + logUwA[2] * (8000 - thisTemp)/(8000 - 3000)
+            nmrtrThisLogUwB = nmrtrLogUwB[3] * (thisTemp - 3000)/(8000 - 3000) \
+                            + nmrtrLogUwB[2] * (8000 - thisTemp)/(8000 - 3000)
+            for iMol in range(numMolsB):
+                thisLogUwB[iMol] = logUwB[iMol][3] * (thisTemp - 3000)/(8000 - 3000) \
+                                 + logUwB[iMol][2] * (8000 - thisTemp)/(8000 - 3000)
+            
+       
+        if (thisTemp > 8000 and thisTemp < 10000):
+            thisLogUwA = logUwA[4] * (thisTemp - 8000)/(10000 - 8000) \
+                       + logUwA[3] * (10000 - thisTemp)/(10000 - 8000)
+            nmrtrThisLogUwB = nmrtrLogUwB[4] * (thisTemp - 8000)/(10000 - 8000) \
+                            + nmrtrLogUwB[3] * (10000 - thisTemp)/(10000 - 8000)
+            for iMol in range(numMolsB):
+                thisLogUwB[iMol] = logUwB[iMol][4] * (thisTemp - 8000)/(10000 - 8000) \
+                                + logUwB[iMol][3] * (10000 - thisTemp)/(10000 - 8000)
+            
+        
+        if (thisTemp >= 10000):
+            thisLogUwA = logUwA[4]
+            nmrtrThisLogUwB = nmrtrLogUwB[4]
+            for iMol in range(numMolsB):
+                thisLogUwB[iMol] = logUwB[iMol][4]
+            
+        
+
                     
         for iMol in range(numMolsB):
             if (thisTemp < 3000.0):
