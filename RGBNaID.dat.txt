@@ -4,6 +4,9 @@ logg,    1.5,      cgs
 logZ,    0.0     
 massStar,     0.5,      solar masses
 xiT,   2.0,       km/s
+logHeFe,     0.0,   [He/Fe]
+logCO,       0.0,   [C/O]
+logAlphaFe,  0.0,   [alpha-elements/Fe]
 #Spectrum synthesis
 lambdaStart,    588.5,       nm    
 lambdaStop,     590.5,     nm
@@ -18,8 +21,8 @@ RV,       0.0,   km/s
 vacAir,    vacuum    
 sampling,    fine
 #Performance vs realism
-nOuterIter,     12,     no of outer Pgas(HSE) - EOS - kappa iterations
-nInnerIter,      12,    no of inner (ion fraction) - Pe iterations
+nOuterIter,     5,     no of outer Pgas(HSE) - EOS - kappa iterations
+nInnerIter,      5,    no of inner (ion fraction) - Pe iterations
 ifTiO,     1,     where to include TiO JOLA bands in synthesis 
 #Gaussian filter for limb darkening curve, fourier transform
 diskLambda,     500.0,      nm

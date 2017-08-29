@@ -1,6 +1,6 @@
 #Model atmosphere
-teff,    5777.0,    K
-logg,    4.44,      cgs
+teff,    9550.0,    K
+logg,    4.0,      cgs
 logZ,    0.0     
 massStar,     1.0,      solar masses
 xiT,   1.0,       km/s
@@ -8,8 +8,8 @@ logHeFe,     0.0,   [He/Fe]
 logCO,       0.0,   [C/O]
 logAlphaFe,  0.0,   [alpha-elements/Fe]
 #Spectrum synthesis
-lambdaStart,    588.5,       nm    
-lambdaStop,     590.5,     nm
+lambdaStart,    655.7,       nm    
+lambdaStop,     657.0,     nm
 lineThresh,    -3.0,    min log(KapLine/kapCnt) for inclusion at all - areally, being used as "lineVoigt" for now
 voigtThresh,     -3.0,     min log(KapLine/kapCnt) for treatment as Voigt - currently not used - all lines get Voigt
 logGammaCol,    0.0
