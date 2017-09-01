@@ -2656,7 +2656,7 @@ numThetas = len(cosTheta[0])
 #//        //For geometry calculations: phi = 0 is direction of positive x-axis of right-handed
 #//        // 2D Cartesian coord system in plane of sky with origin at sub-stellar point (phi
 #//        // increases CCW)
-numPhiPerQuad = 6 
+numPhiPerQuad = 6
 numPhi = 4 * numPhiPerQuad
 numPhiD = float(numPhi)
 phi = [0.0 for i in range(numPhi)]
@@ -3129,7 +3129,7 @@ if (sampling == "coarse"):
     listNumWing = 3  #//per wing
 else: 
     listNumCore = 5  #//half-core
-    listNumWing = 5  #//per wing
+    listNumWing = 10  #//per wing
          
 #//Delta fn - for testing and strength triage
 #        //int listNumPoints = 1;
