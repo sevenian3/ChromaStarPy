@@ -18,6 +18,7 @@ import ToolBox
 #plotting:
 import matplotlib
 import pylab
+import numpy
 
 def masterLambda(numLams, numMaster, numNow, masterLams, numPoints, listLineLambdas):
         
@@ -86,7 +87,9 @@ def masterKappa(numDeps, numLams, numMaster, numNow, masterLams, masterLamsOut, 
     #//double[][] lineKap2 = new double[2][numTot];
     #double kappa2, lineKap2, totKap;
     #lineKap2 = 1.0e-99 #//initialization
-    logLineKap2 = -49.0 #//initialization
+    #logLineKap2 = -49.0 #//initialization
+    logKappa2 = [0.0 for i in range(numTot)]
+    logLineKap2 = [-49.0 for i in range(numTot)]
     #//int numCnt = lambdaScale.length;
     #//int numLine = lineLambdas.length - 1;
     #kappa1D = [0.0 for i in range(numNow)]
@@ -95,9 +98,9 @@ def masterKappa(numDeps, numLams, numMaster, numNow, masterLams, masterLamsOut, 
     #lineKap1D = [0.0 for i in range(numPoints)]
     logLineKap1D = [0.0 for i in range(numPoints)]
     #//System.out.println("iL   masterLams    logMasterKappa");
-    #print("SpecSyn: numNow ", numNow, " numPoints ", numPoints)
-    #print("SpecSyn: len(thisMasterLams) ", len(thisMasterLams), " len(logKappa1D) ", len(logKappa1D))
-    #print("SpecSyn: len(listLineLambdas) ", len(listLineLambdas), " len(logLineKap1D) ", len(logLineKap1D))
+    #print("numNow ", numNow, " numPoints ", numPoints)
+    #print("iD ", iD, " len(masterLams) ", len(masterLams), " len(logKappa1D) ", len(logKappa1D))           
+    
     for k in range(numNow):
         thisMasterLams[k] = masterLams[k]
         
@@ -118,30 +121,14 @@ def masterKappa(numDeps, numLams, numMaster, numNow, masterLams, masterLamsOut, 
 
         #//Interpolate continuum and line opacity onto master lambda scale, and add them lambda-wise:
         for iL in range(numTot):
-            #kappa2 = ToolBox.interpol(masterLams, kappa1D, masterLamsOut[iL])
-            #logKappa2 = ToolBox.interpol(masterLams, logKappa1D, masterLamsOut[iL])
-            logKappa2 = ToolBox.interpol(thisMasterLams, logKappa1D, masterLamsOut[iL])
-            #lineKap2 = 1.0e-49 #//re-initialization
-            logLineKap2 = -49.0 #//re-initialization
-            if ( (masterLamsOut[iL] >= listLineLambdas[0]) and (masterLamsOut[iL] <= listLineLambdas[numPoints-1]) ):
-                
-                #lineKap2 = ToolBox.interpol(listLineLambdas, lineKap1D, masterLamsOut[iL])
-                logLineKap2 = ToolBox.interpol(listLineLambdas, logLineKap1D, masterLamsOut[iL])
-                #if (lineKap2 <= 0.0):
-                #    lineKap2 = 1.0e-49
-                #//lineKap2 = 1.0e-99;  //test
-                
-            #//test lineKap2 = 1.0e-99;  //test
-            #// if (iD%10 == 1){
-            #//   System.out.println("iD " + iD + " iL " + iL + " masterLamsOut " + masterLamsOut[iL] + " kappa2 " + kappa2 + " lineKap2 " + lineKap2);
-            #//}
-            #totKap = kappa2 + lineKap2
-            totKap = math.exp(logKappa2) + math.exp(logLineKap2)
+            logLineKap2[iL] = -49.0 #//re-initialization
+ 
+        logKappa2 = numpy.interp(masterLamsOut, thisMasterLams, logKappa1D)
+        logLineKap2 = numpy.interp(masterLamsOut, listLineLambdas, logLineKap1D)
+        for iL in range(numTot):
+            totKap = math.exp(logKappa2[iL]) + math.exp(logLineKap2[iL])
             logMasterKapsOut[iL][iD] = math.log(totKap)
-            #//if (iD == 36) {
-            #//    System.out.format("%02d   %12.8e   %12.8f%n", iL, masterLams[iL], logE * logMasterKappa[iL][iD]);
-            #//}
-        #} iL loop    
+        
     #}  iD loop 
     #pylab.plot(masterLamsOut, [logMasterKaps[i][12] for i in range(numTot)]) 
     #pylab.plot(masterLamsOut, [logMasterKaps[i][12] for i in range(numTot)], '.')      

@@ -105,6 +105,7 @@ import Thetas
 import MolecData
 import Jola
 import SpecSyn
+import SpecSyn2
 import HjertingComponents
 import LineGrid
 import LineProf
@@ -117,8 +118,10 @@ import PostProcess
 
 #plotting:
 import matplotlib
+import matplotlib.pyplot as plt
 #%matplotlib inline
 import pylab
+import numpy
 
 
 #############################################
@@ -139,7 +142,44 @@ import pylab
 
 
 #color platte for pylab plotting
-palette = ['black', 'brown','red','orange','yellow','green','blue','indigo','violet']
+#palette = ['black', 'brown','red','orange','yellow','green','blue','indigo','violet']
+#grayscale
+
+"""palette = [(0.39, 0.39, 0.39,), \
+           (0.37, 0.37, 0.37), \
+           (0.35, 0.35, 0.35), \
+           (0.33, 0.33, 0.33), \
+           (0.31, 0.31, 0.31), \
+           (0.29, 0.29, 0.29), \
+           (0.27, 0.27, 0.27), \
+           (0.25, 0.25, 0.25), \
+           (0.23, 0.23, 0.23), \
+           (0.21, 0.21, 0.21), \
+           (0.19, 0.19, 0.19), \
+           (0.17, 0.17, 0.17), \
+           (0.15, 0.15, 0.15), \
+           (0.13, 0.13, 0.13), \
+           (0.11, 0.11, 0.11), \
+           (0.09, 0.09, 0.09), \
+           (0.07, 0.07, 0.07), \
+           (0.05, 0.05, 0.05), \
+           (0.03, 0.03, 0.03), \
+           (0.01, 0.01, 0.01) \
+]"""
+
+"""palette = ['0.0', '0.03', '0.06', '0.09', '0.12', '0.15', '0.18', \
+           '0.21', '0.24', '0.27', '0.3', '0.33', '0.36', '0.39', '0.42', \
+           '0.45', '0.48', '0.51', '0.54', '0.57', '0.60']"""
+
+#Grayscale:
+numPal = 12
+palette = ['0.0' for i in range(numPal)]
+delPal = 0.04
+for i in range(numPal):
+    ii = float(i)
+    helpPal = 0.481 - ii*delPal
+    palette[i] = str(helpPal)       
+
 numClrs = len(palette)
 
 
@@ -154,7 +194,10 @@ inLine = ""
 fields = [" " for i in range(2)] 
 
 #with open("ChromaStarPy.input.txt", 'r', encoding='utf-8') as inputHandle:
-inFile = absPath + "ChromaStarPy.input.txt"
+inFile = absPath + "input.txt"
+#Appended to filename output tag to distinguish runs with identical input parameters:
+runVers = "newSyn"
+
 with open(inFile, 'r') as inputHandle:    
     
     #These MUST be in the following order in the input file, 
@@ -314,7 +357,7 @@ with open(inFile, 'r') as inputHandle:
     lbl = fields[0].strip(); userMassStr = fields[1].strip()
     inLine = inputHandle.readline()
     fields = inLine.split(",")
-    lbl = fields[0].strip(); userLogGammaColStr = fields[1].strip()
+    lbl = fields[0].strip(); userGammaColStr = fields[1].strip()
     
 """ test
 #// Representative spectral line and associated atomic parameters
@@ -587,7 +630,7 @@ macroV = float(macroVStr)
 rotV  = float(rotVStr)
 #// Argument 15: inclination of rotation axis wrt line-of-sight (degrees) 
 rotI  = float(rotIStr)
-
+#print("Before test rotI ", rotI, " rotIStr ", rotIStr)
 #// Argument 16: number of outer HSE-EOS-Opac iterations
 nOuterIter = int(nOuterIterStr)
 #// Argument 17: number of inner Pe-IonFrac iterations
@@ -608,9 +651,9 @@ if (rotV < 0.0):
     rotV = 0.0
     rotVStr = "0.0"
         
-if (rotV > 20.0):
-    rotV = 20.0
-    rotVStr = "20.0"
+if (rotV > 300.0):
+    rotV = 300.0
+    rotVStr = "300.0"
         
 
 if (rotI < 0.0): 
@@ -636,6 +679,8 @@ if (nInnerIter < 1):
 if (nInnerIter > 12):
     nInnerIter = 12
     nInnerIterStr = "12"
+    
+#print("After test rotI ", rotI, " rotIStr ", rotIStr)    
     
 #//For rotation:
 inclntn = math.pi * rotI / 180.0  #//degrees to radians
@@ -690,7 +735,7 @@ userGw3 = float(userGw3Str)
 userGw4 = float(userGw4Str)
 userGwL = float(userGwLStr)
 userMass = float(userMassStr)
-userLogGammaCol = float(userLogGammaColStr)
+userLogGammaCol = float(userGammaColStr)
 
 if (userLam0 < 260.0):
     userLam0 = 260.0
@@ -814,10 +859,10 @@ if (userMass > 200.0):
     
 if (userLogGammaCol < 0.0):
     userLogGammaCol = 0.0
-    userGamStr = "0.0"
+    useLogGammaColStr = "0.0"
 if (userLogGammaCol > 1.0):
     userLogGammaCol = 1.0
-    userGamStr = "1.0"
+    useLogGammaColStr = "1.0"
 
 userLam0 = userLam0 * nm2cm #// line centre lambda from nm to cm
 
@@ -825,10 +870,10 @@ userLam0 = userLam0 * nm2cm #// line centre lambda from nm to cm
 
 #File for structure output:
 strucStem = "Teff" + teffStr + "Logg" + loggStr + "Z" + logZStr + "M" + massStarStr+"xiT"+xiTStr + \
-"HeFe" + logHeFeStr + "CO" + logCOStr + "AlfFe" + logAlphaFeStr
+"HeFe" + logHeFeStr + "CO" + logCOStr + "AlfFe" + logAlphaFeStr + "v" + runVers
 strucFile = "struc." + strucStem + ".out"
 specFile = "spec." + strucStem + "L"+lambdaStartStr+"-"+lambdaStopStr+"xiT"+xiTStr+"LThr"+lineThreshStr+ \
-"Mac"+macroVStr+"Rot"+rotVStr+"-"+rotIStr+"RV"+RVStr + ".out"
+"GamCol"+logGammaColStr+"Mac"+macroVStr+"Rot"+rotVStr+"-"+rotIStr+"RV"+RVStr + ".out"
 sedFile = "sed." + strucStem + "L"+lambdaStartStr+"-"+lambdaStopStr+"xiT"+xiTStr+"lThr"+lineThreshStr+ \
 "Mac" + macroVStr + "Rot"+rotVStr+"-"+rotIStr+"RV"+ RVStr + ".out" 
 ldcFile = "ldc." + strucStem + "L" + diskLambdaStr + "S" + diskSigmaStr + ".out"
@@ -1733,13 +1778,16 @@ pylab.plot(log10tauRos, log10guessPe, color='green', linestyle='-')
 ###################################################################
 
 #Initial pylab plot set-up
-pylab.title = "Pressure structure"
-pylab.xlabel = "log_10 Tau_Ros"
-pylab.ylabel = "log_10 Pgas, Pe (dyne/cm^2)"
+#pylab.title = "Pressure structure"
+#plt.xlabel('$\log\tau_{\rm Ros}$')
+plt.xlabel(r'$\log \tau_{\rm Ros}$')
+plt.ylabel(r'$\log P_{\rm gas}, log P_{\rm e}$ (dyne cm$^{-2})$')
 pylab.xlim(-6.5, 2.5)
-yMax = max(log10guessPgas) + 0.5
-yMin = min(log10guessPe) - 0.5
+yMax = max(log10guessPgas[2:numDeps-1]) + 0.5
+yMin = min(log10guessPe[2:numDeps-1]) - 0.5
+print("yMin ", yMin, " yMax ", yMax)
 pylab.ylim(yMin, yMax)
+#pylab.ylim(-5.0, 5.0)
 
 log10temp = [0.0 for i in range(numDeps)]
 log10pgas = [0.0 for i in range(numDeps)]
@@ -2155,6 +2203,8 @@ for pIter in range(nOuterIter):
     #pylab.plot(tauRos[1][:], newNe[1][:], thisClr)
 
 #//end Pgas-kappa iteration, nOuter
+#Save as encapsulated postscript (eps) for LaTex
+plt.savefig('PConverge.eps', format='eps', dpi=1000)    
     
 #//diagnostic
 #//   int tauKapPnt01 = ToolBox.tauPoint(numDeps, tauRos, 0.01);
@@ -2290,6 +2340,7 @@ pylab.plot(log10tauRos, log10prad, color='red')
 #//stuff to save ion stage pops at tau=1:
     
 #Initial pylab plot set-up
+"""
 pylab.title = "Pressure structure"
 pylab.xlabel = "log_10 Tau_Ros"
 pylab.ylabel = "log_10 Pgas, Pe (dyne/cm^2)"
@@ -2297,7 +2348,7 @@ pylab.xlim(-6.5, 2.5)
 yMax = max(log10pgas) + 0.5
 yMin = min(log10pe) - 0.5
 pylab.ylim(yMin, yMax)
-
+"""
 iTauOne = ToolBox.tauPoint(numDeps, tauRos, unity)
 
 #//
@@ -3303,9 +3354,10 @@ for iLine in range(numGaussLines):
             
 
     masterLamsOut = SpecSyn.masterLambda(numLams, numMaster, numNow, masterLams, listNumPoints, listLineLambdas)
-    logMasterKapsOut = SpecSyn.masterKappa(numDeps, numLams, numMaster, numNow, masterLams, masterLamsOut, \
+    logMasterKapsOut = SpecSyn2.masterKappa(numDeps, numLams, numMaster, numNow, masterLams, masterLamsOut, \
                                            logMasterKaps, listNumPoints, listLineLambdas, listLogKappaL)
     numNow = numNow + listNumPoints
+    #numNow = numNow + listNumPoints
     #pylab.plot(masterLamsOut, [logMasterKapsOut[i][12] for i in range(numNow)]) 
     #pylab.plot(masterLamsOut, [logMasterKapsOut[i][12] for i in range(numNow)], '.')      
     #//update masterLams and logMasterKaps:
@@ -3320,6 +3372,8 @@ for iLine in range(numGaussLines):
         
         #//No! } //ifThisLine strength condition
 #//numLines loop
+        
+
 
 #////
 
@@ -3407,9 +3461,10 @@ if (teff <= jolaTeff):
             
 
             masterLamsOut = SpecSyn.masterLambda(numLams, numMaster, numNow, masterLams, jolaNumPoints, jolaLambdas)
-            logMasterKapsOut = SpecSyn.masterKappa(numDeps, numLams, numMaster, numNow, masterLams, masterLamsOut, \
+            logMasterKapsOut = SpecSyn2.masterKappa(numDeps, numLams, numMaster, numNow, masterLams, masterLamsOut, \
                                 logMasterKaps, jolaNumPoints, jolaLambdas, jolaLogKappaL)
             numNow = numNow + jolaNumPoints
+            #numNow = numNow + jolaNumPoints
 
             #//update masterLams and logMasterKaps:
             for iL in range(numNow):
@@ -3763,10 +3818,21 @@ with open(outFile, 'w', encoding='utf-8') as specHandle:
 #with open(specFile, 'w') as specHandle:    
     specHandle.write(inputParamString + "\n")
     specHandle.write("Number of lines treated with Voigt profiles: " + str(numGaussLines) + "\n")
+    specHandle.write("Number of wavelength points: " + str(numSpecSyn) + "\n")
     specHandle.write("wave (nm)   normalized flux \n")
     for i in range(numSpecSyn):
         outLine = str(waveSS[i]) + " " + str(specSynFlux[0][i]) + "\n"
         specHandle.write(outLine)
+#With line ID labels:
+    specHandle.write(" ")
+    specHandle.write("lambda_0 species\n")
+    for i in range(numGaussLines):
+        thisLam = cm2nm * list2Lam0[gaussLine_ptr[i]]
+        thisLam = round(thisLam, 2)
+        thisLbl = list2Element[gaussLine_ptr[i]] + " " + \
+        list2StageRoman[gaussLine_ptr[i]] + " " + str(thisLam)
+        outLine = str(thisLam) + " " + thisLbl + "\n"
+        specHandle.write(outLine)    
        
 #Print absolute spectral energy distribution (SED)
 outFile = outPath + sedFile
@@ -3774,11 +3840,13 @@ with open(outFile, 'w', encoding='utf-8') as sedHandle:
 #with open(sedFile, 'w') as sedHandle:
     sedHandle.write(inputParamString)
     sedHandle.write("Number of lines treated with Voigt profiles: " + str(numGaussLines) + "\n")
+    sedHandle.write("Number of wavelength points: " + str(numKept) + "\n")
     sedHandle.write("wave (nm)  log10(flux) (cgs) \n")
     for i in range(numKept):
         flux = log10Flux[i]
         outLine = str(wave[i]) + " " + str(flux) + "\n"
         sedHandle.write(outLine)
+
    
 #Uncomment to inspect synthetic spectrum:
 
@@ -3792,6 +3860,7 @@ xMax = max(waveSS)
 pylab.xlim(xMin, xMax)
 pylab.ylim(0.0, 2.0)
 pylab.plot(waveSS, specSynFlux[0])
+
 #Add spectral line labels:
 for i in range(numGaussLines):
     thisLam = cm2nm * list2Lam0[gaussLine_ptr[i]]
@@ -3804,7 +3873,7 @@ for i in range(numGaussLines):
     pylab.text(thisLam, 1.7, thisLbl, rotation=270)
 """
 
-#Pring narrow band Gaussian filter quantities: 
+#Print narrow band Gaussian filter quantities: 
 #    limb darkening curve (LDC) and discrete fourier cosine transform of LDC
 outFile = outPath + ldcFile
 with open(outFile, 'w', encoding='utf-8') as ldcHandle:
@@ -4076,6 +4145,8 @@ pylab.ylim(0, 1.2)
         
 pylab.plot(lineWave, lineFlux2[0])
 """  
+
+
      
 dbgHandle.close()
         
