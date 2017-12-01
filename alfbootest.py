@@ -62,7 +62,7 @@ flxStr = ""
 inLine = "   "
 #fields = [" " for i in range(2)] 
 
-runVers = "newSyn"
+runVers = "pyLoop"
 #Model atmosphere
 teffStr = "4300.0"
 loggStr = "2.0"

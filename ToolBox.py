@@ -56,17 +56,18 @@ def interpolV(y, x, newX):
         
     newNum = len(newX)
     #//System.out.println("interpolV: newNum " + newNum + " num " + num); 
-    newY = [0.0 for i in range(newNum)]
+    #newY = [0.0 for i in range(newNum)]
 
 #//Renormalize ordinates:
     
     iMinAndMax = minMax(y)
     norm = y[iMinAndMax[1]]
     #//System.out.println("norm " + norm);
-    yNorm = [0.0 for i in range(num)]
+    #yNorm = [0.0 for i in range(num)]
     newYNorm = [0.0 for i in range(newNum)] 
-    for i in range(num):
-        yNorm[i] = y[i] / norm 
+    #for i in range(num):
+    #    yNorm[i] = y[i] / norm 
+    yNorm = [ x / norm for x in y ]
 
 #// Set any newX elements that are *less than* the first x element to th first 
 #// x element - "0th order extrapolation"
@@ -124,9 +125,9 @@ def interpolV(y, x, newX):
             
 
     #//Restore orinate scale
-    for i in range(newNum):
-        newY[i] = newYNorm[i] * norm 
-    
+    #for i in range(newNum):
+    #    newY[i] = newYNorm[i] * norm 
+    newY = [ x * norm for x in newYNorm ]
 
 
     return newY

@@ -94,40 +94,45 @@ def masterKappa(numDeps, numLams, numMaster, numNow, masterLams, masterLamsOut, 
     #//int numLine = lineLambdas.length - 1;
     #kappa1D = [0.0 for i in range(numNow)]
     logKappa1D = [0.0 for i in range(numNow)]
-    thisMasterLams = [0.0 for i in range(numNow)]
+    #thisMasterLams = [0.0 for i in range(numNow)]
     #lineKap1D = [0.0 for i in range(numPoints)]
     logLineKap1D = [0.0 for i in range(numPoints)]
     #//System.out.println("iL   masterLams    logMasterKappa");
     #print("numNow ", numNow, " numPoints ", numPoints)
     #print("iD ", iD, " len(masterLams) ", len(masterLams), " len(logKappa1D) ", len(logKappa1D))           
     
-    for k in range(numNow):
-        thisMasterLams[k] = masterLams[k]
+    #for k in range(numNow):
+    #    thisMasterLams[k] = masterLams[k]
+    thisMasterLams = [ masterLams[k] for k in range(numNow) ]
         
     for iD in range(numDeps):
 
         #//Extract 1D *linear* opacity vectors for interpol()
-        for k in range(numNow):
-            #kappa1D[k] = math.exp(logMasterKaps[k][iD]) #//now wavelength dependent 
-            logKappa1D[k] = logMasterKaps[k][iD] #//now wavelength dependent 
+        #for k in range(numNow):
+        #    #kappa1D[k] = math.exp(logMasterKaps[k][iD]) #//now wavelength dependent 
+        #    logKappa1D[k] = logMasterKaps[k][iD] #//now wavelength dependent
+        logKappa1D = [ logMasterKaps[k][iD] for k in range(numNow) ]
 
-        for k in range(numPoints):
-            #lineKap1D[k] = math.exp(listLogKappaL[k][iD])
-            logLineKap1D[k] = listLogKappaL[k][iD]
+        #for k in range(numPoints):
+        #    #lineKap1D[k] = math.exp(listLogKappaL[k][iD])
+        #    logLineKap1D[k] = listLogKappaL[k][iD]
             #//     if (iD%10 == 1){
             #//        System.out.println("iD " + iD + " k " + k + " listLineLambdas " + listLineLambdas[k] + " lineKap1D " + lineKap1D[k]);
             #//     }
-            
+        logLineKap1D = [ listLogKappaL[k][iD] for k in range(numPoints) ]    
 
         #//Interpolate continuum and line opacity onto master lambda scale, and add them lambda-wise:
-        for iL in range(numTot):
-            logLineKap2[iL] = -49.0 #//re-initialization
+        #for iL in range(numTot):
+        #    logLineKap2[iL] = -49.0 #//re-initialization
+        logLineKap2 = [ -49.0 for iL in range(numTot) ]
  
         logKappa2 = numpy.interp(masterLamsOut, thisMasterLams, logKappa1D)
         logLineKap2 = numpy.interp(masterLamsOut, listLineLambdas, logLineKap1D)
         for iL in range(numTot):
             totKap = math.exp(logKappa2[iL]) + math.exp(logLineKap2[iL])
             logMasterKapsOut[iL][iD] = math.log(totKap)
+        #logMasterKapsOut[:][iD] =\
+        #[ math.log(math.exp(logKappa2[iL]) + math.exp(logLineKap2[iL])) for iL in range(numTot) ]
         
     #}  iD loop 
     #pylab.plot(masterLamsOut, [logMasterKaps[i][12] for i in range(numTot)]) 

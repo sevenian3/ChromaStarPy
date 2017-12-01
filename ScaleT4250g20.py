@@ -65,9 +65,13 @@ def getLogPhxRefTau64():
     phxRefTau64 = getphxRefTau64()
     numPhxDep = len(phxRefTau64)
     logPhxRefTau64 = [0.0 for i in range(numPhxDep)]    
-    for i in range(1, numPhxDep):
-        logPhxRefTau64[i] = math.log(phxRefTau64[i])
-        
+    #for i in range(1, numPhxDep):
+    #    logPhxRefTau64[i] = math.log(phxRefTau64[i])
+    logPhxRefTau64[1: numPhxDep] = [ math.log(phxRefTau64[i]) for i in range(1, numPhxDep) ]
+    #print("*********")
+    #print(logPhxRefTau64)
+    #print("*********")
+    #stop    
     logPhxRefTau64[0] = logPhxRefTau64[1] - (logPhxRefTau64[numPhxDep - 1] - logPhxRefTau64[1]) / numPhxDep
     return logPhxRefTau64
     
@@ -106,12 +110,19 @@ def phxRefTemp(teff, numDeps, tauRos):
         
     phxRefTemp = [0.0 for i in range(numDeps)]
     scaleTemp = [ [0.0 for i in range(numDeps)] for j in range(2)]
-    for i in range(numDeps):
-        phxRefTemp[i] = ToolBox.interpol(logPhxRefTau64, phxRefTemp64, tauRos[1][i])
-        scaleTemp[0][i] = teff * phxRefTemp[i] / phxRefTeff()
-        scaleTemp[1][i] = math.log(scaleTemp[0][i]);
+    #for i in range(numDeps):
+    #    phxRefTemp[i] = ToolBox.interpol(logPhxRefTau64, phxRefTemp64, tauRos[1][i])
+    #    scaleTemp[0][i] = teff * phxRefTemp[i] / phxRefTeff()
+    #    scaleTemp[1][i] = math.log(scaleTemp[0][i]);
+    phxRefTemp = [ ToolBox.interpol(logPhxRefTau64, phxRefTemp64, x) for x in tauRos[1] ]
+    scaleTemp[0] = [ teff * x / phxRefTeff() for x in phxRefTemp ]
+    scaleTemp[1] = [ math.log(x) for x in scaleTemp[0] ]
         #//System.out.println("tauRos[1][i] " + logE * tauRos[1][i] + " scaleTemp[1][i] " + logE * scaleTemp[1][i]);
-        
+    #print("*********")
+    #print(phxRefTemp)
+    #print("*********")
+    #print(scaleTemp[0])
+    #stop        
 
     return scaleTemp
 
@@ -152,8 +163,9 @@ def phxRefPGas(grav, zScale, logAHe, numDeps, tauRos):
 
     numPhxDeps = len(phxRefPGas64) #//yeah, I know, 64, but that could change!
     logPhxRefPGas64 = [0.0 for i in range(numPhxDeps)]
-    for i in range(numPhxDeps):
-        logPhxRefPGas64[i] = math.log(phxRefPGas64[i])
+    #for i in range(numPhxDeps):
+    #    logPhxRefPGas64[i] = math.log(phxRefPGas64[i])
+    logPhxRefPGas64 = [ math.log(x) for x in phxRefPGas64 ]
             
     logPhxRefTau64 = getLogPhxRefTau64();
 
@@ -170,45 +182,61 @@ def phxRefPGas(grav, zScale, logAHe, numDeps, tauRos):
     #double thisGexp;
 #// factor for scaling with A_He:
     logHeDenom = 0.666667 * math.log(1.0 + 4.0*refAHe)
+    logPhxRefPGas = [ ToolBox.interpol(logPhxRefTau64, logPhxRefPGas64, x) for x in tauRos[1] ]
     for i in range(numDeps):
-        #//if (i%10 == 0){
-        #//System.out.println("i " + i);
-        #//}
-        logPhxRefPGas[i] = ToolBox.interpol(logPhxRefTau64, logPhxRefPGas64, tauRos[1][i])
-        #//if (i%10 == 0){
-        #//System.out.println("After tau interpolation: pGas " + logE*logPhxRefPGas[i]);
-        #//}
+    #    #//if (i%10 == 0){
+    #    #//System.out.println("i " + i);
+    #    #//}
+    #    logPhxRefPGas[i] = ToolBox.interpol(logPhxRefTau64, logPhxRefPGas64, tauRos[1][i])
+    #    #//if (i%10 == 0){
+    #    #//System.out.println("After tau interpolation: pGas " + logE*logPhxRefPGas[i]);
+    #    #//}
         thisGexp = gexpTop + gexpRange * (tauRos[1][i] - tauRos[1][0]) / tauLogRange
-        #//scaling with g 
-        #//if (i%10 == 0){
-        #//System.out.println("thisGexp " + thisGexp);
-        #//}
+    #    #//scaling with g 
+    #    #//if (i%10 == 0){
+    #   #//System.out.println("thisGexp " + thisGexp);
+    #    #//}
         scalePGas[1][i] = thisGexp*logEg + logPhxRefPGas[i] - thisGexp*phxRefLogEg()
-        #//if (i%10 == 0){
-        #//System.out.println("After scaling with g: pGas " + logE*scalePGas[1][i]);
-        #//}
-        #//scaling with zscl:
-        #//if (i%10 == 0){
-        #//System.out.println("logZScale " + logZScale);
-        #//}
-        scalePGas[1][i] = -0.333333*logZScale + scalePGas[1][i]
-        #//if (i%10 == 0){
-        #//System.out.println("After scaling with z: pGas " + logE*scalePGas[1][i]);
-        #//}
-        #//scaling with A_He:
-        #//if (i%10 == 0){
-        #//System.out.println("Math.log(1.0 + 4.0*AHe) - logHeDenom " + (0.666667*Math.log(1.0 + 4.0*AHe) - logHeDenom));
-        #//}
-        scalePGas[1][i] = 0.666667 * math.log(1.0 + 4.0*AHe) + scalePGas[1][i] - logHeDenom
-        #//if (i%10 == 0){
-        #//System.out.println("After scaling with AHe: pGas " + logE*scalePGas[1][i]);
-        #//}
-        scalePGas[0][i] = math.exp(scalePGas[1][i])
-        #//if (i%10 == 0){
-        #//System.out.println("logPhxRefPGas " + logE*logPhxRefPGas[i] + " scalePGas[1][i] " + logE * scalePGas[1][i]);
-        #//}        
+    #    #//if (i%10 == 0){
+    #    #//System.out.println("After scaling with g: pGas " + logE*scalePGas[1][i]);
+    #    #//}
+    #    #//scaling with zscl:
+    #    #//if (i%10 == 0){
+    #    #//System.out.println("logZScale " + logZScale);
+    #    #//}
+    #    scalePGas[1][i] = -0.333333*logZScale + scalePGas[1][i]
+    #    #//if (i%10 == 0){
+    #    #//System.out.println("After scaling with z: pGas " + logE*scalePGas[1][i]);
+    #    #//}
+    #    #//scaling with A_He:
+    #    #//if (i%10 == 0){
+    #    #//System.out.println("Math.log(1.0 + 4.0*AHe) - logHeDenom " + (0.666667*Math.log(1.0 + 4.0*AHe) - logHeDenom));
+    #    #//}
+    #    scalePGas[1][i] = 0.666667 * math.log(1.0 + 4.0*AHe) + scalePGas[1][i] - logHeDenom
+    #    #//if (i%10 == 0){
+    #    #//System.out.println("After scaling with AHe: pGas " + logE*scalePGas[1][i]);
+    #   #//}
+    #    scalePGas[0][i] = math.exp(scalePGas[1][i])
+    #    #//if (i%10 == 0){
+    #    #//System.out.println("logPhxRefPGas " + logE*logPhxRefPGas[i] + " scalePGas[1][i] " + logE * scalePGas[1][i]);
+    #    #//}        
+
+    #logPhxRefPGas = [ ToolBox.interpol(logPhxRefTau64, logPhxRefPGas64, x) for x in tauRos[1] ]
+    #No! scalePGas[1] = [ logEg*(gexpTop + gexpRange * (tauRos[1][i] - tauRos[1][0]) / tauLogRange)\
+    #No!         + logPhxRefPGas[i] - thisGexp*phxRefLogEg() for i in range(numDeps) ]
+    scalePGas[1] = [ -0.333333*logZScale + x for x in scalePGas[1] ]
+    scalePGas[1] = [ 0.666667 * math.log(1.0 + 4.0*AHe) + x - logHeDenom for x in scalePGas[1] ]
+    scalePGas[0] = [ math.exp(x) for x in scalePGas[1] ]
+    #SOMETHING WRONG!!
+    #print("*********")
+    #print("logPhxRefPGas ", logPhxRefPGas)
+    #print("*********")
+    #print("scalePGas[1] ", scalePGas[1])
+    #print("*********")
+    #stop        
 
     return scalePGas
+
 
 def phxRefPe(teff, grav, numDeps, tauRos, zScale, logAHe):
 
@@ -247,8 +275,9 @@ def phxRefPe(teff, grav, numDeps, tauRos, zScale, logAHe):
 
     numPhxDeps = len(phxRefPe64) #//yeah, I know, 64, but that could change!
     logPhxRefPe64 = [0.0 for i in range(numPhxDeps)]
-    for i in range(numPhxDeps):
-        logPhxRefPe64[i] = math.log(phxRefPe64[i])
+    #for i in range(numPhxDeps):
+    #    logPhxRefPe64[i] = math.log(phxRefPe64[i])
+    logPhxRefPe64 = [ math.log(x) for x in phxRefPe64 ]
         
 
     #// interpolate onto gS3 tauRos grid and re-scale with Teff:
@@ -269,12 +298,13 @@ def phxRefPe(teff, grav, numDeps, tauRos, zScale, logAHe):
     thisOmega = omegaTaum1 #//default initialization
 #// factor for scaling with A_He:
     logHeDenom = 0.333333 * math.log(1.0 + 4.0*refAHe)
-
+    
+    logPhxRefPe = [ ToolBox.interpol(logPhxRefTau64, logPhxRefPe64, x) for x in tauRos[1] ]
     for i in range(numDeps):
         #//if (i%10 == 0){
         #//System.out.println("i " + i);
         #//}
-        logPhxRefPe[i] = ToolBox.interpol(logPhxRefTau64, logPhxRefPe64, tauRos[1][i])
+        #logPhxRefPe[i] = ToolBox.interpol(logPhxRefTau64, logPhxRefPe64, tauRos[1][i])
         thisGexp = gexpTop + gexpRange * (tauRos[1][i] - tauRos[1][0]) / tauLogRange
         if (tauRos[0][i] < 0.1):
             thisOmega =  omegaTaum1
@@ -299,18 +329,28 @@ def phxRefPe(teff, grav, numDeps, tauRos, zScale, logAHe):
         #//System.out.println("After Teff scaling: pe " + logE*scalePe[1][i]);
         #//}
         #//scaling with zscl:
-        scalePe[1][i] = 0.333333*logZScale + scalePe[1][i]
+        #scalePe[1][i] = 0.333333*logZScale + scalePe[1][i]
         #//if (i%10 == 0){
         #//System.out.println("After z scaling: pe " + logE*scalePe[1][i]);
         #//}
         #//scaling with A_He:
-        scalePe[1][i] = 0.333333 * math.log(1.0 + 4.0*AHe) + scalePe[1][i] - logHeDenom
+        #scalePe[1][i] = 0.333333 * math.log(1.0 + 4.0*AHe) + scalePe[1][i] - logHeDenom
         #//if (i%10 == 0){
         #//System.out.println(" logPhxRefPe " + logE*logPhxRefPe[i] + " After A_He scaling: pe " + logE*scalePe[1][i]);
         #//}
-        scalePe[0][i] = math.exp(scalePe[1][i]);
-        
+        #scalePe[0][i] = math.exp(scalePe[1][i]);
 
+    scalePe[1] = [ 0.333333*logZScale + x for x in scalePe[1] ]
+    scalePe[1] = [ 0.333333 * math.log(1.0 + 4.0*AHe) + x - logHeDenom for x in scalePe[1] ]
+    scalePe[0] = [ math.exp(x) for x in scalePe[1] ]
+    #print("*********")
+    #print("logPhxRefPe ", logPhxRefPe)
+    #print("*********")
+    #print("scalePe[1] ", scalePe[1])
+    #print("*********")
+    #print("scalePe[0] ", scalePe[0])
+    #print("*********")
+    #stop        
     return scalePe
 
 def phxRefNe(numDeps, scaleTemp, scalePe):
@@ -319,9 +359,15 @@ def phxRefNe(numDeps, scaleTemp, scalePe):
 
     scaleNe = [ [0.0 for i in range(numDeps) ] for j in range(2) ]
 
-    for i in range(numDeps):
-        scaleNe[1][i] = scalePe[1][i] - scaleTemp[1][i] - Useful.logK()
-        scaleNe[0][i] = math.exp(scaleNe[1][i])
-        
-
+    #for i in range(numDeps):
+    #    scaleNe[1][i] = scalePe[1][i] - scaleTemp[1][i] - Useful.logK()
+    #    scaleNe[0][i] = math.exp(scaleNe[1][i])
+    scaleNe[1] = [ scalePe[1][i] - scaleTemp[1][i] - Useful.logK() for i in range(numDeps) ]
+    scaleNe[0] = [ math.exp(x) for x in scaleNe[1] ]    
+    #print("*********")
+    #print("scaleNe[1] ", scaleNe[1])
+    #print("*********")
+    #print("scaleNe[0] ", scaleNe[0])
+    #print("*********")
+    #stop        
     return scaleNe

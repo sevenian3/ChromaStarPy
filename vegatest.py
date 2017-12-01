@@ -108,7 +108,7 @@ flxStr = ""
 inLine = "   "
 #fields = [" " for i in range(2)] 
 
-runVers = "newSyn"
+runVers = "pyLoop"
 #Model atmosphere
 teffStr = "9550.0"
 loggStr = "3.95"
@@ -262,7 +262,8 @@ xMax = max(waveMod)
 pylab.xlim(xMin, xMax)
 pylab.ylim(0.0, 1.2)        
 #pylab.plot(waveMod, fluxMod, color="gray")
-pylab.plot(wave2, flux2s, color="gray")
+pylab.plot(wave2, flux2, color="gray")
+pylab.plot(wave2, flux2s, color="red")
 
 #add the line IDs
 for i in range(numLineIds):

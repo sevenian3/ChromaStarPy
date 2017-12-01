@@ -30,8 +30,10 @@ import Useful
 import ToolBox
 
 def lineKap(lam0In, logNums, logFluIn, linePoints, lineProf,
-            numDeps, zScale, tauRos, temp, rho):
+            numDeps, zScale, tauRos, temp, rho, logFudgeTune):
 
+    logE10 = math.log(10.0) #//natural log of 10
+    
     c = Useful.c()
     logC = Useful.logC()
     k = Useful.k()
@@ -111,11 +113,10 @@ def lineKap(lam0In, logNums, logFluIn, linePoints, lineProf,
             #// **********************
             #//  Opacity problem #2 
             #//
-            #//Line opacity needs to be multipied by fudge factor ~e^4.0 = 55 for Fraunhofer lines in Sun to have even
-            #//approximately the right strength - actually W_lambda is *still* to small!
+            #//Line opacity needs to be enhanced by same factor as the conitnuum opacity
             #//  - related to Opacity problem #1 (logFudgeTune in GrayStarServer3.java) - ??
             #//
-            logKappaL[il][id] = logKappaL[il][id] + math.log(4.0)
+            logKappaL[il][id] = logKappaL[il][id] + logE10*logFudgeTune
 
             #//if (id == 12) {
             #//  System.out.println("LINEKAPPA: id, il " + id + " " + il + " logKappaL " + logE * logKappaL[il][id]

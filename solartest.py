@@ -36,17 +36,17 @@ with open(inFile, 'r') as inputHandle:
     fields = inLine.split()
     numStr = fields[0].strip()   #first field is number of following records
     num = int(numStr)
-    wave = [0.0 for i in range(num)]
-    flux = [0.0 for i in range(num)]
+    waveSun = [0.0 for i in range(num)]
+    fluxSun = [0.0 for i in range(num)]
       
     for i in range(num):
         inLine = inputHandle.readline()  
         fields = inLine.split()
         wavStr = fields[0].strip(); flxStr = fields[1].strip()
-        wave[i] = float(wavStr); flux[i] = float(flxStr)
+        waveSun[i] = float(wavStr); fluxSun[i] = float(flxStr)
         
         
-pylab.plot(wave, flux, color='black')
+pylab.plot(waveSun, fluxSun, color='black')
 
 #Now get the synthetic spectrum pre-computed with ChromaStarPy
 modelPath = "Outputs/"
@@ -59,7 +59,7 @@ flxStr = ""
 inLine = "   "
 #fields = [" " for i in range(2)] 
 
-runVers = "newSyn"
+runVers = "pyLoop"
 #Model atmosphere
 teffStr = "5777.0"
 loggStr = "4.44"

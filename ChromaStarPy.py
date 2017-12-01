@@ -10,9 +10,8 @@ This is the main source file for ChromaStarPy.  We start here.
 /*
  * The openStar project: stellar atmospheres and spectra
  *
- * grayStarServer
- * V3.0, November 2015
- * JQuery version
+ * ChromaStarPy
+ * November 2017
  * 
  * C. Ian Short
  * Saint Mary's University
@@ -75,10 +74,6 @@ This is the main source file for ChromaStarPy.  We start here.
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
  OTHER DEALINGS IN THE SOFTWARE.
 *
- * To change this license header, choose License Headers in 
- Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
  */"""
  
 #from decimal import Decimal as D
@@ -123,6 +118,7 @@ import matplotlib.pyplot as plt
 import pylab
 import numpy
 
+from functools import reduce
 
 #############################################
 #
@@ -175,11 +171,12 @@ import numpy
 numPal = 12
 palette = ['0.0' for i in range(numPal)]
 delPal = 0.04
-for i in range(numPal):
-    ii = float(i)
-    helpPal = 0.481 - ii*delPal
-    palette[i] = str(helpPal)       
-
+#for i in range(numPal):
+#    ii = float(i)
+#    helpPal = 0.481 - ii*delPal
+#    palette[i] = str(helpPal) 
+      
+palette = [ str( 0.481 - float(i)*delPal ) for i in range(numPal) ]
 numClrs = len(palette)
 
 
@@ -193,10 +190,10 @@ lbl = ""
 inLine = ""
 fields = [" " for i in range(2)] 
 
-#with open("ChromaStarPy.input.txt", 'r', encoding='utf-8') as inputHandle:
-inFile = absPath + "input.txt"
+#with open("ChromaStarPy.input.dat", 'r', encoding='utf-8') as inputHandle:
+inFile = absPath + "input.dat"
 #Appended to filename output tag to distinguish runs with identical input parameters:
-runVers = "newSyn"
+runVers = "pyLoop"
 
 with open(inFile, 'r') as inputHandle:    
     
@@ -908,6 +905,7 @@ logFudgeTune = 0.0
 #//sigh - don't ask me - makes the Balmer lines show up around A0:
 if (teff <= F0Vtemp):
     logFudgeTune = 0.5
+    #logFudgeTune = 0.0
       
 if (teff > F0Vtemp):
     logFudgeTune = 0.0
@@ -926,14 +924,14 @@ log10MaxDepth = 2.0
 #//int numThetas = 10;  #// Guess
 
 #//wavelength grid (cm):
-lamSetup = []
-for i in range(3):
-    lamSetup.append(0.0)
+lamSetup = [ 0.0 for i in range(3) ]
+#for i in range(3):
+#    lamSetup.append(0.0)
 
 lamSetup[0] = 260.0 * nm2cm  #// test Start wavelength, cm
 #lamSetup[0] = 100.0 * 1.0e-7;  // test Start wavelength, cm
 lamSetup[1] = 2600.0 * nm2cm #// test End wavelength, cm
-lamSetup[2] = 150;  #// test number of lambda
+lamSetup[2] = 250;  #// test number of lambda
 #//int numLams = (int) (( lamSetup[1] - lamSetup[0] ) / lamSetup[2]) + 1;  
 numLams = int(lamSetup[2])
 
@@ -1271,19 +1269,27 @@ if (logCO < 0.0):
 
 
 
-for i in range(nelemAbnd):
-     eheuScale = eheu[i]  #//default initialization //still base 10
-     if (i > 1): #//if not H or He
-         eheuScale = eheu[i] + log10ZScale #//still base 10  
-     
-     #//logAz[i] = logE10 * (eheu[i] - 12.0); //natural log
-     logAz[i] = logE10 * (eheuScale - 12.0) #//natural log
-     thisAz = math.exp(logAz[i])
-     ATot = ATot + thisAz;
+#for i in range(nelemAbnd):
+#     eheuScale = eheu[i]  #//default initialization //still base 10
+#     if (i > 1): #//if not H or He
+#         eheuScale = eheu[i] + log10ZScale #//still base 10  
+#     
+#     #//logAz[i] = logE10 * (eheu[i] - 12.0); //natural log
+#     logAz[i] = logE10 * (eheuScale - 12.0) #//natural log
+#     thisAz = math.exp(logAz[i])
+#     ATot = ATot + thisAz;
      #//System.out.println("i " + i + " logAz " + logE*logAz[i]);
-  
-logATot = math.log(ATot); #//natural log
+     
+#H and He do NOT get re-scaled with metallicity parameter:
+logAz[0:2] = [ logE10 * (x - 12.0) for x in eheu[0:2] ]
+#Everything else does:
+logAz[2:] = [ logE10 * (x + log10ZScale - 12.0) for x in eheu[2:] ]
 
+expAz = [ math.exp(x) for x in logAz ]
+ATot = sum(expAz)
+logATot = math.log(ATot) #//natural log
+
+#print("logATot ", logATot)
 
 tauRos = TauScale.tauScale(numDeps, log10MinDepth, log10MaxDepth)
 
@@ -1365,20 +1371,26 @@ elif (teff >= F0Vtemp):
     guessPe = ScaleT10000.phxRefPe(teff, grav, numDeps, tauRos, zScale, logAz[1])
     guessNe = ScaleT10000.phxRefNe(numDeps, temp, guessPe)
     #//logKapFudge = -1.5;  //sigh - don't ask me - makes the Balmer lines show up around A0 
-
+#stop
 logNz = State.getNz(numDeps, temp, guessPGas, guessPe, ATot, nelemAbnd, logAz)
-for i in range(numDeps): 
-    logNH[i] = logNz[0][i]
-#//set the initial guess H^+ number density to the e^-1 number density
-    masterStagePops[0][1][i] = guessPe[1][i] #//iElem = 0: H; iStage = 1: II
+#for i in range(numDeps): 
+#    logNH[i] = logNz[0][i]
+##//set the initial guess H^+ number density to the e^-1 number density
+#    masterStagePops[0][1][i] = guessPe[1][i] #//iElem = 0: H; iStage = 1: II
     #//System.out.println("i " + i + " logNH[i] " + logE*logNH[i]);
+logNH = [ x for x in logNz[0] ]
+masterStagePops[0][1] = [ x for x in guessPe[1] ]
     
 #//Load the total no. density of each element into the nuetral stage slots of the masterStagePops array as a first guess at "species B" neutral
 #//populations for the molecular Saha eq. - Reasonable first guess at low temp where molecuales form
 
-for iElem in range(nelemAbnd):
-    for iD in range(numDeps):
-        masterStagePops[iElem][0][iD] = logNz[iElem][iD]
+#for iElem in range(nelemAbnd):
+#    for iD in range(numDeps):
+#        masterStagePops[iElem][0][iD] = logNz[iElem][iD]
+    
+masterStagePops[:][0][:] = [ [ logNz[i][j] for j in range(numDeps) ] for i in range(nelemAbnd) ]
+
+
 
 warning = "";
 if (teff < 6000):
@@ -1396,6 +1408,8 @@ subClass = " " #//Create a variable for the subclass of the star. lburns
 luminClass = "V" #//defaults to V
 #//Determine the spectralClass and subClass of main sequence stars, subdwarfs and white dwarfs
 #//var luminClass = "V" or luminClass = "VI" or luminClass = "WD"
+#// Based on the data in Appendix G of An Introduction to Modern Astrophysics, 2nd Ed. by
+#// Carroll & Ostlie
 if (((logg >= 4.0) and (logg < 5.0)) or ((logg >= 5.0) and (logg < 6.0)) or (logg >= 5.0)):
     if (teff < 3000.0):
         spectralClass = "L";
@@ -1737,14 +1751,21 @@ log10guessPe = [0.0 for i in range(numDeps)]
 log10guessNe = [0.0 for i in range(numDeps)]
 log10NH = [0.0 for i in range(numDeps)]
 
+
 #log10mmw = [0.0 for i in range(numDeps)]
-for i in range(numDeps):
-    log10tauRos[i] = log10e * tauRos[1][i]
-    log10guessTemp[i] = log10e * temp[1][i]
-    log10guessPgas[i] = log10e * guessPGas[1][i]
-    log10guessPe[i] = log10e * guessPe[1][i]
-    log10guessNe[i] = log10e * guessNe[1][i]
-    log10NH[i] = log10e * logNH[i]
+#for i in range(numDeps):
+#    log10tauRos[i] = log10e * tauRos[1][i]
+#    log10guessTemp[i] = log10e * temp[1][i]
+#    log10guessPgas[i] = log10e * guessPGas[1][i]
+#    log10guessPe[i] = log10e * guessPe[1][i]
+#    log10guessNe[i] = log10e * guessNe[1][i]
+#    log10NH[i] = log10e * logNH[i]
+log10tauRos = [ log10e * x for x in tauRos[1] ]
+log10guessTemp = [ log10e * x for x in temp[1] ]
+log10guessPgas = [ log10e * x for x in guessPGas[1] ]
+log10guessPe = [ log10e * x for x in guessPe[1] ]
+log10guessNe = [ log10e * x for x in guessNe[1] ]
+log10NH = [ log10e * x for x in logNH ]
 
 ### Uncomment to inspect initial guess:    
 
@@ -1780,14 +1801,12 @@ pylab.plot(log10tauRos, log10guessPe, color='green', linestyle='-')
 #Initial pylab plot set-up
 #pylab.title = "Pressure structure"
 #plt.xlabel('$\log\tau_{\rm Ros}$')
-plt.xlabel(r'$\log \tau_{\rm Ros}$')
-plt.ylabel(r'$\log P_{\rm gas}, log P_{\rm e}$ (dyne cm$^{-2})$')
-pylab.xlim(-6.5, 2.5)
-yMax = max(log10guessPgas[2:numDeps-1]) + 0.5
-yMin = min(log10guessPe[2:numDeps-1]) - 0.5
-print("yMin ", yMin, " yMax ", yMax)
-pylab.ylim(yMin, yMax)
-#pylab.ylim(-5.0, 5.0)
+#plt.xlabel(r'$\log \tau_{\rm Ros}$')
+#plt.ylabel(r'$\log P_{\rm gas}, log P_{\rm e}$ (dyne cm$^{-2})$')
+#pylab.xlim(-6.5, 2.5)
+#yMax = max(log10guessPgas[2:numDeps-1]) + 0.5
+#yMin = min(log10guessPe[2:numDeps-1]) - 0.5
+
 
 log10temp = [0.0 for i in range(numDeps)]
 log10pgas = [0.0 for i in range(numDeps)]
@@ -1846,13 +1865,14 @@ rho = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
 tauOneStagePops = [ [ 0.0 for i in range(numStages) ] for j in range(nelemAbnd) ]
 unity = 1.0
 zScaleList = 1.0 #//initialization   
-#  double[][] log10UwAArr = new double[numStages][2];
-log10UwAArr = [ [ 0.0 for i in range(5) ] for j in range(numStages)] 
-for i in range(numStages):
-    for k in range(len(log10UwAArr[0])):
-        log10UwAArr[i][k] = 0.0 #//lburns default initialization - logarithmic
-    
 
+numAtmPrtTmps = 5
+numMolPrtTmps = 5
+#  double[][] log10UwAArr = new double[numStages][2];
+log10UwAArr = [ [ 0.0 for k in range(numAtmPrtTmps) ] for j in range(numStages) ] 
+#for i in range(numStages):
+#    for k in range(len(log10UwAArr[0])):
+#        log10UwAArr[i][k] = 0.0 #//lburns default initialization - logarithmic
   
  
 #//Ground state ionization E - Stage I (eV) 
@@ -1866,20 +1886,20 @@ speciesA = " "
 speciesB = " "
 # double massA, massB, logMuAB;
 # double[][] masterMolPops = new double[nMols][numDeps];
-masterMolPops = [ [ 0.0 for i in range(numDeps) ] for j in range(nMols) ]
+masterMolPops = [ [ -49.0 for i in range(numDeps) ] for j in range(nMols) ]
 #//initialize masterMolPops for mass density (rho) calculation:
-for i in range(nMols):
-    for j in range(numDeps):
-        masterMolPops[i][j] = -49.0  #//these are logarithmic
+#for i in range(nMols):
+#    for j in range(numDeps):
+#        masterMolPops[i][j] = -49.0  #//these are logarithmic
     
   
 #//We will interpolate in atomic partition fns tabulated at two temperatures
 
-thisUwAV = [ 0.0 for i in range(5) ]
-thisUwBV = [ 0.0 for i in range(5) ]
+thisUwAV = [ 0.0 for i in range(numAtmPrtTmps) ]
+thisUwBV = [ 0.0 for i in range(numAtmPrtTmps) ]
 #//We will interpolate in molecular partition fns tabulated at five temperatures
 #  double thisDissE; 
-thisQwAB = [ 0.0 for i in range(5) ]
+thisQwAB = [ 0.0 for i in range(numMolPrtTmps) ]
 
 #//
 newNe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
@@ -1908,13 +1928,15 @@ newTemp = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
 
 #//Variables for ionization/molecular equilibrium treatment:
 #//for diatomic molecules
+
 logNumBArr = [ [ 0.0 for i in range(numDeps) ] for j in range(numAssocMols) ]
-#//We will interpolate in atomic partition fns tabulated at two temperatures
-log10UwBArr = [ [ 0.0 for i in range(5) ] for j in range(numAssocMols) ] #//base 10 log
+#//We will interpolate in atomic partition fns tabulated at five temperatures
+log10UwBArr = [ [ 0.0 for i in range(numAtmPrtTmps) ] for j in range(numAssocMols) ] #//base e log
 
 dissEArr = [ 0.0 for i in range(numAssocMols) ]
 #//We will interpolate in molecular partition fns tabulated at five temperatures
-logQwABArr = [ [ 0.0 for i in range(5) ] for j in range(numAssocMols) ] #//natural log
+
+logQwABArr = [ [ 0.0 for i in range(numMolPrtTmps) ] for j in range(numAssocMols) ] #//natural log
 logMuABArr = [ 0.0 for i in range(numAssocMols) ]
 
 #// Arrays ofpointers into master molecule and element lists:
@@ -1932,9 +1954,12 @@ mnameBtemplate = " "
 #// converging the Pgas-Pe-N_H-N_He relation for computing the mean opacity for HSE
 #//
 thisTemp = [ 0.0 for i in range(2) ]
-log10UwUArr = [ 0.0 for i in range(5) ]
-log10UwLArr = [ 0.0 for i in range(5) ]
+log10UwUArr = [ 0.0 for i in range(numAtmPrtTmps) ]
+log10UwLArr = [ 0.0 for i in range(numAtmPrtTmps) ]
 #double chiI, peNumerator, peDenominator, logPhi, logPhiOverPe, logOnePlusPhiOverPe, logPeNumerTerm, logPeDenomTerm;
+
+log300 = math.log(300.0)
+log2 = math.log(2.0)
 
 #//Begin Pgas-kapp iteration
 for pIter in range(nOuterIter):
@@ -1944,8 +1969,10 @@ for pIter in range(nOuterIter):
 #//  - assumes all free electrons are from single ionizations
 #//  - David Gray 3rd Ed. Eq. 9.8:
 
+
     for neIter in range(nInnerIter):
         #//System.out.println("iD    logE*newPe[1][iD]     logE*guessPe[1]     logE*guessPGas[1]");
+        
         for iD in range(numDeps):
         #//re-initialize accumulators:
             thisTemp[0] = temp[0][iD]
@@ -1956,10 +1983,10 @@ for pIter in range(nOuterIter):
                 species = cname[iElem] + "I"
                 chiI = IonizationEnergy.getIonE(species)
                 #//THe following is a 2-element vector of temperature-dependent partitio fns, U, 
-                #// that are base 10 log_10 U
-                log10UwLArr = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+                #// that are base e log_e U
+                log10UwLArr = PartitionFn.getPartFn2(species) #//base e log_e U
                 species = cname[iElem] + "II"
-                log10UwUArr = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+                log10UwUArr = PartitionFn.getPartFn2(species) #//base e log_e U
                 logPhi = LevelPopsServer.sahaRHS(chiI, log10UwUArr, log10UwLArr, thisTemp)
                 logPhiOverPe = logPhi - guessPe[1][iD]
                 logOnePlusPhiOverPe = math.log(1.0 + math.exp(logPhiOverPe)) 
@@ -1974,17 +2001,26 @@ for pIter in range(nOuterIter):
         #//iD depth loop
 
     #//end Pg_Pe iteration neIter
-    for iD in range(numDeps):
-        newNe[1][iD] = newPe[1][iD] - temp[1][iD] - Useful.logK()
-        newNe[0][iD] = math.exp(newNe[1][iD])
-        guessNe[1][iD] = newNe[1][iD]
-        guessNe[0][iD] = newNe[0][iD]
+    #for iD in range(numDeps):
+    #    newNe[1][iD] = newPe[1][iD] - temp[1][iD] - Useful.logK()
+    #    newNe[0][iD] = math.exp(newNe[1][iD])
+    #    guessNe[1][iD] = newNe[1][iD]
+    #    guessNe[0][iD] = newNe[0][iD]
+    #More "pythonic" ways of doing this obscure the logic in cryptic black boxes like map() and zip()
+    newNe[1] = [newPe[1][iD] - temp[1][iD] - Useful.logK() for iD in range(numDeps)]
+    newNe[0] = [math.exp(newNe[1][iD]) for iD in range(numDeps)]   
+    #guessNe[1][:] = [newNe[1][iD] for iD in range(numDeps)]
+    #guessNe[0][:] = [newNe[0][iD] for iD in range(numDeps)]
+    guessNe[1][:] = [ x for x in newNe[1][:] ]
+    guessNe[0][:] = [ x for x in newNe[0][:] ]
     
 #//
 #//Refine the number densities of the chemical elements at all depths  
     logNz = State.getNz(numDeps, temp, guessPGas, guessPe, ATot, nelemAbnd, logAz)
-    for i in range(numDeps): 
-        logNH[i] = logNz[0][i]
+    #for i in range(numDeps): 
+    #    logNH[i] = logNz[0][i]
+    #logNH[:] = [ logNz[0][i] for i in range(numDeps) ]
+    logNH = [ x for x in logNz[0] ]
         #//System.out.println("i " + i + " logNH[i] " + logE*logNH[i]); 
 
 #//
@@ -1995,20 +2031,29 @@ for pIter in range(nOuterIter):
     #//these 2-element temperature-dependent partition fns are logarithmic  
 
 #//Default initialization:
-    for i in range(numAssocMols):
-        for j in range(numDeps):
-            logNumBArr[i][j] = -49.0
-           
-        for k in range(len(log10UwBArr[i])):
-            log10UwBArr[i][k] = 0.0 #// default initialization lburns
-                   
-        dissEArr[i] = 29.0  #//eV
-        for kk in range(5): 
-            logQwABArr[i][kk] = math.log(300.0)
-           
-        logMuABArr[i] = math.log(2.0) + Useful.logAmu()  #//g
-        mname_ptr[i] = 0
-        specB_ptr[i] = 0
+    #for i in range(numAssocMols):
+    #    for j in range(numDeps):
+    #        logNumBArr[i][j] = -49.0
+    #       
+    #    for k in range(numAtmPrtTmps):
+    #        log10UwBArr[i][k] = 0.0 #// default initialization lburns
+    #               
+    #    dissEArr[i] = 29.0  #//eV
+    #    for kk in range(numMolPrtTmps): 
+    #        logQwABArr[i][kk] = math.log(300.0)
+    #       
+    #    logMuABArr[i] = math.log(2.0) + Useful.logAmu()  #//g
+    #    mname_ptr[i] = 0
+    #    specB_ptr[i] = 0
+    logNumBArr[:][:] = [ [ -49.0 for j in range(numDeps) ] for i in range(numAssocMols) ]
+    #// default initialization lburns
+    log10UwBArr[:][:] = [ [ 0.0 for k in range(numAtmPrtTmps) ] for i in range(numAssocMols) ]
+    dissEArr[:] = [ 29.0 for i in range(numAssocMols) ]
+    logQwABArr[:][:] = [ [ log300 for kk in range(numMolPrtTmps) ] for i in range(numAssocMols) ]
+    logMuABArr[:] = [ log2 + Useful.logAmu() for i in range(numAssocMols) ]  # g
+    mname_ptr[:] = [ 0 for i in range(numAssocMols) ]
+    specB_ptr[:] = [ 0 for i in range(numAssocMols) ]
+
        
 
     defaultQwAB = math.log(300.0) #//for now
@@ -2018,20 +2063,20 @@ for pIter in range(nOuterIter):
     #//For element A of main molecule being treated in *molecular* equilibrium:
     #//For safety, assign default values where possible
     nmrtrDissE = 15.0 #//prohitively high by default
-    nmrtrLog10UwB = [ 0.0 for i in range(5) ]
-    for k in range(len(nmrtrLog10UwB)):
-        nmrtrLog10UwB[k] = 0.0 #// default initialization lburns
+    nmrtrLog10UwB = [ 0.0 for i in range(numAtmPrtTmps) ]
+    #for k in range(numAtmPrtTmps):
+    #    nmrtrLog10UwB[k] = 0.0 #// default initialization lburns
        
 
     nmrtrLog10UwA = 0.0
-    nmrtrLogQwAB = [ 0.0 for i in range(5) ]
-    for kk in range(5):
-        nmrtrLogQwAB[kk] = math.log(300.0)
+    nmrtrLogQwAB = [ log300 for i in range(numMolPrtTmps) ]
+    #for kk in range(numMolPrtTmps):
+    #    nmrtrLogQwAB[kk] = math.log(300.0)
        
     nmrtrLogMuAB = Useful.logAmu()
     nmrtrLogNumB = [ 0.0 for i in range(numDeps) ]
-    for i in range(numDeps):
-        nmrtrLogNumB[i] = 0.0
+    #for i in range(numDeps):
+    #    nmrtrLogNumB[i] = 0.0
        
 
     #double totalIonic;
@@ -2045,34 +2090,38 @@ for pIter in range(nOuterIter):
         species = cname[iElem] + "I"
         chiIArr[0] = IonizationEnergy.getIonE(species)
         #//THe following is a 2-element vector of temperature-dependent partitio fns, U, 
-        #// that are base 10 log_10 U
-        log10UwAArr[0] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+        #// that are base e log_e U
+        log10UwAArr[0] = PartitionFn.getPartFn2(species) #//base e log_e U
         species = cname[iElem] + "II"
         chiIArr[1] = IonizationEnergy.getIonE(species)
-        log10UwAArr[1] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+        log10UwAArr[1] = PartitionFn.getPartFn2(species) #//base e log_e U
         species = cname[iElem] + "III"
         chiIArr[2] = IonizationEnergy.getIonE(species)
-        log10UwAArr[2] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+        log10UwAArr[2] = PartitionFn.getPartFn2(species) #//base e log_e U
         species = cname[iElem] + "IV"
         chiIArr[3] = IonizationEnergy.getIonE(species)
-        log10UwAArr[3] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+        log10UwAArr[3] = PartitionFn.getPartFn2(species) #//base e log_e U
         species = cname[iElem] + "V"
         chiIArr[4] = IonizationEnergy.getIonE(species)
-        log10UwAArr[4] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+        log10UwAArr[4] = PartitionFn.getPartFn2(species) #//base e log_e U
         species = cname[iElem] + "VI"
         chiIArr[5] = IonizationEnergy.getIonE(species)
-        log10UwAArr[5] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+        log10UwAArr[5] = PartitionFn.getPartFn2(species) #//base e log_e U
         #//double logN = (eheu[iElem] - 12.0) + logNH;
 
         thisNumMols = 0 #//default initialization
-        for iMol in range(numAssocMols):
-            #//console.log("iMol " + iMol + " cnameMols " + cnameMols[iElem][iMol]);
-            if (cnameMols[iElem][iMol] == "None"):
-                break;
-          
-            thisNumMols+=1
+        #for iMol in range(numAssocMols):
+        #    #//console.log("iMol " + iMol + " cnameMols " + cnameMols[iElem][iMol]);
+        #    if (cnameMols[iElem][iMol] == "None"):
+        #        break;
+        #  
+        #    thisNumMols+=1
+        try:
+            thisNumMols = cnameMols[iElem][:].index("None")
+        except:
+            thisNumMols = numAssocMols
 #//FLAG!
- #Trying to account for mols in ionization eq destailizes everything.
+ #Trying to account for mols in ionization eq destabilizes everything.
         thisNumMols = 0      
         if (thisNumMols > 0):
             #//Find pointer to molecule in master mname list for each associated molecule:
@@ -2081,6 +2130,10 @@ for pIter in range(nOuterIter):
                     if (cnameMols[iElem][iMol] == mname[jj]):
                         mname_ptr[iMol] = jj #//Found it!
                         break
+           
+            #This will NOT work as replacement for above nexted for loops - *every cnameMols[] has to be in mname
+            #mname_ptr[:] = [ mname.index(cnameMols[iElem][iMol]) for iMol in range(thisNumMols) ]
+            
              
                 #//jj loop in master mnames list
             #//iMol loop in associated molecules
@@ -2101,15 +2154,17 @@ for pIter in range(nOuterIter):
                     specBStage = 1
                 else:
                     specBStage = 0
-         
-                for iTau in range(numDeps):
-                    #//console.log("iMol " + iMol + " iTau " + iTau + " specB_ptr[iMol] " + specB_ptr[iMol]);
-                    #//Note: Here's one place where ionization equilibrium iteratively couples to molecular equilibrium!
-                    logNumBArr[iMol][iTau] = masterStagePops[specB_ptr[iMol]][specBStage][iTau]
+            
+                #for iTau in range(numDeps):
+                #    #//console.log("iMol " + iMol + " iTau " + iTau + " specB_ptr[iMol] " + specB_ptr[iMol]);
+                #    #//Note: Here's one place where ionization equilibrium iteratively couples to molecular equilibrium!
+                #    logNumBArr[iMol][iTau] = masterStagePops[specB_ptr[iMol]][specBStage][iTau]
+                #logNumBArr[iMol][:] = [masterStagePops[specB_ptr[iMol]][specBStage][iTau] for iTau in range(numDeps)]
+                logNumBArr[iMol] = [ x for x in masterStagePops[specB_ptr[iMol]][specBStage] ]
           
                 dissEArr[iMol] = IonizationEnergy.getDissE(mname[mname_ptr[iMol]])
                 species = cname[specB_ptr[iMol]] + "I" #//neutral stage
-                log10UwBArr[iMol] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+                log10UwBArr[iMol] = PartitionFn.getPartFn2(species) #//base e log_e U
                 #//logQwABArr[iMol] = defaultQwAB;
                 logQwABArr[iMol] = PartitionFn.getMolPartFn(mname[mname_ptr[iMol]])
                 #//Compute the reduced mass, muAB, in g:
@@ -2123,10 +2178,12 @@ for pIter in range(nOuterIter):
                      thisNumMols, logNumBArr, dissEArr, log10UwBArr, logQwABArr, logMuABArr, \
                      numDeps, temp)
 
-        for iStage in range(numStages):
-            for iTau in range(numDeps):
-
-                masterStagePops[iElem][iStage][iTau] = logNums[iStage][iTau]
+        #for iStage in range(numStages):
+        #    for iTau in range(numDeps):
+        #
+        #        masterStagePops[iElem][iStage][iTau] = logNums[iStage][iTau]
+        #masterStagePops[iElem][:][:] = [ [logNums[iStage][iTau] for iTau in range(numDeps)] for iStage in range(numStages) ]
+        masterStagePops[iElem][:] = [x for x in logNums[:]]
                 #//save ion stage populations at tau = 1:
             #//iTau loop
         #//iStage loop
@@ -2138,15 +2195,22 @@ for pIter in range(nOuterIter):
 #//Total number density of gas particles: nuclear species + free electrons:
 #//AND
 # //Compute mean molecular weight, mmw ("mu"):
-    for i in range(numDeps):
-        Ng[i] = newNe[0][i] #//initialize accumulation with Ne 
+    #for i in range(numDeps):
+    #    Ng[i] = newNe[0][i] #//initialize accumulation with Ne 
+    #Ng[:] = [ newNe[0][i] for i in range(numDeps) ]
+    Ng[:] = [ x for x in newNe[0] ]
     
+    #Seems like this can't be "de-looped" without resorting to cryptic black boxes in python, like zip()
     for i in range(numDeps):
         for j in range(nelemAbnd):
             Ng[i] =  Ng[i] + math.exp(logNz[j][i]) #//initialize accumulation 
       
-        logMmw = rho[1][i] - math.log(Ng[i]) # // in g
-        mmw[i] = math.exp(logMmw) 
+        #logMmw = rho[1][i] - math.log(Ng[i]) # // in g
+        #mmw[i] = math.exp(logMmw) 
+    
+    mmw = [ rho[1][i] - math.log(Ng[i]) for i in range(numDeps) ]
+    mmw = [ math.exp(x) for x in mmw ]
+
     
 
 #//H & He only for now... we only compute H, He, and e^- opacity sources: 
@@ -2163,48 +2227,64 @@ for pIter in range(nOuterIter):
 
 #//Convert metal b-f & Rayleigh scattering opacities to cm^2/g and sum up total opacities
     #double logKapMetalBF, logKapRayl, kapContTot;
-    for iL in range(numLams):
-        for iD in range(numDeps):
-            logKapMetalBF = logKappaMetalBF[iL][iD] - rho[1][iD] 
-            logKapRayl = logKappaRayl[iL][iD] - rho[1][iD] 
-            kapContTot = math.exp(logKappaHHe[iL][iD]) + math.exp(logKapMetalBF) + math.exp(logKapRayl) 
-            logKappa[iL][iD] = math.log(kapContTot)
+    #for iL in range(numLams):
+    #    for iD in range(numDeps):
+    #        logKapMetalBF = logKappaMetalBF[iL][iD] - rho[1][iD] 
+    #        logKapRayl = logKappaRayl[iL][iD] - rho[1][iD] 
+    #        kapContTot = math.exp(logKappaHHe[iL][iD]) + math.exp(logKapMetalBF) + math.exp(logKapRayl) 
+    #        logKappa[iL][iD] = math.log(kapContTot)
+    
+    logKappa = [ [ math.exp(logKappaHHe[iL][iD]) + \
+            math.exp(logKappaMetalBF[iL][iD] - rho[1][iD]) +\
+            math.exp(logKappaRayl[iL][iD] - rho[1][iD]) for iD in range(numDeps)] for iL in range(numLams) ]
+    logKappa = [ [math.log(logKappa[iL][iD]) for iD in range(numDeps)] for iL in range(numLams) ]
           
     kappaRos = Kappas.kapRos(numDeps, numLams, lambdaScale, logKappa, temp); 
 
 #//Extract the "kappa_500" monochroamtic continuum oapcity scale
 #// - this means we'll try interpreting the prescribed tau grid (still called "tauRos")as the "tau500" scale
     it500 = ToolBox.lamPoint(numLams, lambdaScale, 500.0e-7)
-    for i in range(numDeps):
-        kappa500[1][i] = logKappa[it500][i]
-        kappa500[0][i] = math.exp(kappa500[1][i])
-      
+    #for i in range(numDeps):
+    #    kappa500[1][i] = logKappa[it500][i]
+    #    kappa500[0][i] = math.exp(kappa500[1][i])
+    kappa500[1] = [ x for x in logKappa[it500] ]
+    kappa500[0] = [ math.exp(x) for x in logKappa[it500] ] 
+        
     pGas = Hydrostat.hydroFormalSoln(numDeps, grav, tauRos, kappaRos, temp, guessPGas)
     pRad = Hydrostat.radPress(numDeps, temp)
 
 #//Update Pgas guess for iteration:
-    for i in range(numDeps):
+    #for i in range(numDeps):
 #// Now we can update guessPGas:
-        guessPGas[0][i] = pGas[0][i]
-        guessPGas[1][i] = pGas[1][i]
-        log10pgas[i] = log10e * pGas[1][i]
-        log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
-        pe[i] = newNe[1][i] + Useful.logK() + temp[1][i]
-        log10prad[i] = log10e * pRad[1][i]
-        log10ne[i] = log10e * newNe[1][i]
+    #    guessPGas[0][i] = pGas[0][i]
+    #    guessPGas[1][i] = pGas[1][i]
+    #    log10pgas[i] = log10e * pGas[1][i]
+    #    log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
+    #    pe[i] = newNe[1][i] + Useful.logK() + temp[1][i]
+    #    log10prad[i] = log10e * pRad[1][i]
+    #    log10ne[i] = log10e * newNe[1][i]
+        
+    guessPGas[0] = [ x for x in pGas[0] ]
+    guessPGas[1] = [ x for x in pGas[1] ]
+    log10pgas = [ log10e * x for x in pGas[1] ]
+    log10pe = [ log10e * (newNe[1][i] + Useful.logK() + temp[1][i]) for i in range(numDeps) ]
+    pe = [ newNe[1][i] + Useful.logK() + temp[1][i] for i in range(numDeps) ]
+    log10prad = [ log10e * x for x in pRad[1] ]
+    log10ne = [ log10e * x for x in newNe[1] ]
+
 
     #Uncomment this block to inspect iteration-by-iteration convergence
     #Graphically inspect convergence:  Issue 'matplotlib qt5' in console before running code
 
     thisClr = palette[pIter%numClrs]
     #pylab.plot(log10tauRos, log10pgas, color=thisClr)
-    pylab.plot(log10tauRos, log10pgas, color=thisClr)
-    pylab.plot(log10tauRos, log10pe, color=thisClr, linestyle='--')     
+    #pylab.plot(log10tauRos, log10pgas, color=thisClr)
+    #pylab.plot(log10tauRos, log10pe, color=thisClr, linestyle='--')     
     #pylab.plot(tauRos[1][:], newNe[1][:], thisClr)
 
 #//end Pgas-kappa iteration, nOuter
 #Save as encapsulated postscript (eps) for LaTex
-plt.savefig('PConverge.eps', format='eps', dpi=1000)    
+#plt.savefig('PConverge.eps', format='eps', dpi=1000)    
     
 #//diagnostic
 #//   int tauKapPnt01 = ToolBox.tauPoint(numDeps, tauRos, 0.01);
@@ -2237,10 +2317,11 @@ for i in range(numTCorr):
     #//newTemp = TCorr.tCorr(numDeps, tauRos, temp);
     newTemp = MulGrayTCorr.mgTCorr(numDeps, teff, tauRos, temp, rho, kappaRos)
     #//newTemp = MulGrayTCorr.mgTCorr(numDeps, teff, tauRos, temp, rho, kappa500);
-    for iTau in range(numDeps):
-        temp[1][iTau] = newTemp[1][iTau]
-        temp[0][iTau] = newTemp[0][iTau]
-            
+    #for iTau in range(numDeps):
+    #    temp[1][iTau] = newTemp[1][iTau]
+    #    temp[0][iTau] = newTemp[0][iTau]
+    temp[1] = [ x for x in newTemp[1] ]
+    temp[0] = [ x for x in newTemp[0] ]
 
 """/*
      //Convection:
@@ -2267,18 +2348,30 @@ for i in range(numTCorr):
 #Convert everything to log_10 OR re-scaled units for plotting, printing, etc:
     
 
-for i in range(numDeps):
-    log10temp[i] = log10e * temp[1][i]
-    log10pgas[i] = log10e * pGas[1][i]
-    log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
-    log10prad[i] = log10e * pRad[1][i]
-    log10ne[i] = log10e * newNe[1][i]
-    log10rho[i] = log10e * rho[1][i]
-    log10NH[i] = log10e * logNH[i]
-    log10kappaRos[i] = log10e * kappaRos[1][i]
-    log10kappa500[i] = log10e * kappa500[1][i]
-    mmwAmu[i] = mmw[i] / Useful.amu()
-    depthsKm[i] = 1.0e-5 * depths[i]
+#for i in range(numDeps):
+#    log10temp[i] = log10e * temp[1][i]
+#    log10pgas[i] = log10e * pGas[1][i]
+#    log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
+#    log10prad[i] = log10e * pRad[1][i]
+#    log10ne[i] = log10e * newNe[1][i]
+#    log10rho[i] = log10e * rho[1][i]
+#    log10NH[i] = log10e * logNH[i]
+#    log10kappaRos[i] = log10e * kappaRos[1][i]
+#    log10kappa500[i] = log10e * kappa500[1][i]
+#    mmwAmu[i] = mmw[i] / Useful.amu()
+#    depthsKm[i] = 1.0e-5 * depths[i]
+log10temp = [ log10e * x for x in temp[1] ]
+log10pgas = [ log10e * x for x in pGas[1] ]
+log10pe = [ log10e * (newNe[1][i] + Useful.logK() + temp[1][i]) for i in range(numDeps) ]
+log10prad = [ log10e * x for x in pRad[1] ]
+log10ne = [ log10e * x for x in newNe[1] ]
+log10rho = [ log10e * x for x in rho[1] ]
+log10NH = [ log10e * x for x in logNH ]
+log10kappaRos = [ log10e * x for x in kappaRos[1] ]
+log10kappa500 = [ log10e * x for x in kappa500[1] ]
+mmwAmu = [ x / Useful.amu() for x in mmw ]
+depthsKm = [ 1.0e-5 * x for x in depths ]
+
 
 #Uncomment to inspect T_kin(tau):
 """
@@ -2357,24 +2450,33 @@ zScaleList = 1.0 #/initialization
 #//these 2-element temperature-dependent partition fns are logarithmic
     
 #//Default initialization:
-for i in range(numAssocMols):
-    for j in range(numDeps):
-        logNumBArr[i][j] = -49.0
-           
-    for k in range(len(log10UwBArr[i])):
-        log10UwBArr[i][k] = 0.0 #// default initialization lburns
-           
+#for i in range(numAssocMols):
+#    for j in range(numDeps):
+#        logNumBArr[i][j] = -49.0
+#              
+#    for k in range(numAtmPrtTmps):
+#        log10UwBArr[i][k] = 0.0 #// default initialization lburns
+#          
+#    
+#    dissEArr[i] = 29.0  #//eV
+#    for kk in range(numMolPrtTmps):
+#        logQwABArr[i][kk] = math.log(300.0)
+#           
+#    logMuABArr[i] = math.log(2.0) + Useful.logAmu()  #//g
+#    mname_ptr[i] = 0
+#    specB_ptr[i] = 0
     
-    dissEArr[i] = 29.0  #//eV
-    for kk in range(5):
-        logQwABArr[i][kk] = math.log(300.0)
-           
-    logMuABArr[i] = math.log(2.0) + Useful.logAmu()  #//g
-    mname_ptr[i] = 0
-    specB_ptr[i] = 0
+logNumBArr = [ [ -49.0 for j in range(numDeps) ] for i in range(numAssocMols) ]
+log10UwBArr = [ [ 0.0 for k in range(numAtmPrtTmps) ] for i in range(numAssocMols) ]
+dissEArr = [ 29.0 for i in range(numAssocMols) ]
+logQwABArr = [ [ log300  for kk in range(numMolPrtTmps) ] for i in range(numAssocMols) ]
+logMuABArr = [ log2 + Useful.logAmu() for i in range(numAssocMols) ]
+mname_ptr = [ 0 for i in range(numAssocMols) ]
+specB_ptr = [ 0 for i in range(numAssocMols) ]
+
        
 
-defaultQwAB = math.log(300.0) #//for now
+defaultQwAB = log300 #//for now
     
 #//default that applies to most cases - neutral stage (I) forms molecules
 specBStage = 0 #//default that applies to most cases
@@ -2382,20 +2484,21 @@ specBStage = 0 #//default that applies to most cases
 #//For element A of main molecule being treated in *molecular* equilibrium:
 #//For safety, assign default values where possible
 nmrtrDissE = 15.0 #//prohitively high by default
-nmrtrLog10UwB = [0.0 for i in range(5)]
-for k in range(len(nmrtrLog10UwB)):
-    nmrtrLog10UwB[k] = 0.0 #// default initialization lburns
+nmrtrLog10UwB = [0.0 for i in range(numAtmPrtTmps)]
+#for k in range(len(nmrtrLog10UwB)):
+#    nmrtrLog10UwB[k] = 0.0 #// default initialization lburns
+
        
 
 nmrtrLog10UwA = 0.0
-nmrtrLogQwAB = [0.0 for i in range(5)]
-for kk in range(5):
-    nmrtrLogQwAB[kk] = math.log(300.0)
+nmrtrLogQwAB = [log300 for i in range(numMolPrtTmps)]
+#for kk in range(numMolPrtTmps):
+#    nmrtrLogQwAB[kk] = math.log(300.0)
        
 nmrtrLogMuAB = Useful.logAmu()
 nmrtrLogNumB = [0.0 for i in range(numDeps)]
-for i in range(numDeps):
-    nmrtrLogNumB[i] = 0.0
+#for i in range(numDeps):
+#    nmrtrLogNumB[i] = 0.0
 
 #double totalIonic;
 logGroundRatio = [0.0 for i in range(numDeps)]
@@ -2411,31 +2514,32 @@ for neIter2 in range(nInnerIter):
         species = cname[iElem] + "I"
         chiIArr[0] = IonizationEnergy.getIonE(species)
         #//The following is a 2-element vector of temperature-dependent partitio fns, U,
-        #// that are base 10 log_10 U
-        log10UwAArr[0] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+        #// that are base e log_e U
+        log10UwAArr[0] = PartitionFn.getPartFn2(species) #//base e log_e U
         species = cname[iElem] + "II"
         chiIArr[1] = IonizationEnergy.getIonE(species)
-        log10UwAArr[1] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+        log10UwAArr[1] = PartitionFn.getPartFn2(species) #//base e log_e U
         species = cname[iElem] + "III"
         chiIArr[2] = IonizationEnergy.getIonE(species)
-        log10UwAArr[2] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+        log10UwAArr[2] = PartitionFn.getPartFn2(species) #//base e log_e U
         species = cname[iElem] + "IV"
         chiIArr[3] = IonizationEnergy.getIonE(species)
-        log10UwAArr[3]= PartitionFn.getPartFn2(species) #//base 10 log_10 U
+        log10UwAArr[3]= PartitionFn.getPartFn2(species) #//base 1e log_e U
         species = cname[iElem] + "V"
         chiIArr[4] = IonizationEnergy.getIonE(species)
-        log10UwAArr[4]= PartitionFn.getPartFn2(species) #//base 10 log_10 U
+        log10UwAArr[4]= PartitionFn.getPartFn2(species) #//base 1e log_e U
         species = cname[iElem] + "VI"
         chiIArr[5] = IonizationEnergy.getIonE(species)
-        log10UwAArr[5]= PartitionFn.getPartFn2(species) #//base 10 log_10 U
+        log10UwAArr[5]= PartitionFn.getPartFn2(species) #//base e log_e U
     
         thisNumMols = 0 #//default initialization
         for iMol in range(numAssocMols):
             if (cnameMols[iElem][iMol] == "None"):
                 break
-          
+        
             thisNumMols+=1
-     
+        #Won't work: thisNumMols = cnameMols[iElem].index("None")
+
         if (thisNumMols > 0):
             #//Find pointer to molecule in master mname list for each associated molecule:
             for iMol in range(thisNumMols):
@@ -2464,19 +2568,27 @@ for neIter2 in range(nInnerIter):
                 else:
                     specBStage = 0
             
-                for iTau in range(numDeps):
-                    #//Note: Here's one place where ionization equilibrium iteratively couples to molecular equilibrium!
-                    logNumBArr[iMol][iTau] = masterStagePops[specB_ptr[iMol]][specBStage][iTau]            
-
+                #for iTau in range(numDeps):
+                #    #//Note: Here's one place where ionization equilibrium iteratively couples to molecular equilibrium!
+                #    logNumBArr[iMol][iTau] = masterStagePops[specB_ptr[iMol]][specBStage][iTau] 
+                logNumBArr[iMol] = [ x for x in masterStagePops[specB_ptr[iMol]][specBStage] ]
+            
                 dissEArr[iMol] = IonizationEnergy.getDissE(mname[mname_ptr[iMol]])
                 species = cname[specB_ptr[iMol]] + "I" #//neutral stage
-                log10UwBArr[iMol] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+                log10UwBArr[iMol] = PartitionFn.getPartFn2(species) #//base e log_e U
                 #//logQwABArr[iMol] = defaultQwAB
                 logQwABArr[iMol] = PartitionFn.getMolPartFn(mname[mname_ptr[iMol]])
                 #//Compute the reduced mass, muAB, in g:
                 massA = AtomicMass.getMass(cname[iElem])
                 massB = AtomicMass.getMass(cname[specB_ptr[iMol]])
                 logMuABArr[iMol] = math.log(massA) + math.log(massB) - math.log(massA + massB) + Useful.logAmu()
+            #Dangerous - don't know what we're doing here...
+            #dissEArr = [ IonizationEnergy.getDissE(x) for x in mname[mname_ptr] ]
+            #species = [ x + "I" for x in cname[specB_ptr] ] #//neutral stage
+            #log10UwBArr = [ PartitionFn.getPartFn2( x + "I" for x in cname[specB_ptr] ) ]#//base e log_e U
+            #logQwABArr = [ PartitionFn.getMolPartFn(x) for x in mname[mname_ptr] ]
+            #logNumBArr = [ [ masterStagePops[specB_ptr[iMol]][specBStage][iTau] for iTau in range(numDeps) ] for iMol in range(thisNumMols) ]
+            
             #}
         #} //if thisNumMols > 0 condition
 
@@ -2484,16 +2596,18 @@ for neIter2 in range(nInnerIter):
                   thisNumMols, logNumBArr, dissEArr, log10UwBArr, logQwABArr, logMuABArr, \
                   numDeps, temp);
 
-        for iStage in range(numStages):
-            for iTau in range(numDeps):
-                masterStagePops[iElem][iStage][iTau] = logNums[iStage][iTau]
-            #//save ion stage populations at tau = 1:
-            #} //iTau loop
-            tauOneStagePops[iElem][iStage] = logNums[iStage][iTauOne]
+        #for iStage in range(numStages):
+        #    for iTau in range(numDeps):
+        #        masterStagePops[iElem][iStage][iTau] = logNums[iStage][iTau]
+        #    #//save ion stage populations at tau = 1:
+        #    #} //iTau loop
+        #    tauOneStagePops[iElem][iStage] = logNums[iStage][iTauOne]
+        
         #} //iStage loop
-
+        masterStagePops[iElem] = [ [ logNums[iStage][iTau] for iTau in range(numDeps) ] for iStage in range(numStages) ]
+        tauOneStagePops[iElem] = [ logNums[iStage][iTauOne] for iStage in range(numStages) ]
     #} //iElem loop
-    
+     
 #// Compute all molecular populations:
 #//
 #// *** CAUTION: specB2_ptr refers to element B of main molecule being treated
@@ -2501,7 +2615,7 @@ for neIter2 in range(nInnerIter):
 #// element A
 #// mname_ptr[] is an array of pointers pointing to the molecules themselves that are
 #// associated with element A
-    log10UwA = [0.0 for i in range(5)]
+    log10UwA = [0.0 for i in range(numAtmPrtTmps)]
 
     for iMol in range(nMols):
 
@@ -2515,7 +2629,7 @@ for neIter2 in range(nInnerIter):
        
 #// Get its partition fn:
         species = cname[specA_ptr] + "I" #//neutral stage
-        log10UwA = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+        log10UwA = PartitionFn.getPartFn2(species) #//base e log_e U
         for jj in range(nelemAbnd):
             if (mnameB[iMol] == cname[jj]):
                 specB2_ptr = jj
@@ -2562,6 +2676,7 @@ for neIter2 in range(nInnerIter):
             #//iMol loop in associated molecules
 
             #//Now load arrays with molecular species AB and atomic species B data for method molPops()
+            # No easy way to make the following structre pythonic
             for im in range(thisNumMols):
                 #//special fix for H^+_2:
                 if (mname[mname_ptr[im]] == "H2+"):
@@ -2569,13 +2684,14 @@ for neIter2 in range(nInnerIter):
                 else:
                     specBStage = 0
                 
-                for iTau in range(numDeps):
-                    #//Note: Here's one place where ionization equilibrium iteratively couples to molecular equilibrium!
-                    logNumBArr[im][iTau] = masterStagePops[specB_ptr[im]][specBStage][iTau]
+                #for iTau in range(numDeps):
+                #    #//Note: Here's one place where ionization equilibrium iteratively couples to molecular equilibrium!
+                #    logNumBArr[im][iTau] = masterStagePops[specB_ptr[im]][specBStage][iTau]
+                logNumBArr[im] = [ x for x in masterStagePops[specB_ptr[im]][specBStage] ]
                 
                 dissEArr[im] = IonizationEnergy.getDissE(mname[mname_ptr[im]])
                 species = cname[specB_ptr[im]] + "I"
-                log10UwBArr[im] = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+                log10UwBArr[im] = PartitionFn.getPartFn2(species) #//base e log_e U
                 #//logQwABArr[im] = defaultQwAB;
                 logQwABArr[im] = PartitionFn.getMolPartFn(mname[mname_ptr[im]])
                 #//Compute the reduced mass, muAB, in g:
@@ -2586,16 +2702,18 @@ for neIter2 in range(nInnerIter):
                 #// the population - pick this out for the numerator in the master fraction:
                 if (mname[mname_ptr[im]] == mname[iMol]):
                     nmrtrDissE = dissEArr[im]
-                    for k in range(len(nmrtrLog10UwB)):
-                        nmrtrLog10UwB[k] = log10UwBArr[im][k] #// default initialization lburns
-              
+                    #for k in range(len(nmrtrLog10UwB)):
+                    #    nmrtrLog10UwB[k] = log10UwBArr[im][k] #// default initialization lburns
+                    nmrtrLog10UwB = [ x for x in log10UwBArr[im] ]
 
-                    for kk in range(5):
-                        nmrtrLogQwAB[kk] = logQwABArr[im][kk]
+                    #for kk in range(numMolPrtTmps):
+                    #    nmrtrLogQwAB[kk] = logQwABArr[im][kk]
+                    nmrtrLogQwAB = [ x for x in logQwABArr[im] ]
                     
                     nmrtrLogMuAB = logMuABArr[im]
-                    for iTau in range(numDeps):
-                        nmrtrLogNumB[iTau] = logNumBArr[im][iTau]
+                    #for iTau in range(numDeps):
+                    #    nmrtrLogNumB[iTau] = logNumBArr[im][iTau]
+                    nmrtrLogNumB = [ x for x in logNumBArr[im] ]
                     #}
                 #}
             #} //im loop
@@ -2603,6 +2721,7 @@ for neIter2 in range(nInnerIter):
         #} //if thisNumMols > 0 condition
         #//Compute total population of particle in atomic ionic stages over number in ground ionization stage
         #//for master denominator so we don't have to re-compue it:
+        #This would have to be pythonized carefully...
         for iTau in range(numDeps):
             #//initialization:
             totalIonic = 0.0
@@ -2616,16 +2735,19 @@ for neIter2 in range(nInnerIter):
                      logGroundRatio, numDeps, temp)
 
         #//Load molecules into master molecular population array:
-        for iTau in range(numDeps):
-            masterMolPops[iMol][iTau] = logNz[specA_ptr][iTau] + logNumFracAB[iTau]
-        #} //iTau loop
+        #for iTau in range(numDeps):
+        #    masterMolPops[iMol][iTau] = logNz[specA_ptr][iTau] + logNumFracAB[iTau]
+        ##} //iTau loop
+        masterMolPops[iMol] = [ logNz[specA_ptr][iTau] + logNumFracAB[iTau] for iTau in range(numDeps) ]
     #} //master iMol loop
     #//
     #//Compute updated Ne & Pe:
     #//initialize accumulation of electrons at all depths
-    for iTau in range(numDeps):
-        newNe[0][iTau] = 0.0
+    #for iTau in range(numDeps):
+    #    newNe[0][iTau] = 0.0
+    newNe[0] = [ 0.0 for iTau in range(numDeps) ]
      
+    #This is cumulative and not trivially pythonizable
     for iTau in range(numDeps):
         for iElem in range(nelemAbnd):
             #//1 e^- per ion, #//2 e^- per ion
@@ -2635,23 +2757,33 @@ for neIter2 in range(nInnerIter):
             #//+ 3.0 * Math.exp(masterStagePops[iElem][3][iTau])   #//3 e^- per ion
             #//+ 4.0 * Math.exp(masterStagePops[iElem][4][iTau]);  #//3 e^- per ion
         #}
-        newNe[1][iTau] = math.log(newNe[0][iTau])
-        #// Update guess for iteration:
-        guessNe[0][iTau] = newNe[0][iTau]
-        guessNe[1][iTau] = newNe[1][iTau] 
+    #    newNe[1][iTau] = math.log(newNe[0][iTau])
+    #    #// Update guess for iteration:
+    #    guessNe[0][iTau] = newNe[0][iTau]
+    #    guessNe[1][iTau] = newNe[1][iTau] 
+    #newNe[0] = [ [ newNe[0][iTau]   \
+    #        + math.exp(masterStagePops[iElem][1][iTau])  \
+    #        + 2.0 * math.exp(masterStagePops[iElem][2][iTau]) \
+    #        for iElem in range(nelemAbnd) ] for iTau in range(numDeps) ]
+    newNe[1] = [ math.log(x) for x in newNe[0] ]
+    guessNe[0] = [ x for x in newNe[0][:] ]
+    guessNe[1] = [ x for x in newNe[1][:] ]
+            
         
     #diagnostic plots:
     #Graphically inspect convergence:  Issue 'matplotlib qt5' in console before running code
     thisClr = palette[neIter2%numClrs]
     
-    for i in range(numDeps):
-        log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
-        log10ne[i] = log10e * newNe[1][i]
+    #for i in range(numDeps):
+    #    log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
+    #    log10ne[i] = log10e * newNe[1][i]
+    log10pe = [ log10e * (newNe[1][i] + Useful.logK() + temp[1][i]) for i in range(numDeps) ]
+    log10ne[i] = [ log10e * x for x in newNe[1] ]
 
     #Uncomment to inspect chem equil convergence
             
     #thisClr = palette[neIter2%numClrs]
-    pylab.plot(log10tauRos, log10pe, color=thisClr, linestyle='-.')
+    #pylab.plot(log10tauRos, log10pe, color=thisClr, linestyle='-.')
     ##pylab.plot(log10tauRos[1], log10ne)  
     ##pylab.plot(tauRos[1][:], masterMolPops[0][:]) 
          
@@ -2663,10 +2795,12 @@ for neIter2 in range(nInnerIter):
 
 
 #log10mmw = [0.0 for i in range(numDeps)]
-for i in range(numDeps):
-    log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
-    log10ne[i] = log10e * newNe[1][i]
-
+#for i in range(numDeps):
+#    log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
+#    log10ne[i] = log10e * newNe[1][i]
+log10pe = [ log10e * (newNe[1][i] + Useful.logK() + temp[1][i]) for i in range(numDeps) ]
+log10ne = [ log10e * x for x in newNe[1] ]
+ 
 #Uncomment to inspect final Pe(tau) structure acocunting for molecules:
 """    
 #Final convergence
@@ -2714,9 +2848,10 @@ phi = [0.0 for i in range(numPhi)]
 #//Compute phi values in whole range (0 - 2pi radians):
 delPhi = 2.0 * math.pi / numPhiD
 #double ii
-for i in range(numPhi):
-    ii = float(i)
-    phi[i] = delPhi * ii
+#for i in range(numPhi):
+#    ii = float(i)
+#    phi[i] = delPhi * ii
+phi = [ delPhi * float(i) for i in range(numPhi) ]
     
     
 #boolean lineMode;
@@ -2812,7 +2947,7 @@ lineListBytes = absPath + dataPath + "atomLineListFeb2017Bytes.dat"
 #//System.out.println(" *********************************************** ");
 #//System.out.println("  ");
 #//System.out.println("  ");
-print("BEFORE FILE READ")
+print("READING LINE LIST")
 #//System.out.println("  ");
 #//System.out.println("  ");
 #//System.out.println(" *********************************************** ");
@@ -2829,7 +2964,7 @@ decoded = barray.decode('utf-8')
 #//System.out.println(" *********************************************** ");
 #//System.out.println("  ");
 #//System.out.println("  ");
-print("AFTER FILE READ")
+print("LINE LIST READ")
 #//System.out.println("  ");
 #//System.out.println("  ");
 #//System.out.println(" *********************************************** ");
@@ -3011,11 +3146,10 @@ gaussLine_ptr = [0 for i in range(numLines2)] #//array of pointers to lines that
 isFirstLine = True #//initialization
 firstLine = 0 #//default initialization
 #// This holds 2-element temperature-dependent base 10 logarithmic parition fn:
-thisUwV = [0.0 for i in range(5)]
+thisUwV = [0.0 for i in range(numAtmPrtTmps)]
 #// Below created a loop to initialize each value to zero for the five temperatures lburns
-for i in range(len(thisUwV)):
-    thisUwV[i] = 0.0  #//default initialization
-   
+#for i in range(len(thisUwV)):
+#    thisUwV[i] = 0.0  #//default initialization
 
 
 
@@ -3039,6 +3173,7 @@ for iLine in range(numLines2):
     iAbnd = 0 #//initialization
     logNums_ptr = 0
     #//System.out.println("iLine " + iLine + " list2Element[iLine] " + list2Element[iLine]);
+    #Not trivially pythonizable:
     for jj in range(nelemAbnd):
         #//System.out.println("jj " + jj + " cname[jj]" + cname[jj]+"!");
         if (list2Element[iLine] == cname[jj]):
@@ -3066,26 +3201,35 @@ for iLine in range(numLines2):
                  species = cname[jj] + "VI"
                  logNums_ptr = 7
             
-            thisUwV = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+            thisUwV = PartitionFn.getPartFn2(species) #//base e log_e U
             break   #//we found it
         
         iAbnd+=1
     #} //jj loop
             
     list2LogNums = [ [ 0.0 for i in range(numDeps) ] for j in range(numStages+2) ]
-    for iTau in range(numDeps):
-        list2LogNums[0][iTau] = masterStagePops[iAbnd][0][iTau]
-        list2LogNums[1][iTau] = masterStagePops[iAbnd][1][iTau]
-        list2LogNums[4][iTau] = masterStagePops[iAbnd][2][iTau]
-        list2LogNums[5][iTau] = masterStagePops[iAbnd][3][iTau]
-        list2LogNums[6][iTau] = masterStagePops[iAbnd][4][iTau]
-        list2LogNums[7][iTau] = masterStagePops[iAbnd][5][iTau]
+    #for iTau in range(numDeps):
+    #    list2LogNums[0][iTau] = masterStagePops[iAbnd][0][iTau]
+    #    list2LogNums[1][iTau] = masterStagePops[iAbnd][1][iTau]
+    #    list2LogNums[4][iTau] = masterStagePops[iAbnd][2][iTau]
+    #    list2LogNums[5][iTau] = masterStagePops[iAbnd][3][iTau]
+    #    list2LogNums[6][iTau] = masterStagePops[iAbnd][4][iTau]
+    #    list2LogNums[7][iTau] = masterStagePops[iAbnd][5][iTau]
+    list2LogNums[0] = [ x for x in masterStagePops[iAbnd][0] ]
+    list2LogNums[1] = [ x for x in masterStagePops[iAbnd][1] ]
+    list2LogNums[4] = [ x for x in masterStagePops[iAbnd][2] ]
+    list2LogNums[5] = [ x for x in masterStagePops[iAbnd][3] ]
+    list2LogNums[6] = [ x for x in masterStagePops[iAbnd][4] ]
+    list2LogNums[7] = [ x for x in masterStagePops[iAbnd][5] ]
+    
             
     numHelp = LevelPopsServer.levelPops(list2Lam0[iLine], list2LogNums[logNums_ptr], list2ChiL[iLine], thisUwV, \
                 list2GwL[iLine], numDeps, temp)
-    for iTau in range(numDeps):
-        list2LogNums[2][iTau] = numHelp[iTau]
-        list2LogNums[3][iTau] = numHelp[iTau] / 2.0 #//fake for testing with gS3 line treatment
+    #for iTau in range(numDeps):
+    #    list2LogNums[2][iTau] = numHelp[iTau]
+    #    list2LogNums[3][iTau] = numHelp[iTau] / 2.0 #//fake for testing with gS3 line treatment
+    list2LogNums[2] = [ x for x in numHelp ]
+    list2LogNums[3] = [ x/2.0 for x in numHelp ]
             
 
     #//linePoints: Row 0 in cm (will need to be in nm for Plack.planck), Row 1 in Doppler widths
@@ -3094,7 +3238,7 @@ for iLine in range(numLines2):
     listLinePointsDelta = LineGrid.lineGridDelta(list2Lam0[iLine], list2Mass[iLine], xiT, numDeps, teff)
     listLineProfDelta = LineProf.delta(listLinePointsDelta, list2Lam0[iLine], numDeps, tauRos, list2Mass[iLine], xiT, teff) 
     listLogKappaLDelta = LineKappa.lineKap(list2Lam0[iLine], list2LogNums[2], list2Logf[iLine], listLinePointsDelta, listLineProfDelta,
-                    numDeps, zScaleList, tauRos, temp, rho)
+                    numDeps, zScaleList, tauRos, temp, rho, logFudgeTune)
    
 
     
@@ -3210,7 +3354,10 @@ for iL in range(numLams):
     masterLams[iL] = lambdaScale[iL]
     for iD in range(numDeps):
         logMasterKaps[iL][iD] = logKappa[iL][iD] 
-            
+#This pythonization will not work
+#masterLams[0: numLams] = [ lambdaScale[iL] for iL in range(numLams) ]
+#logMasterKaps[0: numLams][:] = [ [ logKappa[iL][iD] for iD in range(numDeps) ] for iL in range(numLams) ]           
+
         
 #//initialize the remainder with dummy values - these values will be clobbered as line wavelengths are inserted, 
 #// and don't matter
@@ -3218,8 +3365,11 @@ for iL in range(numLams, numMaster):
     masterLams[iL] = lambdaScale[numLams - 1]
     for iD in range(numDeps):
         logMasterKaps[iL][iD] = logKappa[numLams-1][iD]
-            
-
+#This pythonization will not work        
+#masterLams[numLams: numMaster-1] = [ lambdaScale[numLams - 1] for iL in range(numLams, numMaster) ]
+#logMasterKaps[numLams: numMaster-1][:] = [ [ logKappa[numLams-1][iD] for iD in range(numDeps) ] for iL in range(numLams, numMaster) ] 
+           
+#stop
 #//Stuff for the the Teff recovery test:
 #double lambda1, lambda2, fluxSurfBol, logFluxSurfBol;
 fluxSurfBol = 0
@@ -3229,8 +3379,9 @@ fluxSurfBol = 0
 hjertComp = HjertingComponents.hjertingComponents()
 
 #// This holds 2-element temperature-dependent base 10 logarithmic parition fn:
-for k in range(len(thisUwV)):
-    thisUwV[k] = 0.0 #//default initialization
+#for k in range(numAtmPrtTmps):
+#    thisUwV[k] = 0.0 #//default initialization
+thisUwV = [ 0.0 for i in range(numAtmPrtTmps) ]
 
 
 
@@ -3239,6 +3390,7 @@ listLineProf = [ [ 0.0 for i in range(numDeps) ] for j in range(listNumPoints) ]
 print("Beginning spectrum synthesis, numVoigtLines ", numGaussLines)
 #// Put in high res spectrum synthesis lines:
 for iLine in range(numGaussLines):
+
 
     #//if H or He, make sure kappaScale is unity:
     if ((list2Element[gaussLine_ptr[iLine]] == "H")
@@ -3282,26 +3434,36 @@ for iLine in range(numGaussLines):
                 species = cname[jj] + "VI"
                 logNums_ptr = 7
                 
-            thisUwV = PartitionFn.getPartFn2(species) #//base 10 log_10 U
+            thisUwV = PartitionFn.getPartFn2(species) #//base e log_e U
             break   #//we found it
              #}
         iAbnd+=1
     #} //jj loop
         
     list2LogNums = [ [ 0.0 for i in range(numDeps) ] for j in range(numStages+2) ]
-    for iTau in range(numDeps):
-        list2LogNums[0][iTau] = masterStagePops[iAbnd][0][iTau]
-        list2LogNums[1][iTau] = masterStagePops[iAbnd][1][iTau]
-        list2LogNums[4][iTau] = masterStagePops[iAbnd][2][iTau]
-        list2LogNums[5][iTau] = masterStagePops[iAbnd][3][iTau]
-        list2LogNums[6][iTau] = masterStagePops[iAbnd][4][iTau]
-        list2LogNums[7][iTau] = masterStagePops[iAbnd][5][iTau]
+    #for iTau in range(numDeps):
+    #    list2LogNums[0][iTau] = masterStagePops[iAbnd][0][iTau]
+    #    list2LogNums[1][iTau] = masterStagePops[iAbnd][1][iTau]
+    #    list2LogNums[4][iTau] = masterStagePops[iAbnd][2][iTau]
+    #    list2LogNums[5][iTau] = masterStagePops[iAbnd][3][iTau]
+    #    list2LogNums[6][iTau] = masterStagePops[iAbnd][4][iTau]
+    #    list2LogNums[7][iTau] = masterStagePops[iAbnd][5][iTau]
+    list2LogNums[0] = [ masterStagePops[iAbnd][0][iTau] for iTau in range(numDeps) ]
+    list2LogNums[1] = [ masterStagePops[iAbnd][1][iTau] for iTau in range(numDeps) ]
+    list2LogNums[4] = [ masterStagePops[iAbnd][2][iTau] for iTau in range(numDeps) ]
+    list2LogNums[5] = [ masterStagePops[iAbnd][3][iTau] for iTau in range(numDeps) ]
+    list2LogNums[6] = [ masterStagePops[iAbnd][4][iTau] for iTau in range(numDeps) ]
+    list2LogNums[7] = [ masterStagePops[iAbnd][5][iTau] for iTau in range(numDeps) ]
             
     numHelp = LevelPopsServer.levelPops(list2Lam0[gaussLine_ptr[iLine]], list2LogNums[logNums_ptr], list2ChiL[gaussLine_ptr[iLine]], thisUwV,
                     list2GwL[gaussLine_ptr[iLine]], numDeps, temp)
-    for iTau in range(numDeps):
-        list2LogNums[2][iTau] = numHelp[iTau]
-        list2LogNums[3][iTau] = -19.0 #//upper E-level - not used - fake for testing with gS3 line treatment
+                              
+
+    #for iTau in range(numDeps):
+    #    list2LogNums[2][iTau] = numHelp[iTau]
+    #    list2LogNums[3][iTau] = -19.0 #//upper E-level - not used - fake for testing with gS3 line treatment
+    list2LogNums[2] = [ x for x in numHelp ]
+    list2LogNums[3] = [ -19.0 for i in range(numDeps) ] #//upper E-level - not used - fake for testing with gS3 line treatment
         #if ( (list2Element[gaussLine_ptr[iLine]] == "Na") and (list2Stage[gaussLine_ptr[iLine]] == 0) ):
             #if (iTau%5 == 1):
             #    outline = ("iTau "+ str(iTau)+ " Na I list2LogNums[2]: "+ str(log10e*list2LogNums[2][iTau]) + "\n")
@@ -3338,8 +3500,8 @@ for iLine in range(numGaussLines):
                 
         
     listLogKappaL = LineKappa.lineKap(list2Lam0[gaussLine_ptr[iLine]], list2LogNums[2], list2Logf[gaussLine_ptr[iLine]], listLinePoints, listLineProf,
-                       numDeps, zScaleList, tauRos, temp, rho)
-                        
+                       numDeps, zScaleList, tauRos, temp, rho, logFudgeTune)
+    #stop                        
     #if ( (list2Element[gaussLine_ptr[iLine]] == "Na") and (list2Stage[gaussLine_ptr[iLine]] == 0) ):
     #        for iTau in range(numDeps):
     #            if (iTau%5 == 1):
@@ -3348,14 +3510,16 @@ for iLine in range(numGaussLines):
     #                        print("iTau ", iTau, " iL ", iL, " listLinePoints[0]&[1] ", listLinePoints[0][iL], " ", listLinePoints[1][iL], 
     #                              " listLineProf ", listLineProf[iL][iTau],  " listLogKappaL ", log10e*listLogKappaL[iL][iTau])
     listLineLambdas = [0.0 for i in range(listNumPoints)]
-    for il in range(listNumPoints):
-        #// // lineProf[gaussLine_ptr[iLine]][*] is DeltaLambda from line centre in cm
-        listLineLambdas[il] = listLinePoints[0][il] + list2Lam0[gaussLine_ptr[iLine]]
+    #for il in range(listNumPoints):
+    #    #// // lineProf[gaussLine_ptr[iLine]][*] is DeltaLambda from line centre in cm
+    #    listLineLambdas[il] = listLinePoints[0][il] + list2Lam0[gaussLine_ptr[iLine]]
+    listLineLambdas = [ x + list2Lam0[gaussLine_ptr[iLine]] for x in listLinePoints[0] ]
             
 
     masterLamsOut = SpecSyn.masterLambda(numLams, numMaster, numNow, masterLams, listNumPoints, listLineLambdas)
     logMasterKapsOut = SpecSyn2.masterKappa(numDeps, numLams, numMaster, numNow, masterLams, masterLamsOut, \
                                            logMasterKaps, listNumPoints, listLineLambdas, listLogKappaL)
+
     numNow = numNow + listNumPoints
     #numNow = numNow + listNumPoints
     #pylab.plot(masterLamsOut, [logMasterKapsOut[i][12] for i in range(numNow)]) 
@@ -3367,14 +3531,17 @@ for iLine in range(numGaussLines):
         for iD in range(numDeps):
             #//Still need to put in multi-Gray levels here:
             logMasterKaps[iL][iD] = logMasterKapsOut[iL][iD]
+    #This pythoniztion does not work:       
+    #masterLams[0: numNow] = [ masterLamsOut[iL] for iL in range(numNow) ]
+    #logMasterKaps[0: numNow][:] = [ [ logMasterKapsOut[iL][iD] for iD in range(numDeps) ] for iL in range(numNow) ]
 
-    print("iLine ", iLine, " gaussLine_ptr ", gaussLine_ptr[iLine])                
-        
+    #print("iLine ", iLine, " gaussLine_ptr ", gaussLine_ptr[iLine])            
+  
         #//No! } //ifThisLine strength condition
 #//numLines loop
-        
+print("End spectrum synthesis")        
 
-
+   
 #////
 
 if (teff <= jolaTeff):
@@ -3389,8 +3556,9 @@ if (teff <= jolaTeff):
             for iMol in range(nMols):
                 if (mname[iMol] == jolaSpecies[iJola]):
                     #//System.out.println("mname " + mname[iMol]);
-                    for iTau in range(numDeps):
-                        logNumJola[iTau] = masterMolPops[iMol][iTau]
+                    #for iTau in range(numDeps):
+                    #    logNumJola[iTau] = masterMolPops[iMol][iTau]
+                    logNumJola = [ x for x in masterMolPops[iMol] ]
                         #// double logTiOpp = logNumJola[iTau] + temp[1][iTau] + Useful.logK();
                         #// System.out.println("TiO pp " + logE*logTiOpp);
                     #}
@@ -3455,9 +3623,10 @@ if (teff <= jolaTeff):
 #//         } //Q-branch if
 
             jolaLambdas = [0.0 for i in range(jolaNumPoints)]
-            for il in range(jolaNumPoints):
-                #// // lineProf[gaussLine_ptr[iLine]][*] is DeltaLambda from line centre in cm
-                jolaLambdas[il] = nm2cm * jolaPoints[il]
+            #for il in range(jolaNumPoints):
+            #    #// // lineProf[gaussLine_ptr[iLine]][*] is DeltaLambda from line centre in cm
+            #    jolaLambdas[il] = nm2cm * jolaPoints[il]
+            jolaLambdas = [ nm2cm * x for x in jolaPoints ]
             
 
             masterLamsOut = SpecSyn.masterLambda(numLams, numMaster, numNow, masterLams, jolaNumPoints, jolaLambdas)
@@ -3472,6 +3641,9 @@ if (teff <= jolaTeff):
                 for iD in range(numDeps):
                     #//Still need to put in multi-Gray levels here:
                     logMasterKaps[iL][iD] = logMasterKapsOut[iL][iD]
+            #This pythoniztion does not work:
+            #masterLams[0: numNow] = [ masterLamsOut[iL] for iL in range(numNow) ]
+            #logMasterKaps[0: numNow][:] = [ [ logMasterKapsOut[iL][iD] for iD in range(numDeps) ] for iL in range(numNow) ]
                 
 
         #} //iJola JOLA band loop
@@ -3490,8 +3662,9 @@ sweepRes = 500000.0 #//equivalent spectral resolution of wavelength-dependent cr
 sweepDelta = lambdaStart / sweepRes #//cm //use shortest wavelength to avoid under-smapling
 sweepHelp = [ 0.0 for i in range(numMaster) ] #//to be truncated later
 #//Initialize sweepHelp
-for iSweep in range(numMaster):
-    sweepHelp[iSweep] = 0.0
+#for iSweep in range(numMaster):
+#    sweepHelp[iSweep] = 0.0
+sweepHelp = [ 0.0 for iSweep in range(numMaster) ]
    
 #//
 sweepHelp[0] = masterLams[0] #//An auspicous start :-)
@@ -3500,22 +3673,28 @@ iSweep = 1 #//current sweepHelp index
 #//
 
 for iLam in range(1, numMaster):
+    #print ( "In sweeping loop: ", (masterLams[iLam] - masterLams[lastLam]) )
     if ( (masterLams[iLam] - masterLams[lastLam]) >= sweepDelta):
         #//Kept - ie. NOT swept out:
         sweepHelp[iSweep] = masterLams[iLam]
         lastLam = iLam
         iSweep+=1
+        #print("Kept condition passed, iSweep ", iSweep)
       
 
 numKept = iSweep-1
+#sweptLams = [x for x in sweepHelp]
 sweptLams = [0.0 for i in range(numKept)]
-for iKept in range(numKept):
-    sweptLams[iKept] = sweepHelp[iKept]
+#for iKept in range(numKept):
+#    sweptLams[iKept] = sweepHelp[iKept]
+sweptLams = [ sweepHelp[iKept] for iKept in range(numKept) ]
 
+#stop
 #//Interpolate the total extinction array onto the swept wavelength grid:
 keptHelp = [0.0 for i in range(numKept)]
 logSweptKaps = [ [ 0.0 for i in range(numDeps) ] for j in range(numKept) ]
 logMasterKapsId = [0.0 for i in range(numMaster)]
+#Not trivially pythonizable:
 for iD in range(numDeps):
     #//extract 1D kappa vs lambda at each depth:
     for iL in range(numMaster):
@@ -3524,8 +3703,11 @@ for iD in range(numDeps):
     keptHelp = ToolBox.interpolV(logMasterKapsId, masterLams, sweptLams)
     for iL in range(numKept):
         logSweptKaps[iL][iD] = keptHelp[iL]
-      
+
+#Won't work logSweptKaps = [ [ ToolBox.interpolV(logMasterKaps[iL][iD], masterLams, sweptLams) for iL in range()] ]
+
 #} //iD loop
+    
 
 #Special code to test sweeper by forcing it to NOT sweep anything:
     # - IF this is uncommented, then sweeper above should be commented
@@ -3561,16 +3743,19 @@ lineMode = False  #//no scattering for overall SED
 
 for il in range(numLams):
 
-    for id in range(numDeps):
-        thisTau[1][id] = logTauCont[il][id]
-        thisTau[0][id] = math.exp(logTauCont[il][id])
+    #for id in range(numDeps):
+    #    thisTau[1][id] = logTauCont[il][id]
+    #    thisTau[0][id] = math.exp(logTauCont[il][id])
+    thisTau[1] = [ x for x in logTauCont[il] ]
+    thisTau[0] = [ math.exp(x) for x in logTauCont[il] ]
     #} // id loop
 
     contIntensLam = FormalSoln.formalSoln(numDeps,
                     cosTheta, lambdaScale[il], thisTau, temp, lineMode)
 
-    for it in range(numThetas):
-        contIntens[il][it] = contIntensLam[it]
+    #for it in range(numThetas):
+    #    contIntens[il][it] = contIntensLam[it]
+    contIntens[il] = [ x for x in contIntensLam ]
     #} //it loop - thetas
 
 
@@ -3601,17 +3786,20 @@ lineMode = False  #//no scattering for overall SED
 for il in range(numKept):
 
 #//                        }
-    for id in range(numDeps):
-        thisTau[1][id] = logTauMaster[il][id]
-        thisTau[0][id] = math.exp(logTauMaster[il][id])
+    #for id in range(numDeps):
+    #    thisTau[1][id] = logTauMaster[il][id]
+    #    thisTau[0][id] = math.exp(logTauMaster[il][id])
     #} // id loop
+    thisTau[1] = [ x for x in logTauMaster[il] ]
+    thisTau[0] = [ math.exp(x) for x in logTauMaster[il] ]
 
     masterIntensLam = FormalSoln.formalSoln(numDeps,
                 cosTheta, sweptLams[il], thisTau, temp, lineMode)
 
 
-    for it in range(numThetas):
-        masterIntens[il][it] = masterIntensLam[it]
+    #for it in range(numThetas):
+    #    masterIntens[il][it] = masterIntensLam[it]
+    masterIntens[il] = [ x for x in masterIntensLam ]
 #} //it loop - thetas
 
 
@@ -3622,6 +3810,7 @@ masterFlux = Flux.flux3(masterIntens, sweptLams, cosTheta, phi, cgsRadius, omega
 #pylab.plot(sweptLams, masterFlux[0])
 #pylab.plot(sweptLams, masterFlux[0], '.')
 
+#Can we find a pythonic way to accumulate instead of this for loop??
 for il in range(numKept):
     #//// Teff test - Also needed for convection module!:
     if (il > 1):
@@ -3634,17 +3823,18 @@ logFluxSurfBol = math.log(fluxSurfBol)
 logTeffFlux = (logFluxSurfBol - Useful.logSigma()) / 4.0
 teffFlux = math.exp(logTeffFlux)
 
-print("Recovered Teff = " + str(teffFlux))
+print("Recovered Teff = %9.2f" % (teffFlux))
 
 #//Extract linear monochromatic continuum limb darkening coefficients (LDCs) ("epsilon"s):
 ldc = [0.0 for i in range(numLams)]
 ldc = LDC.ldc(numLams, lambdaScale, numThetas, cosTheta, contIntens)
 
+
 #
 #
 #
 #
-#
+#   Post-processing
 #
 # *****   Post-processing ported from ChromaStarServerUI  *****
 #
@@ -3675,11 +3865,15 @@ specSynFlux = [ [ 0.0 for i in range(numSpecSyn) ] for j in range(2) ]
 #specSynFlux[1] = [];
 #specSynFlux[0].length = numSpecSyn; 
 #specSynFlux[1].length = numSpecSyn;
-for iCount in range(numSpecSyn):
-    specSynLams[iCount] = sweptLams[iStart+iCount]
-    specSynFlux[1][iCount] = masterFlux[1][iStart+iCount] - logContFluxI[iStart+iCount]
-    specSynFlux[0][iCount] = math.exp(specSynFlux[1][iCount])
-      
+#for iCount in range(numSpecSyn):
+#    specSynLams[iCount] = sweptLams[iStart+iCount]
+#    specSynFlux[1][iCount] = masterFlux[1][iStart+iCount] - logContFluxI[iStart+iCount]
+#   specSynFlux[0][iCount] = math.exp(specSynFlux[1][iCount])
+    
+specSynLams = [ x for x in sweptLams[iStart: iStart+numSpecSyn] ]
+specSynFlux[1] = [ masterFlux[1][iStart+iCount] - logContFluxI[iStart+iCount] for iCount in range(numSpecSyn) ]
+specSynFlux[0] = [math.exp(x) for x in specSynFlux[1] ]
+
 #//
 #// * eqWidthSynth will try to return the equivalenth width of EVERYTHING in the synthesis region
 #// * as one value!  Isolate the synthesis region to a single line to a clean result
@@ -3695,37 +3889,44 @@ masterLams2 = [ 0.0 for i in range(numKept) ]
 specSynLams2 = [ 0.0 for i in range(numSpecSyn) ]
 
 #//refresh default each run:
-for i in range(numKept):
-    masterLams2[i] = sweptLams[i]
+#for i in range(numKept):
+#    masterLams2[i] = sweptLams[i]
+masterLams2 = [ x for x in sweptLams ]
      
-for i in range(numSpecSyn):
-    specSynLams2[i] = specSynLams[i]
-     
+#for i in range(numSpecSyn):
+#    specSynLams2[i] = specSynLams[i]
+specSynLams2 = [ x for x in specSynLams ] 
+    
 deltaLam = 0.0
 c = 2.9979249E+10 #// light speed in vaccuum in cm/s
 RVfac = RV / (1.0e-5*c)
 if (RV != 0.0):
-    for i in range(numKept):
-        deltaLam = RVfac * sweptLams[i]
-        masterLams2[i] = masterLams2[i] + deltaLam 
-       
-    for i in range(numSpecSyn):
-        deltaLam = RVfac * specSynLams[i]
-        specSynLams2[i] = specSynLams2[i] + deltaLam 
-       
+    #for i in range(numKept):
+    #    deltaLam = RVfac * sweptLams[i]
+    #    masterLams2[i] = masterLams2[i] + deltaLam
+    masterLams2 = [ masterLams2[i] + (RVfac * sweptLams[i]) for i in range(numKept) ]
+      
+    #for i in range(numSpecSyn):
+    #    deltaLam = RVfac * specSynLams[i]
+    #    specSynLams2[i] = specSynLams2[i] + deltaLam 
+    specSynLams2 = [ specSynLams2[i] + (RVfac * specSynLams[i])  ]   
      
 invnAir = 1.0 / 1.000277 #// reciprocal of refractive index of air at STP 
 if (vacAir == "air"):
-    for i in range(numKept):
-        masterLams2[i] = invnAir * masterLams2[i]
+    #for i in range(numKept):
+    #    masterLams2[i] = invnAir * masterLams2[i]
+    masterLams2 = [ invnAir * x for x in masterLams2 ]
        
-    for i in range(numSpecSyn):
-        specSynLams2[i] = invnAir * specSynLams2[i]
-       
+    #for i in range(numSpecSyn):
+    #    specSynLams2[i] = invnAir * specSynLams2[i]
+    specSynLams2 = [ invnAir * x for x in specSynLams2 ]   
      
 
 colors =  PostProcess.UBVRI(masterLams2, masterFlux, numDeps, tauRos, temp)
-
+#print("U-V: ", colors[0], " B-V: ", colors[1], " V-R ", colors[2], " V-I: ", colors[3],\
+#      " R-I ", colors[4], " V- K ", colors[5], " J-K: ", colors[6])
+print("U-B: %6.2f B-V: %6.2f V-R: %6.2f V-I: %6.2f R-I: %6.2f V-K: %6.2f J-K: %6.2f" %\
+      (colors[0], colors[1], colors[2], colors[3], colors[4], colors[5], colors[6]))
 #// UBVRI band intensity annuli - for disk rendering:
 bandIntens = PostProcess.iColors(masterLams2, masterIntens, numThetas, numKept) 
     
@@ -3738,9 +3939,11 @@ tuneBandIntens = PostProcess.tuneColor(masterLams2, masterIntens, numThetas, num
 ft = PostProcess.fourier(numThetas, cosTheta, tuneBandIntens)
 numK = len(ft[0])
     
-
-
-
+#
+#
+# Report 1:
+#
+#
 #Atmospheric structure output: 
 #Convert everything to log_10 OR re-scaled units for plotting, printing, etc:
     
@@ -3752,21 +3955,32 @@ log10kappa500 = [0.0 for i in range(numDeps)]
 mmwAmu = [0.0 for i in range(numDeps)]
 depthsKm = [0.0 for i in range(numDeps)]
 #log10mmw = [0.0 for i in range(numDeps)]
-for i in range(numDeps):
-    log10tauRos[i] = log10e * tauRos[1][i]
-    log10temp[i] = log10e * temp[1][i]
-    log10pgas[i] = log10e * pGas[1][i]
-    log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
-    log10prad[i] = log10e * pRad[1][i]
-    log10ne[i] = log10e * newNe[1][i]
-    log10rho[i] = log10e * rho[1][i]
-    log10NH[i] = log10e * logNH[i]
-    log10kappaRos[i] = log10e * kappaRos[1][i]
-    log10kappa500[i] = log10e * kappa500[1][i]
-    mmwAmu[i] = mmw[i] / Useful.amu()
-    depthsKm[i] = 1.0e-5 * depths[i]
+#for i in range(numDeps):
+#    log10tauRos[i] = log10e * tauRos[1][i]
+#    log10temp[i] = log10e * temp[1][i]
+#    log10pgas[i] = log10e * pGas[1][i]
+#    log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
+#    log10prad[i] = log10e * pRad[1][i]
+#    log10ne[i] = log10e * newNe[1][i]
+#    log10rho[i] = log10e * rho[1][i]
+#    log10NH[i] = log10e * logNH[i]
+#    log10kappaRos[i] = log10e * kappaRos[1][i]
+#    log10kappa500[i] = log10e * kappa500[1][i]
+#    mmwAmu[i] = mmw[i] / Useful.amu()
+#    depthsKm[i] = 1.0e-5 * depths[i]
 
-
+log10tauRos = [ round(log10e * x, 4) for x in tauRos[1] ]
+log10temp = [ round(log10e * x, 4) for x in temp[1] ]
+log10pgas = [ round(log10e * x, 4) for x in pGas[1] ]
+log10pe = [ round(log10e * (newNe[1][i] + Useful.logK() + temp[1][i]), 4) for i in range(numDeps) ]
+log10prad = [ round(log10e * x, 4) for x in pRad[1] ]
+log10ne = [ round(log10e * x, 4) for x in newNe[1] ]
+log10rho = [ round(log10e * x, 4) for x in rho[1] ]
+log10NH = [ round(log10e * x, 4) for x in logNH ]
+log10kappaRos = [ round(log10e * x, 4) for x in kappaRos[1] ]
+log10kappa500 = [ round(log10e * x, 4) for x in kappa500[1] ]
+mmwAmu = [ round(x / Useful.amu(), 4) for x in mmw ]
+depthsKm = [ round(1.0e-5 * x, 4) for x in depths ]
 
 outFile = outPath + strucFile
 #print vertical atmospheric structure
@@ -3774,29 +3988,46 @@ with open(outFile, 'w', encoding='utf-8') as strucHandle:
 #with open(strucFile, 'w') as strucHandle:    
     strucHandle.write(inputParamString + "\n")
     strucHandle.write("cgs units, unless otherwise noted" + "\n")
-    strucHandle.write("logTauRos depth temp logPgas logPe logPRad logNe logNH logRho mu(amu) logKapRos logKap500" + "\n")
+    strucHandle.write("logTauRos   depth   temp   logPgas   logPe  logPRad   logNe   logNH   logRho   mu(amu)   logKapRos   logKap500" + "\n")
+    #NOt trivially pythonizable - each time through it writes a line to an output file
     for i in range(numDeps):
-        outLine = str(log10tauRos[i]) + " " + str(depthsKm[i]) + " " + str(temp[0][i]) + " " + str(log10pgas[i]) + " " + str(log10pe[i]) +   \
-                      " " + str(log10prad[i]) + " " + str(log10ne[i]) + " " + str(log10NH[i]) + " " + str(log10rho[i]) + " " + str(mmwAmu[i]) +   \
-                      str(log10kappaRos[i]) + " " + str(log10kappa500[i]) + "\n"
+        outLine = str(log10tauRos[i]) + "   " + str(depthsKm[i]) + "   " + str(round(temp[0][i], 4)) + "   " + str(log10pgas[i]) +\
+        "   " + str(log10pe[i]) + "   " + str(log10prad[i]) + "   " + str(log10ne[i]) + "   " + str(log10NH[i]) + "   " + str(log10rho[i]) +\
+        "   " + str(mmwAmu[i]) + "   " + str(log10kappaRos[i]) + "   " + str(log10kappa500[i]) + "\n"
         strucHandle.write(outLine)
+    #This doesn't work...
+    #outLine = ""
+    #outLine = [ outLine + str(log10tauRos[i]) + " " + str(depthsKm[i]) + " " + str(temp[0][i]) + " " + str(log10pgas[i]) + " " + str(log10pe[i]) +   \
+    #                  " " + str(log10prad[i]) + " " + str(log10ne[i]) + " " + str(log10NH[i]) + " " + str(log10rho[i]) + " " + str(mmwAmu[i]) +   \
+    #                  str(log10kappaRos[i]) + " " + str(log10kappa500[i]) + "\n" for i in range(numDeps) ]
+    #strucHandle.write(outLine)
     
-#SED and spectrum quantities
+#
+#
+# Report 2: 
+#
+#
+#Print absolute spectral energy distribution (SED)
+
+    
 numWave = numKept
 wave = [0.0 for i in range(numWave)]
 log10Wave = [0.0 for i in range(numWave)]
 log10Flux = [0.0 for i in range(numWave)]
-for i in range(numWave):
-    wave[i] = cm2nm * masterLams2[i]
-    log10Wave[i] = math.log10(masterLams2[i])
-    log10Flux[i] = log10e * masterFlux[1][i]
-
+#for i in range(numWave):
+#    wave[i] = cm2nm * masterLams2[i]
+#    log10Wave[i] = math.log10(masterLams2[i])
+#    log10Flux[i] = log10e * masterFlux[1][i]
+wave = [ round(cm2nm * x, 4) for x in masterLams2 ]
+log10Wave = [ round(math.log10(x), 4) for x in masterLams2 ]
+log10Flux = [ round(log10e * x, 4) for x in masterFlux[1] ]
 
 #Uncomment to inspect SED
 """
+#Initial pylab plot set-up
 pylab.title = "Spectral energy distribution (SED)"
-pylab.ylabel = "log_10 F_lambda (ergs s^-1 cm^-2 cm^-1)"
-pylab.xlabel = "log_10 lambda (nm)"
+plt.xlabel(r'$\log_{10} \lambda$ (nm)')
+plt.ylabel(r'$\log_{10} F_\lambda$ (erg s$^{-1}$ cm$^{-2}$ cm$^{-1}$')
 xMin = min(log10Wave) - 0.1
 xMax = max(log10Wave) + 0.1
 pylab.xlim(xMin, xMax)
@@ -3804,11 +4035,34 @@ yMax = max(log10Flux) + 0.5
 yMin = min(log10Flux) - 0.5
 pylab.ylim(yMin, yMax)
 #
-pylab.plot(log10Wave, log10Flux)
-"""    
+pylab.plot(log10Wave, log10Flux)    
+"""
+outFile = outPath + sedFile
+with open(outFile, 'w', encoding='utf-8') as sedHandle:
+#with open(sedFile, 'w') as sedHandle:
+    sedHandle.write(inputParamString)
+    sedHandle.write("Number of lines treated with Voigt profiles: " + str(numGaussLines) + "\n")
+    sedHandle.write("Number of wavelength points: " + str(numKept) + "\n")
+    sedHandle.write("wave (nm)    log10(flux) (cgs) \n")
+    for i in range(numKept):
+        flux = log10Flux[i]
+        outLine = str(wave[i]) + "   " + str(flux) + "\n"
+        sedHandle.write(outLine)
+
+   
+
+ 
+#
+#
+# Report 3:       
+#synthetic spectrum quantities
+#
+#
+
 waveSS = [0.0 for i in range(numSpecSyn)]
-for i in range(numSpecSyn):
-    waveSS[i] = cm2nm * specSynLams2[i]
+#for i in range(numSpecSyn):
+#    waveSS[i] = cm2nm * specSynLams2[i]
+waveSS = [ round(cm2nm * x, 4) for x in specSynLams2 ]
     
 print("Number of lines treated with Voigt profiles: ", numGaussLines)
 
@@ -3819,9 +4073,9 @@ with open(outFile, 'w', encoding='utf-8') as specHandle:
     specHandle.write(inputParamString + "\n")
     specHandle.write("Number of lines treated with Voigt profiles: " + str(numGaussLines) + "\n")
     specHandle.write("Number of wavelength points: " + str(numSpecSyn) + "\n")
-    specHandle.write("wave (nm)   normalized flux \n")
+    specHandle.write("wave (nm)     normalized flux \n")
     for i in range(numSpecSyn):
-        outLine = str(waveSS[i]) + " " + str(specSynFlux[0][i]) + "\n"
+        outLine = str(waveSS[i]) + "   " + str(round(specSynFlux[0][i], 4)) + "\n"
         specHandle.write(outLine)
 #With line ID labels:
     specHandle.write(" ")
@@ -3831,36 +4085,20 @@ with open(outFile, 'w', encoding='utf-8') as specHandle:
         thisLam = round(thisLam, 2)
         thisLbl = list2Element[gaussLine_ptr[i]] + " " + \
         list2StageRoman[gaussLine_ptr[i]] + " " + str(thisLam)
-        outLine = str(thisLam) + " " + thisLbl + "\n"
+        outLine = str(thisLam) + "   " + thisLbl + "\n"
         specHandle.write(outLine)    
-       
-#Print absolute spectral energy distribution (SED)
-outFile = outPath + sedFile
-with open(outFile, 'w', encoding='utf-8') as sedHandle:
-#with open(sedFile, 'w') as sedHandle:
-    sedHandle.write(inputParamString)
-    sedHandle.write("Number of lines treated with Voigt profiles: " + str(numGaussLines) + "\n")
-    sedHandle.write("Number of wavelength points: " + str(numKept) + "\n")
-    sedHandle.write("wave (nm)  log10(flux) (cgs) \n")
-    for i in range(numKept):
-        flux = log10Flux[i]
-        outLine = str(wave[i]) + " " + str(flux) + "\n"
-        sedHandle.write(outLine)
 
-   
 #Uncomment to inspect synthetic spectrum:
 
-"""     
+plt.xlabel(r'$\lambda$ (nm)')
+plt.ylabel(r'$F_\lambda/F^C_\lambda')
+pylab.xlim(-6.5, 2.5)
 pylab.title = "Synthetic spectrum"
-pylab.ylabel = "F_lambda/F^C_lambda"
-pylab.xlabel = "lambda (nm)"
-pylab.xlabel = "log_10 lambda (nm)"
 xMin = min(waveSS)
 xMax = max(waveSS)
 pylab.xlim(xMin, xMax)
 pylab.ylim(0.0, 2.0)
 pylab.plot(waveSS, specSynFlux[0])
-
 #Add spectral line labels:
 for i in range(numGaussLines):
     thisLam = cm2nm * list2Lam0[gaussLine_ptr[i]]
@@ -3871,32 +4109,47 @@ for i in range(numGaussLines):
     yPoint = [1.05, 1.1]
     pylab.plot(xPoint, yPoint, color='black')
     pylab.text(thisLam, 1.7, thisLbl, rotation=270)
-"""
+    
 
+
+#
+#
+# Report 4:
+#
+#
 #Print narrow band Gaussian filter quantities: 
 #    limb darkening curve (LDC) and discrete fourier cosine transform of LDC
+
+normTuneBandIntens = [ x / tuneBandIntens[0] for x in tuneBandIntens ] 
 outFile = outPath + ldcFile
 with open(outFile, 'w', encoding='utf-8') as ldcHandle:
 #with open(ldcFile, 'w') as ldcHandle:    
     ldcHandle.write(inputParamString)
     ldcHandle.write("Narrow band limb darkening curve (LDC) \n")
-    ldcHandle.write("cos(theta)   I(mu)/I(0) \n")
+    ldcHandle.write("cos(theta)     I(mu)/I(0) \n")
     for i in range(numThetas):
-        outLine = str(cosTheta[1][i]) + " " + str(tuneBandIntens[i]/tuneBandIntens[0]) + "\n" 
+        outLine = str(round(cosTheta[1][i], 4)) + "   " + str(round(normTuneBandIntens[i], 4)) + "\n" 
         ldcHandle.write(outLine)
     
     ldcHandle.write("\n ")    
     ldcHandle.write("Discrete fourier cosine transform of LDC \n")
-    ldcHandle.write("k (RAD/RAD)   I(k) \n")
+    ldcHandle.write("k (RAD/RAD)     I(k) \n")
     for i in range(numK):
-        outLine = str(ft[0][i]) + " " + str(ft[1][i]) + "\n"
+        outLine = str(round(ft[0][i], 4)) + "   " + str(round(ft[1][i], 4)) + "\n"
         ldcHandle.write(outLine)
-
+        
+    ldcHandle.write("\n ")    
+    ldcHandle.write("Monochromatic continuum linear limb darkening coefficients (LDCs) \n")
+    ldcHandle.write("Wavelength (nm)     LDC \n")
+    for i in range(numK):
+        outLine = str(wave[i]) + "   " + str(round(ldc[i], 4)) + "\n"
+        ldcHandle.write(outLine)
 #Uncomment to inspect narrow band limb darkening curve (LDC)
-"""         
+        
+"""
 pylab.title = "Narrow band limb darkening"
-pylab.ylabel = "I_lambda/I_lambda(0)"
-pylab.xlabel = "cos(theta) (RAD)"
+plt.xlabel(r'$cos\theta$ (RAD)')
+plt.ylabel(r'$I^{\rm C}_{\rm band}/I^{\rm C}_{\rm band}(0)$')
 pylab.xlim(-0.1, 1.1)
 pylab.ylim(0, 1.1)
 pylab.plot(cosTheta[1], normTuneBandIntens)
@@ -3905,8 +4158,8 @@ pylab.plot(cosTheta[1], normTuneBandIntens)
 #Uncomment to inspect discrete fourier cosine transform of LDC
 """
 pylab.title = "Fourier cosine transform of I_lambda(theta)"
-pylab.ylabel = "I_theta"
-pylab.xlabel = "Angular freq (RAD/RAD)"
+plt.xlabel('Angular frequency (RAD/RAD)')
+plt.ylabel(r'$I^{\rm C}_{\rm band}(\theta)$')
 xMin = 0.9 * min(ft[0])
 xMax = 1.1 * max(ft[0])
 pylab.xlim(xMin, xMax)
@@ -3915,6 +4168,13 @@ yMax = 1.1 * max(ft[1])
 pylab.ylim(yMin, yMax)
 pylab.plot(ft[0], ft[1])
 """
+#print(" ")       
+#print(" ************** ")
+#print(" ")
+#print("STOP!!!!")
+#print(" ")
+#print(" ************** ")
+#print(" ")                       
 #// *****************************
 #// 
 #//
@@ -3927,7 +4187,7 @@ pylab.plot(ft[0], ft[1])
 
 #    // Set up grid of line lambda points sampling entire profile (cm):
 numCore = 5 #//half-core
-numWing = 5 #//per wing 
+numWing = 10 #//per wing 
 numPoints = 2 * (numCore + numWing) - 1 #// + 1;  //Extra wavelength point at end for monochromatic continuum tau scale
 #//linePoints: Row 0 in cm (will need to be in nm for Plack.planck), Row 1 in Doppler widths
 species = "Ca"  #Anything but Hydrogen - doesn't matter for now - ??
@@ -3953,15 +4213,16 @@ else:
 #//
 #// This holds 2-element temperature-dependent base 10 logarithmic parition fn:
 
-for k in range(len(thisUwV)):
-    thisUwV[k] = 0.0 #//default initialization
-        
+#for k in range(len(thisUwV)):
+#    thisUwV[k] = 0.0 #//default initialization
+thisUwV = [ 0.0 for i in range(numAtmPrtTmps) ]        
 
 logNums = [ [ 0.0 for i in range(numDeps) ] for j in range(numStages+2) ]
 
 thisLogN = [0.0 for i in range(numDeps)] 
-for i in range(numDeps):
-    thisLogN[i] = logE10*(userA12 - 12.0) + logNH[i]
+#for i in range(numDeps):
+#    thisLogN[i] = logE10*(userA12 - 12.0) + logNH[i]
+thisLogN = [ logE10*(userA12 - 12.0) + x for x in logNH ]
    
 #//load arrays for stagePops2():
 #//Default is to set both temperature-dependent values to to the user-input value:
@@ -3983,19 +4244,21 @@ log10UwAArr[3][1] = math.log10(userGw4)
 fakeNumMols = 1
 fakeLogNumB = [ [ 0.0 for i in range(numDeps) ] for j in range(1) ]
 
-for i in range(numDeps):
-    fakeLogNumB[0][i] = -49.0
+#for i in range(numDeps):
+#    fakeLogNumB[0][i] = -49.0
+fakeLogNumB[0] = [ -49.0 for i in range(numDeps) ] 
     
 fakeDissEArr = [ 0.0 for i in range(1) ]
 fakeDissEArr[0] = 29.0 #//eV
-fakeLog10UwBArr = [ [ 0.0 for i in range(5) ] for j in range(1) ]
-for kk in range(len(fakeLog10UwBArr)):
-    fakeLog10UwBArr[0][kk] = 0.0
-fakeLogQwABArr = [ [ 0.0 for i in range(5) ] for j in range(fakeNumMols) ]
+fakeLog10UwBArr = [ [ 0.0 for i in range(numAtmPrtTmps) ] for j in range(1) ]
+#for kk in range(len(fakeLog10UwBArr)):
+#    fakeLog10UwBArr[0][kk] = 0.0
+fakeLogQwABArr = [ [ 0.0 for i in range(numMolPrtTmps) ] for j in range(fakeNumMols) ]
 
-for im in range(fakeNumMols):
-    for kk in range(5):
-        fakeLogQwABArr[im][kk] = math.log(300.0)
+#for im in range(fakeNumMols):
+#    for kk in range(numMolPrtTmps):
+#        fakeLogQwABArr[im][kk] = math.log(300.0)
+fakeLogQwABArr = [ [ log300 for kk in range(numMolPrtTmps) ] for im in range(fakeNumMols) ]
 
 fakeLogMuABArr = [0.0 for i in range(1)]
 fakeLogMuABArr[0] = math.log(2.0) + Useful.logAmu() #//g 
@@ -4003,14 +4266,18 @@ logN = LevelPopsServer.stagePops2(thisLogN, newNe, chiIArr, log10UwAArr,   \
                 fakeNumMols, fakeLogNumB, fakeDissEArr, fakeLog10UwBArr, fakeLogQwABArr, fakeLogMuABArr, \
                 numDeps, temp)
 
-for iTau in range(numDeps):
-    logNums[0][iTau] = logN[0][iTau]
-    logNums[1][iTau] = logN[1][iTau]
-    logNums[4][iTau] = logN[2][iTau]
-    logNums[5][iTau] = logN[3][iTau]
-    logNums[6][iTau] = logN[4][iTau]
+#for iTau in range(numDeps):
+#    logNums[0][iTau] = logN[0][iTau]
+#    logNums[1][iTau] = logN[1][iTau]
+#    logNums[4][iTau] = logN[2][iTau]
+#    logNums[5][iTau] = logN[3][iTau]
+#    logNums[6][iTau] = logN[4][iTau]
     #//logNums[6][iTau] = logN[4][iTau];
-  
+logNums[0] = [ x for x in logN[0] ]
+logNums[1] = [ x for x in logN[1] ]
+logNums[4] = [ x for x in logN[2] ]
+logNums[5] = [ x for x in logN[3] ]
+logNums[6] = [ x for x in logN[4] ]  
 
 stage_ptr = 0 #//default initialization is neutral stage
 if (userStage == 0):
@@ -4028,9 +4295,10 @@ if (userStage == 3):
 numHelp = LevelPopsServer.levelPops(userLam0, logN[stage_ptr], userChiL, thisUwV, \
                     userGwL, numDeps, temp);
           
-for iTau in range(numDeps):
-    logNums[2][iTau] = numHelp[iTau]
+#for iTau in range(numDeps):
+#    logNums[2][iTau] = numHelp[iTau]
     #//Log of line-center wavelength in cm
+logNums[2] = [ x for x in numHelp ] 
     
 logLam0 = math.log(userLam0)
 #// energy of b-b transition
@@ -4039,18 +4307,19 @@ logTransE = Useful.logH() + Useful.logC() - logLam0 - Useful.logEv() #// last te
 chiU = userChiL + math.exp(logTransE)
 numHelp = LevelPopsServer.levelPops(userLam0, logN[stage_ptr], chiU, thisUwV, userGwL, \
          numDeps, temp)
-for iTau in range(numDeps):
-    logNums[3][iTau] = numHelp[iTau] #//upper E-level - not used - fake for testing with gS3 line treatment
-    
+#for iTau in range(numDeps):
+#    logNums[3][iTau] = numHelp[iTau] #//upper E-level - not used - fake for testing with gS3 line treatment
+logNums[3] = [ x for x in numHelp ] #//upper E-level - not used - fake for testing with gS3 line treatment   
 #//
 #//Compute depth-dependent logarithmic monochromatic extinction co-efficient, kappa_lambda(lambda, tauRos):
 
 lineLambdas = [0.0 for i in range(numPoints)]   
-for il in range(numPoints):
-    lineLambdas[il] = linePoints[0][il] + userLam0
+#for il in range(numPoints):
+#    lineLambdas[il] = linePoints[0][il] + userLam0
+lineLambdas = [ x + userLam0 for x in linePoints[0] ]
             
 logKappaL = LineKappa.lineKap(userLam0, logNums[2], userLogF, linePoints, lineProf, \
-                       numDeps, zScale, tauRos, temp, rho)
+                       numDeps, zScale, tauRos, temp, rho, logFudgeTune)
 
 logTotKappa = LineKappa.lineTotalKap(lineLambdas, logKappaL, numDeps, logKappa, \
              numLams, lambdaScale)
@@ -4077,17 +4346,19 @@ else:
     
 for il in range(numPoints):
 
-    for id in range(numDeps):
-        thisTau[1][id] = logTauL[il][id]
-        thisTau[0][id] = math.exp(logTauL[il][id])
+    #for id in range(numDeps):
+    #    thisTau[1][id] = logTauL[il][id]
+    #    thisTau[0][id] = math.exp(logTauL[il][id])
         #//console.log("il " + il + " id " + id + " logTauL[il][id] " + logE*logTauL[il][id]);
-        
+    thisTau[1] = [ x for x in logTauL[il] ]
+    thisTau[0] = [ math.exp(x) for x in logTauL[il] ]    
 
     lineIntensLam = FormalSoln.formalSoln(numDeps, \
                 cosTheta, lineLambdas[il], thisTau, temp, lineMode)
     #//lineFluxLam = flux2(lineIntensLam, cosTheta);
-    for it in range(numThetas):
-        lineIntens[il][it] = lineIntensLam[it]
+    #for it in range(numThetas):
+    #    lineIntens[il][it] = lineIntensLam[it]
+    lineIntens[il] = [ x for x in lineIntensLam ]
         #//console.log("il " + il + " it " + it + "lineIntensLam[it] " + lineIntensLam[it]);
     #} //it loop - thetas
 #} //il loop
@@ -4098,15 +4369,23 @@ lineFlux = Flux.flux3(lineIntens, lineLambdas, cosTheta, phi, cgsRadius, omegaSi
 contFlux2 = ToolBox.interpolV(contFlux[0], lambdaScale, lineLambdas)
 
 lineFlux2 = [ [ 0.0 for i in range(numPoints) ] for j in range(2) ]
-for i in range(numPoints):
-    lineFlux2[0][i] = lineFlux[0][i] / contFlux2[i]
-    lineFlux2[1][i] = math.log(lineFlux2[0][i])
+#for i in range(numPoints):
+#    lineFlux2[0][i] = lineFlux[0][i] / contFlux2[i]
+#    lineFlux2[1][i] = math.log(lineFlux2[0][i])
+lineFlux2[0] = [ lineFlux[0][i] / contFlux2[i] for i in range(numPoints) ]
+lineFlux2[1] = [ math.log(x) for x in lineFlux2[0] ]
    
 
 #//Get equivalent width, W_lambda, in pm - picometers:
 #//Wlambda = eqWidth(lineFlux2, linePoints, lam0); //, fluxCont);
 
-WlambdaLine = PostProcess.eqWidthSynth(lineFlux2, lineLambdas)    
+WlambdaLine = PostProcess.eqWidthSynth(lineFlux2, lineLambdas) 
+
+#
+#
+# Report 5:
+#
+#   
 #//
 #//"""
 #Print rectified high resolution spectrum of synthesis region
@@ -4119,32 +4398,32 @@ with open(outFile, 'w', encoding='utf-8') as lineHandle:
     lineHandle.write("wave (nm)   normalized flux \n")
     for i in range(numPoints):
         lineWave[i] = cm2nm*lineLambdas[i]
-        outLine = str(lineWave[i]) + " " + str(lineFlux2[0][i]) + "\n"
+        outLine = str(round(lineWave[i], 4)) + "   " + str(round(lineFlux2[0][i], 4)) + "\n"
         lineHandle.write(outLine)
     lineHandle.write("\n")
     lineHandle.write("log_10 energy level populations (cm^-3) \n")
     lineHandle.write("tauRos    n_l    n_I    n_II    N_III   N_IV")
     for i in range(numDeps):
-        nI = log10e * logNums[0][i]
-        nII = log10e * logNums[1][i]
-        nl = log10e * logNums[2][i]
-        nIII = log10e * logNums[4][i]
-        nIV = log10e * logNums[5][i]
-        outLine = str(log10tauRos[i]) + " " + str(nl) + " " + str(nI) + " " + str(nII) + " " + str(nIII) + " " + str(nIV) + "\n" 
+        nI = round(log10e * logNums[0][i], 4)
+        nII = round(log10e * logNums[1][i], 4)
+        nl = round(log10e * logNums[2][i], 4)
+        nIII = round(log10e * logNums[4][i], 4)
+        nIV = round(log10e * logNums[5][i], 4)
+        outLine = str(log10tauRos[i]) + "   " + str(nl) + "   " + str(nI) + "   " + str(nII) + "   " + str(nIII) + "   " + str(nIV) + "\n" 
         lineHandle.write(outLine)
+
 
 #Uncomment to inspect spectral line of user-defined 2-level atom
 """
-pylab.title = "Continuum normalized spectrum"
-pylab.ylabel = "F_lambda/F^C_lambda"
-pylab.xlabel = "lambda (nm)"
+pylab.title = "Fourier cosine transform of I_lambda(theta)"
+plt.xlabel(r'$\lambda$ (nm)')
+plt.ylabel(r'$F_\lambda/F^{\rm C}_\lambda$')
 xMin = min(lineWave)
 xMax = max(lineWave)
 pylab.xlim(xMin, xMax)
 pylab.ylim(0, 1.2)
-        
 pylab.plot(lineWave, lineFlux2[0])
-"""  
+"""
 
 
      

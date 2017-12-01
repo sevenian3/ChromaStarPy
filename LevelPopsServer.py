@@ -8,8 +8,8 @@ Created on Mon Apr 24 14:13:47 2017
 import math
 import Useful
 
-def levelPops(lam0In, logNStage, chiL, log10UwStage, gwL, numDeps, temp): 
-    
+#def levelPops(lam0In, logNStage, chiL, log10UwStage, gwL, numDeps, temp): 
+def levelPops(lam0In, logNStage, chiL, logUw, gwL, numDeps, temp):    
     """ Returns depth distribution of occupation numbers in lower level of b-b transition,
 
 // Input parameters:
@@ -41,10 +41,11 @@ def levelPops(lam0In, logNStage, chiL, log10UwStage, gwL, numDeps, temp):
     #// Convert to natural logs:
     #double thisLogUw, Ttheta;
     thisLogUw = 0.0 # //default initialization
-    logUw = [ 0.0 for i in range(5) ]
+    #logUw = [ 0.0 for i in range(5) ]
     logE10 = math.log(10.0)
-    for kk in range(len(logUw)):
-        logUw[kk] = logE10*log10UwStage[kk] #// lburns new loop
+    #print("log10UwStage ", log10UwStage)
+    #for kk in range(len(logUw)):
+    #    logUw[kk] = logE10*log10UwStage[kk] #// lburns new loop
         
     
     logGwL = math.log(gwL)
@@ -125,13 +126,13 @@ def levelPops(lam0In, logNStage, chiL, log10UwStage, gwL, numDeps, temp):
                       + logUw[3] * (10000 - thisTemp)/(10000 - 8000)
         
 
-
+        #print("logUw ", logUw, " thisLogUw ", thisLogUw)
                            
 
         #//System.out.println("LevPops: ionized branch taken, ionized =  " + ionized);
         #// Take stat weight of ground state as partition function:
         logNums[id] = logNStage[id] - boltzFacL / temp[0][id] + logGwL - thisLogUw #// lower level of b-b transition
-        #//System.out.println("LevelPopsServer.stagePops id " + id + " logNStage[id] " + logNStage[id] + " boltzFacL " + boltzFacL + " temp[0][id] " + temp[0][id] + " logGwL " + logGwL + " logGwStage " + logGwStage + " logNums[id] " + logNums[id]);
+        #print("LevelPopsServer.stagePops id ", id, " logNStage[id] ", logNStage[id], " boltzFacL ", boltzFacL, " temp[0][id] ", temp[0][id], " logGwL ", logGwL, " thisLogUw ", thisLogUw, " logNums[id] ", logNums[id]);
 
         #// System.out.println("LevelPops: id, logNums[0][id], logNums[1][id], logNums[2][id], logNums[3][id]: " + id + " "
         #//          + Math.exp(logNums[0][id]) + " "
@@ -151,14 +152,16 @@ def levelPops(lam0In, logNStage, chiL, log10UwStage, gwL, numDeps, temp):
         #//        + "logNums[0][id], boltzFacL/temp[0][id], logNums[2][id]: " 
         #//        + logNums[0][id] + " " + boltzFacL/temp[0][id] + " " + logNums[2][id]);
     #//id loop
-
+    #stop
     return logNums
 #end method levelPops
 
-def stagePops2(logNum, Ne, chiIArr, log10UwAArr,  \
-               numMols, logNumB, dissEArr, log10UwBArr, logQwABArr, logMuABArr, \
+#def stagePops2(logNum, Ne, chiIArr, log10UwAArr,  \
+#               numMols, logNumB, dissEArr, log10UwBArr, logQwABArr, logMuABArr, \
+#               numDeps, temp):
+def stagePops2(logNum, Ne, chiIArr, logUw,  \
+               numMols, logNumB, dissEArr, logUwB, logQwABArr, logMuABArr, \
                numDeps, temp):
-
     #line 1: //species A data - ionization equilibrium of A
     #line 2: //data for set of species "B" - molecular equlibrium for set {AB}
     """Ionization equilibrium routine that accounts for molecule formation:
@@ -198,18 +201,18 @@ def stagePops2(logNum, Ne, chiIArr, log10UwAArr,  \
     logE10 = math.log(10.0)
 #//We need one more stage in size of saha factor than number of stages we're actualy populating
     #double[][] logUw = new double[numStages+1][2];
-    logUw = [ [ 0.0 for i in range(5) ] for j in range(numStages+1) ]
-    for i in range(numStages):
-        for kk in range(5):
-            logUw[i][kk] = logE10*log10UwAArr[i][kk]
+    #logUw = [ [ 0.0 for i in range(5) ] for j in range(numStages+1) ]
+    #for i in range(numStages):
+    #    for kk in range(5):
+    #        logUw[i][kk] = logE10*log10UwAArr[i][kk]
             #// lburns- what variable can we use instead of 5?
         
         
         #//Assume ground state statistical weight (or partition fn) of highest stage is 1.0;
         #//var logGw5 = 0.0;
 
-    for kk in range(5):
-        logUw[numStages][kk] = 0.0
+    #for kk in range(5):
+    #    logUw[numStages][kk] = 0.0
          #// lburns
     
 
@@ -283,12 +286,12 @@ def stagePops2(logNum, Ne, chiIArr, log10UwAArr,  \
       
 #// Array of elements B for all molecular species AB:
     #double[][] logUwB = new double[numMols][2];
-    logUwB = [ [ 0.0 for i in range(5) ] for j in range(numMols) ]
+    #logUwB = [ [ 0.0 for i in range(5) ] for j in range(numMols) ]
     #//if (numMols > 0){
-    for iMol in range(numMols):
-        for kk in range(5):
-            #print("iMol ", iMol, " kk ", kk)
-            logUwB[iMol][kk] = logE10*log10UwBArr[iMol][kk]
+    #for iMol in range(numMols):
+    #    for kk in range(5):
+    #        #print("iMol ", iMol, " kk ", kk)
+    #        logUwB[iMol][kk] = logE10*log10UwBArr[iMol][kk]
             #// lburns new loop
 
         
@@ -431,9 +434,11 @@ def stagePops2(logNum, Ne, chiIArr, log10UwAArr,  \
 
         #//Ionization stage Saha factors: 
         for iStg in range(numStages):
-             
+            #print("iStg ", iStg)
+            #stop 
             logSaha[iStg+1][iStg] = logSahaFac - logNe - (boltzFacI[iStg] /temp[0][id]) + (3.0 * temp[1][id] / 2.0) + thisLogUw[iStg+1] - thisLogUw[iStg]
             saha[iStg+1][iStg] = math.exp(logSaha[iStg+1][iStg])
+            
             #// if (id == 36){
             #// console.log("iStg " + iStg + " boltzFacI[iStg] " + boltzFacI[iStg] + " thisLogUw[iStg] " + logE*thisLogUw[iStg] + " thisLogUw[iStg+1] " + logE*thisLogUw[iStg+1]);   
             #// console.log("iStg+1 " + (iStg+1) + " iStg " + iStg + " logSahaji " + logE*logSaha[iStg+1][iStg] + " saha[iStg+1][iStg] " + saha[iStg+1][iStg]);
@@ -513,7 +518,8 @@ def stagePops2(logNum, Ne, chiIArr, log10UwAArr,  \
     return logNums;
     #//end method stagePops
     
-def sahaRHS(chiI, log10UwUArr, log10UwLArr, temp):
+#def sahaRHS(chiI, log10UwUArr, log10UwLArr, temp):
+def sahaRHS(chiI, logUwU, logUwL, temp):    
 
     """RHS of partial pressure formulation of Saha equation in standard form (N_U*P_e/N_L on LHS)
  // Returns depth distribution of LHS: Phi(T) === N_U*P_e/N_L (David Gray notation)
@@ -545,11 +551,11 @@ def sahaRHS(chiI, log10UwUArr, log10UwLArr, temp):
 
     logE10 = math.log(10.0)
 #//We need one more stage in size of saha factor than number of stages we're actualy populating
-    logUwU = [0.0 for i in range(5)]
-    logUwL = [0.0 for i in range(5)]   
+    #logUwU = [0.0 for i in range(5)]
+    #logUwL = [0.0 for i in range(5)]   
     for kk in range(len(logUwL)):
-        logUwU[kk] = logE10*log10UwUArr[kk]
-        logUwL[kk] = logE10*log10UwLArr[kk]
+        logUwU[kk] = logUwL[kk]
+    #   logUwL[kk] = logE10*log10UwLArr[kk]
          
 
     
@@ -645,10 +651,12 @@ def sahaRHS(chiI, log10UwUArr, log10UwLArr, temp):
 #//
 #    } //end method sahaRHS    
     
-def molPops(nmrtrLogNumB, nmrtrDissE, log10UwA, nmrtrLog10UwB, nmrtrLogQwAB, nmrtrLogMuAB, \
-            numMolsB, logNumB, dissEArr, log10UwBArr, logQwABArr, logMuABArr,   \
+#def molPops(nmrtrLogNumB, nmrtrDissE, log10UwA, nmrtrLog10UwB, nmrtrLogQwAB, nmrtrLogMuAB, \
+#            numMolsB, logNumB, dissEArr, log10UwBArr, logQwABArr, logMuABArr,   \
+#            logGroundRatio, numDeps, temp):
+def molPops(nmrtrLogNumB, nmrtrDissE, logUwA, nmrtrLogUwB, nmrtrLogQwAB, nmrtrLogMuAB, \
+            numMolsB, logNumB, dissEArr, logUwB, logQwABArr, logMuABArr,   \
             logGroundRatio, numDeps, temp):
-
     # line 1: //species A data - ionization equilibrium of A
     # //data for set of species "B" - molecular equlibrium for set {AB}
     
@@ -706,23 +714,23 @@ def molPops(nmrtrLogNumB, nmrtrDissE, log10UwA, nmrtrLog10UwB, nmrtrLogQwAB, nmr
 
 #//For clarity: neutral stage of atom whose ionization equilibrium is being computed is element A
 #// for molecule formation:
-    logUwA = [0.0 for i in range(5)]
+    #logUwA = [0.0 for i in range(5)]
    
-    nmrtrLogUwB = [0.0 for i in range(5)]
+    #nmrtrLogUwB = [0.0 for i in range(5)]
     
-    for kk in range(len(logUwA)):
-        logUwA[kk] = logE10*log10UwA[kk]
-        nmrtrLogUwB[kk] = logE10*nmrtrLog10UwB[kk]
+    #for kk in range(len(logUwA)):
+        #logUwA[kk] = logE10*log10UwA[kk]
+        #nmrtrLogUwB[kk] = logE10*nmrtrLog10UwB[kk]
 
         #// lburns 
     
 #// Array of elements B for all molecular species AB:
     #double[][] logUwB = new double[numMolsB][2];
-    logUwB = [ [ 0.0 for i in range(5) ] for j in range(numMolsB) ]
+    #logUwB = [ [ 0.0 for i in range(5) ] for j in range(numMolsB) ]
     #//if (numMolsB > 0){
-    for iMol in range(numMolsB):
-        for kk in range(5):
-            logUwB[iMol][kk] = logE10*log10UwBArr[iMol][kk]
+    #for iMol in range(numMolsB):
+    #    for kk in range(5):
+    #        logUwB[iMol][kk] = logE10*log10UwBArr[iMol][kk]
            # // lburns new loop
         
         

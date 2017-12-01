@@ -90,7 +90,7 @@ def getNz(numDeps, temp, pGas, pe, ATot, nelemAbnd, logAz):
    logATot = math.log(ATot)
 
    #double help, logHelp, logNumerator;
-
+   
    for i in range(numDeps):
 
  #// Initial safety check to avoid negative logNz as Pg and Pe each converge:
