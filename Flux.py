@@ -7,6 +7,7 @@ Created on Sat Apr 29 17:42:58 2017
 
 import math
 import random
+import numpy
 import Useful
 import ToolBox
 
@@ -265,7 +266,8 @@ def flux3(intens, lambdas, cosTheta, phi,
             #//for (int il = 0; il < numLams; il++){
             #//   intensLam[il] = intens[il][it];
             #//}
-            thisIntens = ToolBox.interpolV(intensLam, shiftedLamV, lambdas);
+            #thisIntens = ToolBox.interpolV(intensLam, shiftedLamV, lambdas);
+            thisIntens = numpy.interp(lambdas, shiftedLamV, intensLam)
             #//thisIntens = ToolBox.interpolV(intensLam, shiftedLamV, newLambda);
             #//flx = flx + ( intens[it] * thisThetFctr * delPhi );
             for il in range(numLams):

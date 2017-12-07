@@ -26,6 +26,7 @@ Created on Sat Apr 29 14:03:52 2017
 // Level population now computed in LevelPops.levelPops()"""
 
 import math
+import numpy
 import Useful
 import ToolBox
 
@@ -156,7 +157,8 @@ def lineTotalKap(linePoints, logKappaL, numDeps, kappa,
         for il in range(numLams):
             kappaC[il] = kappa[il][id]
            
-        kappaC2 = ToolBox.interpolV(kappaC, lambdaScale, linePoints);
+        #kappaC2 = ToolBox.interpolV(kappaC, lambdaScale, linePoints);
+        kappaC2 = numpy.interp(linePoints, lambdaScale, kappaC);
         for il in range(numPoints):
             kappa2[il][id] = kappaC2[il]
                  

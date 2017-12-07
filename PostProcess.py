@@ -11,6 +11,7 @@ Created on Wed May  3 12:20:48 2017
 
 
 import math
+import numpy
 import Useful
 import ToolBox
 nm2cm = 1.0e-7
@@ -342,7 +343,8 @@ def tuneColor(lambdaScale, intens, numThetas, numLams, gaussian, lamUV, lamIR):
 
         bandIntens[it] = 0.0 #//initialization
         #//var newY = interpolV(intensLam, lambdaScale, filterLam);
-        newY = ToolBox.interpolV(intensLam, lambdaScale, gaussian[0])
+        #newY = ToolBox.interpolV(intensLam, lambdaScale, gaussian[0])
+        newY = numpy.interp(gaussian[0], lambdaScale, intensLam)
 
         #//wavelength loop is over photometric filter data wavelengths
 

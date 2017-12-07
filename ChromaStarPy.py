@@ -11,7 +11,11 @@ This is the main source file for ChromaStarPy.  We start here.
  * The openStar project: stellar atmospheres and spectra
  *
  * ChromaStarPy
- * November 2017
+ *
+ * Version 2017-12-06
+ * Use date based versioning with ISO 8601 date (YYYY-MM-DD)
+ *
+ * December 2017
  * 
  * C. Ian Short
  * Saint Mary's University
@@ -37,7 +41,7 @@ This is the main source file for ChromaStarPy.  We start here.
  * 
  * Logic developed in Java SE 8.0, JDK 1.8
  * 
- * Ported to JavaScript for deployment
+ * Ported to python V. 3
  *
  * System requirements for Java version: Java run-time environment (JRE)
  * System requirements for JavaScript version: JavaScript intrepretation enabld in WWW browser (usually by default)
@@ -77,7 +81,9 @@ This is the main source file for ChromaStarPy.  We start here.
  */"""
  
 #from decimal import Decimal as D
-import math
+
+import Input
+import Restart
 import Useful
 import LamGrid
 import TauScale
@@ -115,10 +121,13 @@ import PostProcess
 import matplotlib
 import matplotlib.pyplot as plt
 #%matplotlib inline
-import pylab
+import math
 import numpy
 
 from functools import reduce
+import subprocess
+import os
+import sys
 
 #############################################
 #
@@ -137,36 +146,73 @@ from functools import reduce
 ##############################################
 
 
-#color platte for pylab plotting
+#Detect python version
+pythonV = sys.version_info
+if pythonV[0] != 3:
+    print("")
+    print("")
+    print(" ********************************************* ")
+    print("")
+    print("WARNING!!  WARNING!!   WARNING!!")
+    print("")
+    print("")
+    print("ChromaStarPy developed for python V. 3!!" )
+    print("")
+    print("May not work in other version")
+    print("")
+    print("")
+    print("*********************************************** ")
+    print("")
+    print("")
+
+
+
+thisOS = "unknown" #default
+myOS= ""
+#returns 'posix' form unix-like OSes and 'nt' for Windows??
+thisOS = os.name
+print("")
+print("Running on OS: ", thisOS)
+print("")
+
+absPath0 = "./"  #default
+
+if thisOS == "nt": 
+    #windows
+    absPath0 = subprocess.check_output("cd", shell=True)
+    absPath0 = bytes.decode(absPath0)
+    backSpace = 2
+elif thisOS == "posix":
+    absPath0 = subprocess.check_output("pwd", shell=True)
+    backSpace = 1
+
+
+#remove OS_dependent trailing characters 'r\n'
+nCharsPath = len(absPath0)
+nCharsPath -= backSpace
+absPath0 = absPath0[0: nCharsPath]
+
+slashIndex = absPath0.find('\\') #The first backslash is the escape character!
+while slashIndex != -1:
+    #python strings are immutable:
+    absPathCopy = absPath0[0: slashIndex]
+    absPathCopy += '/'
+    absPathCopy += absPath0[slashIndex+1: len(absPath0)]
+    absPath0 = absPathCopy
+    #print(absPathCopy, absPath0)
+    slashIndex = absPath0.find('\\')
+    
+absPath = absPath0 + '/'
+
+makePlot = Input.makePlot
+print("")
+print("Will make plot: ", makePlot)
+print("")
+#stop
+#color platte for plt plotting
 #palette = ['black', 'brown','red','orange','yellow','green','blue','indigo','violet']
 #grayscale
-
-"""palette = [(0.39, 0.39, 0.39,), \
-           (0.37, 0.37, 0.37), \
-           (0.35, 0.35, 0.35), \
-           (0.33, 0.33, 0.33), \
-           (0.31, 0.31, 0.31), \
-           (0.29, 0.29, 0.29), \
-           (0.27, 0.27, 0.27), \
-           (0.25, 0.25, 0.25), \
-           (0.23, 0.23, 0.23), \
-           (0.21, 0.21, 0.21), \
-           (0.19, 0.19, 0.19), \
-           (0.17, 0.17, 0.17), \
-           (0.15, 0.15, 0.15), \
-           (0.13, 0.13, 0.13), \
-           (0.11, 0.11, 0.11), \
-           (0.09, 0.09, 0.09), \
-           (0.07, 0.07, 0.07), \
-           (0.05, 0.05, 0.05), \
-           (0.03, 0.03, 0.03), \
-           (0.01, 0.01, 0.01) \
-]"""
-
-"""palette = ['0.0', '0.03', '0.06', '0.09', '0.12', '0.15', '0.18', \
-           '0.21', '0.24', '0.27', '0.3', '0.33', '0.36', '0.39', '0.42', \
-           '0.45', '0.48', '0.51', '0.54', '0.57', '0.60']"""
-
+#stop
 #Grayscale:
 numPal = 12
 palette = ['0.0' for i in range(numPal)]
@@ -182,18 +228,23 @@ numClrs = len(palette)
 
 #General file for printing ad hoc quantities
 dbgHandle = open("debug.out", 'w')
+outPath = absPath + "/Outputs/"
 
-absPath = "C:/Users/ishort/Documents/ChromaStarPy/"
-outPath = absPath + "Outputs/"
+fileStem = Input.fileStem
+outFileString = outPath+fileStem+".*"
+print(" ")
+print("Writing to files ", outFileString)
+print(" ")
 
+#stop
+"""
 lbl = ""
 inLine = ""
 fields = [" " for i in range(2)] 
-
 #with open("ChromaStarPy.input.dat", 'r', encoding='utf-8') as inputHandle:
-inFile = absPath + "input.dat"
+inFile = absPath + "/input.dat"
 #Appended to filename output tag to distinguish runs with identical input parameters:
-runVers = "pyLoop"
+#runVers = "pyLoop"
 
 with open(inFile, 'r') as inputHandle:    
     
@@ -355,7 +406,7 @@ with open(inFile, 'r') as inputHandle:
     inLine = inputHandle.readline()
     fields = inLine.split(",")
     lbl = fields[0].strip(); userGammaColStr = fields[1].strip()
-    
+"""    
 """ test
 #// Representative spectral line and associated atomic parameters
 #//NaID
@@ -384,120 +435,130 @@ ifVoigt = False
 ifScatt = False 
 
 #// Argument 0: Effective temperature, Teff, in K:
-teff = float(teffStr)        
+#teff = float(teffStr) 
+teff = Input.teff       
 #print(type(teff))
 
 #// Argument 1: Logarithmic surface gravity, g, in cm/s/s:
-logg = float(loggStr)
+#logg = float(loggStr)
+logg = Input.logg
 
 #//Argument 2: Linear sclae factor for solar Rosseland oapcity distribution
-log10ZScale = float(logZStr)
+#log10ZScale = float(logZStr)
+log10ZScale = Input.log10ZScale
+
+
 
 #//Argument 3: Stellar mass, M, in solar masses
-massStar = float(massStarStr)
+#massStar = float(massStarStr)
+massStar = Input.massStar
 
 #// Sanity check:
 F0Vtemp = 7300.0;  #// Teff of F0 V star (K)                           
 if (teff < 3000.0): 
     teff = 3000.0
-    teffStr = "3000"
+#    teffStr = "3000"
 
 if (teff > 50000.0):
     teff = 50000.0
-    teffStr = "50000"
+#    teffStr = "50000"
     
 #//logg limit is strongly Teff-dependent:
 minLogg = 3.0; #//safe initialization
 minLoggStr = "3.0";
 if (teff <= 4000.0):
     minLogg = 0.0
-    minLoggStr = "0.0"
+#    minLoggStr = "0.0"
 elif ((teff > 4000.0) and (teff <= 5000.0)): 
     minLogg = 0.5
-    minLoggStr = "0.5"
+#    minLoggStr = "0.5"
 elif ((teff > 5000.0) and (teff <= 6000.0)): 
     minLogg = 1.5
-    minLoggStr = "1.5"
+#    minLoggStr = "1.5"
 elif ((teff > 6000.0) and (teff <= 7000.0)): 
     minLogg = 2.0
-    minLoggStr = "2.0"
+#    minLoggStr = "2.0"
 elif ((teff > 7000.0) and (teff < 9000.0)): 
     minLogg = 2.5
-    minLoggStr = "2.5"
+#    minLoggStr = "2.5"
 elif (teff >= 9000.0): 
     minLogg = 3.0
-    minLoggStr = "3.0"
+#    minLoggStr = "3.0"
 
 if (logg < minLogg): 
     logg = minLogg
-    loggStr = minLoggStr
+#    loggStr = minLoggStr
 
 if (logg > 7.0): 
     logg = 7.0
-    loggStr = "7.0"
+#    loggStr = "7.0"
         
 if (log10ZScale < -3.0): 
     log10ZScale = -3.0
-    logZStr = "-3.0"
+#    logZStr = "-3.0"
         
 if (log10ZScale > 1.0): 
     log10ZScale = 1.0
-    logZStr = "1.0"
+#    logZStr = "1.0"
 
 if (massStar < 0.1): 
     massStar = 0.1
-    massStarStr = "0.1"
+#    massStarStr = "0.1"
         
 if (massStar > 20.0): 
     massStar = 20.0
-    massStarStr = "20.0"
+#    massStarStr = "20.0"
 
 grav = math.pow(10.0, logg)
 zScale = math.pow(10.0, log10ZScale)
 
 #// Argument 5: microturbulence, xi_T, in km/s:
-xiT = float(xiTStr)
+#xiT = float(xiTStr)
+xiT = Input.xiT
 
 if (xiT < 0.0): 
     xiT = 0.0
-    xitStr = "0.0"
+#    xitStr = "0.0"
         
 if (xiT > 8.0): 
     xiT = 8.0
-    xitStr = "8.0"
+#    xitStr = "8.0"
     
 #// Add new variables to hold values for new metallicity controls lburns
-logHeFe = float(logHeFeStr)  #// lburns
-logCO = float(logCOStr) #// lburns
-logAlphaFe = float(logAlphaFeStr) #// lburns
+#logHeFe = float(logHeFeStr)  #// lburns
+#logCO = float(logCOStr) #// lburns
+#logAlphaFe = float(logAlphaFeStr) #// lburns
+logHeFe = Input.logHeFe
+logCO = Input.logCO
+logAlphaFe = Input.logAlphaFe
 
 #// For new metallicity commands lburns
 #// For logHeFe: (lburns)
 if (logHeFe < -1.0):
     logHeFe = -1.0;
-    logHeFeStr = "-1.0";
+#    logHeFeStr = "-1.0";
     
 if (logHeFe > 1.0):
     logHeFe = 1.0
-    logHeFeStr = "1.0"
+#    logHeFeStr = "1.0"
     
 #// For logCO: (lburns)
 if (logCO < -2.0):
     logCO = -2.0
-    logCOStr = "-2.0"
+#    logCOStr = "-2.0"
 
 if (logCO > 2.0):
     logCO = 2.0
-    logCOStr = "2.0"
+#    logCOStr = "2.0"
 
 #// For logAlphaFe: (lburns)
 if (logAlphaFe < -0.5):
     logAlphaFe = -0.5
-    logAlphaFeStr = "-0.5"
+#    logAlphaFeStr = "-0.5"
 
 if (logAlphaFe > 0.5):
     logAlphaFe = 0.5
-    logAlphaFeStr = "0.5"
+#    logAlphaFeStr = "0.5"
 
         
 
@@ -505,27 +566,29 @@ if (logAlphaFe > 0.5):
 #// extinction for inclusion of linein spectrum 
 #lineThreshStr = args[5];
 #lineThreshStr = "-3.0"; #//test
-lineThresh = float(lineThreshStr)
+#lineThresh = float(lineThreshStr)
+lineThresh = Input.lineThresh    
 
 if (lineThresh < -4.0): 
     lineThresh = -4.0
-    lineThreshStr = "-4.0"
+#    lineThreshStr = "-4.0"
         
 if (lineThresh > 6.0): 
     lineThresh = 6.0
-    lineThreshStr = "6.0"
+#    lineThreshStr = "6.0"
         
 
 #// Argument 7: minimum ratio of monochromatic line center to background continuous
-voigtThresh = float(voigtThreshStr);
+#voigtThresh = float(voigtThreshStr);
+voigtThresh = Input.voigtThresh    
 
 if (voigtThresh < lineThresh): 
     voigtThresh = lineThresh
-    voigtThreshStr = lineThreshStr
+#    voigtThreshStr = lineThreshStr
         
 if (voigtThresh > 6.0): 
     voigtThresh = 6.0
-    voigtThreshStr = "6.0"
+#    voigtThreshStr = "6.0"
         
 #//User defined spetrum synthesis region:
 lamUV = 260.0;
@@ -533,31 +596,33 @@ lamIR = 2600.0;
 
 #// Argument 8: starting wavelength for spectrum synthesis 
 
-lambdaStart = float(lambdaStartStr)
+#lambdaStart = float(lambdaStartStr)
+lambdaStart = Input.lambdaStart
 
 if (lambdaStart < lamUV): 
     lambdaStart = lamUV
-    lambdaStartStr = str(lamUV)
+#    lambdaStartStr = str(lamUV)
         
 if (lambdaStart > lamIR - 1.0): 
     lambdaStart = lamIR - 1.0
-    lambdaStartStr = str(lamIR - 1.0)
+#    lambdaStartStr = str(lamIR - 1.0)
         
 #// Argument 9: stopping wavelength for spectrum synthesis 
-lambdaStop = float(lambdaStopStr)
+#lambdaStop = float(lambdaStopStr)
+lambdaStop = Input.lambdaStop    
 
 if (lambdaStop < lamUV + 1.0): 
     lambdaStop = lamUV + 1.0
-    lambdaStartStr = str(lamUV + 1.0)
+#    lambdaStartStr = str(lamUV + 1.0)
         
 if (lambdaStop > lamIR):
     lambdaStop = lamIR
-    lambdaStartStr = str(lamIR)
+#    lambdaStartStr = str(lamIR)
 
 #//Prevent negative or zero lambda range:
 if (lambdaStop <= lambdaStart):
     lambdaStop = lambdaStart + 0.5 #//0.5 nm = 5 A
-    lambdaStopStr = str(lambdaStop)
+#    lambdaStopStr = str(lambdaStop)
 
 """
 #//limit size of synthesis region (nm):
@@ -584,7 +649,7 @@ if (lambdaStop > (lambdaStart+maxSynthRange)):
 if (lambdaStop > lamIR):
     #//console.log("lambdaStop > lamIR condition");
     lambdaStop = lamIR
-    lambdaStopStr = str(lamIR)
+#    lambdaStopStr = str(lamIR)
 
 #//console.log("lambdaStop " + lambdaStop);
 
@@ -598,84 +663,95 @@ lamIR = nm2cm * lamIR
 #//argument 10: line sampling selection (fine or coarse)
 #sampling = "fine"
 
+sampling = Input.sampling
+vacAir = Input.vacAir
+
 #// Argument 11: Lorentzian line broadening enhancement 
-logGammaCol = float(logGammaColStr)
+#logGammaCol = float(logGammaColStr)
+logGammaCol = Input.logGammaCol
 
 if (logGammaCol < 0.0):
     logGammaCol = 0.0
-    logGammaColStr = "0.0"
+#    logGammaColStr = "0.0"
         
 if (logGammaCol > 1.0):
     logGammaCol = 1.0
-    logGammaColStr = "1.0"
+#    logGammaColStr = "1.0"
         
 #// Argument 12: log_10 gray mass extinction fudge 
-logKapFudge = float(logKapFudgeStr)
+#logKapFudge = float(logKapFudgeStr)
+logKapFudge = Input.logKapFudge
 
 if (logKapFudge < -2.0):
     logKapFudge = -2.0
-    logKapFudgeStr = "-2.0"
+#    logKapFudgeStr = "-2.0"
         
 if (logKapFudge > 2.0):
     logKapFudge = 2.0
-    logKapFudgeStr = "2.0"
+#    logKapFudgeStr = "2.0"
         
 
 #// Argument 13: macroturbulent velocity broadening parameter (sigma) (km/s) 
-macroV = float(macroVStr)
+#macroV = float(macroVStr)
+macroV = Input.macroV    
 #// Argument 14: surface equatorial linear rotational velocity (km/s) 
-rotV  = float(rotVStr)
+#rotV  = float(rotVStr)
+rotV = Input.rotV
 #// Argument 15: inclination of rotation axis wrt line-of-sight (degrees) 
-rotI  = float(rotIStr)
+#rotI  = float(rotIStr)
+rotI = Input.rotI
 #print("Before test rotI ", rotI, " rotIStr ", rotIStr)
 #// Argument 16: number of outer HSE-EOS-Opac iterations
-nOuterIter = int(nOuterIterStr)
+#nOuterIter = int(nOuterIterStr)
+nOuterIter = Input.nOuterIter
 #// Argument 17: number of inner Pe-IonFrac iterations
-nInnerIter = int(nInnerIterStr)
+#nInnerIter = int(nInnerIterStr)
+nInnerIter = Input.nInnerIter
 #//Argument 18: If TiO JOLA bands should be included:
-ifTiO = int(ifTiOStr)
+#ifTiO = int(ifTiOStr)
+ifTiO = Input.ifTiO
 
 if (macroV < 0.0):
     macroV = 0.0
-    macroVStr = "0.0"
+#    macroVStr = "0.0"
         
 if (macroV > 8.0):
     macroV = 8.0
-    macroVStr = "8.0"
+#    macroVStr = "8.0"
         
 
 if (rotV < 0.0):
     rotV = 0.0
-    rotVStr = "0.0"
+#    rotVStr = "0.0"
         
 if (rotV > 300.0):
     rotV = 300.0
-    rotVStr = "300.0"
+#    rotVStr = "300.0"
         
 
 if (rotI < 0.0): 
     rotI = 0.0
-    rotIStr = "0.0"
+#    rotIStr = "0.0"
         
 if (rotI > 90.0):
     rotI = 90.0
-    rotIStr = "90.0"
+#    rotIStr = "90.0"
         
 if (nOuterIter < 1): 
     nOuterIter = 1
-    nOuterIterStr = "1"
+#    nOuterIterStr = "1"
         
-if (nOuterIter > 12):
-    nOuterIter = 12
-    nOuterIterStr = "12"
+if (nOuterIter > 30):
+    nOuterIter = 30
+#    nOuterIterStr = "12"
         
 if (nInnerIter < 1):
     nInnerIter = 1
-    nInnerIterStr = "1"
+#    nInnerIterStr = "1"
         
-if (nInnerIter > 12):
-    nInnerIter = 12
-    nInnerIterStr = "12"
+if (nInnerIter > 30):
+    nInnerIter = 30
+#    nInnerIterStr = "12"
     
 #print("After test rotI ", rotI, " rotIStr ", rotIStr)    
     
@@ -684,39 +760,42 @@ inclntn = math.pi * rotI / 180.0  #//degrees to radians
 vsini = rotV * math.sin(inclntn)
 
 #// Argument 19: wavelength of narrow Gaussian filter in nm
-diskLambda = float(diskLambdaStr)  #//nm
+#diskLambda = float(diskLambdaStr)  #//nm
+diskLambda = Input.diskLambda
 #// Argument 20: bandwidth, sigma, of narrow Gaussian filter in nm
-diskSigma = float(diskSigmaStr)  #//nm
+#diskSigma = float(diskSigmaStr)  #//nm
+diskSigma = Input.diskSigma
 #// Argument 21: radial velocity of star in km/s
-RV = float(RVStr)  #//nm   
+#RV = float(RVStr)  #//nm   
+RV = Input.RV
 #// Argument 22: Spectrum synthesis wavelength scale options:
 
 if (diskLambda < lamUV):
     diskLambda = lamUV
-    diskLambdaStr = str(lamUV)    
+#    diskLambdaStr = str(lamUV)    
 if (diskLambda > lamIR):
     diskLambda = lamIR
-    diskLambdaStr = str(lamIR)
+#    diskLambdaStr = str(lamIR)
     
 if (diskSigma < 0.005):
     diskSigma = 0.005
-    diskSigmaStr = "0.005";
+#    diskSigmaStr = "0.005";
 if (diskSigma > 10.0):
     diskSigma = 10.0
-    diskSigmaStr = "10"
+#    diskSigmaStr = "10"
     
 if (RV < -200.0):
     RV = -200.0
-    RVStr = "-200"
+#    RVStr = "-200"
 if (RV > 200.0):
     RV = 200.0
-    RVStr = "200"
+#    RVStr = "200"
     
 #vacAir = "vacuum" #//test
 
 #// Representative spectral line and associated atomic parameters
 #//
-
+"""
 userLam0 = float(userLam0Str)
 userA12 = float(userA12Str)
 userLogF = float(userLogFStr)
@@ -733,28 +812,45 @@ userGw4 = float(userGw4Str)
 userGwL = float(userGwLStr)
 userMass = float(userMassStr)
 userLogGammaCol = float(userGammaColStr)
+"""
+userLam0 = Input.userLam0
+userA12 = Input.userA12
+userLogF = Input.userLogF
+userStage = Input.userStage
+userChiI1 = Input.userChiI1
+userChiI2 = Input.userChiI2
+userChiI3 = Input.userChiI3
+userChiI4 = Input.userChiI4
+userChiL = Input.userChiL
+userGw1 = Input.userGw1
+userGw2 = Input.userGw2
+userGw3 = Input.userGw3
+userGw4 = Input.userGw4
+userGwL = Input.userGwL
+userMass = Input.userMass
+userLogGammaCol = Input.userLogGammaCol
 
 if (userLam0 < 260.0):
     userLam0 = 260.0
-    userLamStr = "260"
+#    userLamStr = "260"
 if (userLam0 > 2600.0):
     userLam0 = 2600.0
-    userLamStr = "2600"
+#    userLamStr = "2600"
 
 if (userA12 < 2.0):
     userA12 = 2.0
-    userNStr = "2.0"
+#    userNStr = "2.0"
 #//Upper limit set high to accomodate Helium!:
 if (userA12 > 11.0):
     userA12 = 11.0
-    userNStr = "11.0"
+#    userNStr = "11.0"
 
 if (userLogF < -6.0):
     userLogF = -6.0
-    userFStr = "-6.0"
+#    userFStr = "-6.0"
 if (userLogF > 1.0):
     userLogF = 1.0
-    userFStr = "1.0"
+#    userFStr = "1.0"
 
 if ( (userStage != 0) and (userStage != 1) and (userStage != 2) and (userStage != 3) ):
     userStage = 0
@@ -762,36 +858,36 @@ if ( (userStage != 0) and (userStage != 1) and (userStage != 2) and (userStage !
 
 if (userChiI1 < 3.0):
     userChiI1 = 3.0
-    userIonStr = "3.0"
+#    userIonStr = "3.0"
 if (userChiI1 > 25.0):
     userChiI1 = 25.0
-    userIonStr = "25.0"
+#    userIonStr = "25.0"
 
 if (userChiI2 < 5.0):
     userChiI2 = 5.0
-    userIonStr = "5.0"
+#    userIonStr = "5.0"
 if (userChiI2 > 55.0):
     userChiI2 = 55.0
-    userIonStr = "55.0"
+#    userIonStr = "55.0"
 
 if (userChiI3 < 5.0):
     userChiI3 = 5.0
-    userIonStr = "5.0"
+#    userIonStr = "5.0"
 if (userChiI3 > 55.0):
     userChiI3 = 55.0
-    userIonStr = "55.0"
+#    userIonStr = "55.0"
 
 if (userChiI4 < 5.0):
     userChiI4 = 5.0
-    userIonStr = "5.0"
+#    userIonStr = "5.0"
 if (userChiI4 > 55.0):
     userChiI4 = 55.0
-    userIonStr = "55.0"
+#    userIonStr = "55.0"
 
 #// Note: Upper limit of chiL depends on value of chiI1 above!
 if (userChiL < 0.0):
     userChiL = 0.0 #// Ground state case!
-    userExcStr = "0.0"
+#    userExcStr = "0.0"
 if ( (userStage == 0) and (userChiL >= userChiI1) ):
     #//ionized = false;
     userChiL = 0.9 * userChiI1
@@ -800,71 +896,72 @@ if ( (userStage == 0) and (userChiL >= userChiI1) ):
 if ( (userStage == 1) and (userChiL >= userChiI2) ):
     #//ionized = false;
     userChiL = 0.9 * userChiI2
-    userExcStr = userIonStr
+#    userExcStr = userIonStr
 
 if ( (userStage == 2) and (userChiL >= userChiI3) ):
     #//ionized = false;
     userChiL = 0.9 * userChiI3
-    userExcStr = userIonStr
+#    userExcStr = userIonStr
 
 if ( (userStage == 3) and (userChiL >= userChiI4) ):
     #//ionized = false;
     userChiL = 0.9 * userChiI4
-    userExcStr = userIonStr
+#    userExcStr = userIonStr
 
 if (userGw1 < 1.0):
     userGw1 = 1.0
-    userWghtStr = "1"
+#    userWghtStr = "1"
 if (userGw1 > 100.0):
     userGw1 = 100.0
-    userWghtStr = "100"
+#    userWghtStr = "100"
 
 if (userGw2 < 1.0):
     userGw2 = 1.0
-    userWghtStr = "1";
+#    userWghtStr = "1";
 if (userGw2 > 100.0):
     userGw2 = 100.0
-    userWghtStr = "100";
+#    userWghtStr = "100";
 
 if (userGw3 < 1.0):
     userGw3 = 1.0
-    userWghtStr = "1"
+#    userWghtStr = "1"
 if (userGw3 > 100.0):
     userGw3 = 100.0
-    userWghtStr = "100"
+#    userWghtStr = "100"
 
 if (userGw4 < 1.0):
     userGw4 = 1.0
-    userWghtStr = "1"
+#    userWghtStr = "1"
 if (userGw4 > 100.0):
     userGw4 = 100.0
-    userWghtStr = "100"
+#    userWghtStr = "100"
 
 if (userGwL < 1.0):
     userGwL = 1.0
-    userLWghtStr = "1"
+#    userLWghtStr = "1"
 if (userGwL > 100.0):
     userGwL = 100.0
-    userLWghtStr = "100"
+#    userLWghtStr = "100"
 
 if (userMass < 1.0):
     userMass = 1.0
-    userMassStr = "1.0"
+#    userMassStr = "1.0"
 if (userMass > 200.0):
     userMass = 200.0
-    userMassStr = "200"
+#    userMassStr = "200"
     
 if (userLogGammaCol < 0.0):
     userLogGammaCol = 0.0
-    useLogGammaColStr = "0.0"
+#    useLogGammaColStr = "0.0"
 if (userLogGammaCol > 1.0):
     userLogGammaCol = 1.0
-    useLogGammaColStr = "1.0"
+#    useLogGammaColStr = "1.0"
 
 userLam0 = userLam0 * nm2cm #// line centre lambda from nm to cm
-
+#stop
 #Create output file
 
+"""
 #File for structure output:
 strucStem = "Teff" + teffStr + "Logg" + loggStr + "Z" + logZStr + "M" + massStarStr+"xiT"+xiTStr + \
 "HeFe" + logHeFeStr + "CO" + logCOStr + "AlfFe" + logAlphaFeStr + "v" + runVers
@@ -875,16 +972,18 @@ sedFile = "sed." + strucStem + "L"+lambdaStartStr+"-"+lambdaStopStr+"xiT"+xiTStr
 "Mac" + macroVStr + "Rot"+rotVStr+"-"+rotIStr+"RV"+ RVStr + ".out" 
 ldcFile = "ldc." + strucStem + "L" + diskLambdaStr + "S" + diskSigmaStr + ".out"
 lineFile = "line." + strucStem + "L0" + userLam0Str + ".out"
-
+"""
 #Echo input parameters *actually used* to console:
 inputParamString = "Teff " + str(teff) + " logg " + str(logg) + " [Fe/H] " + str(log10ZScale) + " massStar " + \
-      str(massStar) + " xiT " + str(xiT) + "HeFe" + logHeFeStr + "CO" + logCOStr + "AlfFe" + logAlphaFeStr + \
+      str(massStar) + " xiT " + str(xiT) + " HeFe " + str(logHeFe) + " CO " + str(logCO) + " AlfFe " + str(logAlphaFe) + \
        " lineThresh " + str(lineThresh) + " voigtThresh " + \
       str(voigtThresh) + " lambda0 " + str(lambdaStart) + " lambda1 " + str(lambdaStop) + " logGamCol " + \
       str(logGammaCol) + " logKapFudge " + str(logKapFudge) + " macroV " + str(macroV) + " rotV " + str(rotV) + \
       " rotI " + str(rotI) + " RV " + str(RV) + " nInner " + str(nInnerIter) + " nOuter " + str(nOuterIter) + \
-      " ifTiO " + ifTiOStr + " sampling " + sampling
+      " ifTiO " + str(ifTiO) + " sampling " + sampling
 print(inputParamString)
+
+#stop
 #// Wavelengths in Air : 
 #    if ($("#air").is(":checked")) {
 #        vacAir = $("#air").val(); // radio 
@@ -1291,7 +1390,7 @@ logATot = math.log(ATot) #//natural log
 
 #print("logATot ", logATot)
 
-tauRos = TauScale.tauScale(numDeps, log10MinDepth, log10MaxDepth)
+
 
 """//Apr 2016: Replace the following initial guesses with the following PSEUDOCODE:
    //
@@ -1315,6 +1414,111 @@ tauRos = TauScale.tauScale(numDeps, log10MinDepth, log10MaxDepth)
    //    Pe(tau)= zscl^+0.5*Pe0(tau) if metals ionized - hotter models  
    //    Pe(tau) = {(1+4A_He)/(1+4A_He0)}^1/3 * Pe0(tau)"""
    
+
+
+#//
+#// END Initial guess for Sun section:
+#//
+#//Rescaled  kinetic temeprature structure: 
+#//double F0Vtemp = 7300.0;  // Teff of F0 V star (K)  
+                         
+temp = [ [0.0 for i in range(numDeps)] for j in range(2) ]
+guessPGas = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+guessPe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+guessNe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+kappaRos = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+kappa500 = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+pGas = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+newPe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+pRad = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+rho = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+newNe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+mmw = [ 0.0 for i in range(numDeps) ]
+
+depths = [ 0.0 for i in range(numDeps) ]
+
+if Input.specSynMode == True:
+    
+    #ensure self-consistency between parameters and model being read in:
+    teff = Restart.teffRS
+    logg = Restart.loggRS
+    log10ZSale = Restart.log10ZScaleRS
+    logKapFudge = Restart.logKapFudgeRS
+    logHeFe = Restart.logHeFeRS
+    logCO = Restart.logCORS
+    logAlphaFe = Restart.logAlphaFeRS
+
+    tauRos[0] = [ x for x in Restart.tauRosRS[0] ]
+    tauRos[1] = [ x for x in Restart.tauRosRS[1] ]    
+    temp[0] = [ x for x in Restart.tempRS[0] ]
+    temp[1] = [ x for x in Restart.tempRS[1] ]
+    pGas[0] = [ x for x in Restart.pGasRS[0] ]
+    pGas[1] = [ x for x in Restart.pGasRS[1] ]
+    newPe[0] = [ x for x in Restart.peRS[0] ]
+    newPe[1] = [ x for x in Restart.peRS[1] ]
+    # set up everything as in normal structure mode:
+    guessPGas[0] = [ x for x in Restart.pGasRS[0] ]
+    guessPGas[1] = [ x for x in Restart.pGasRS[1] ]
+    guessPe[0] = [ x for x in Restart.peRS[0] ]
+    guessPe[1] = [ x for x in Restart.peRS[1] ]    
+    newNe[1] = [newPe[1][iD] - temp[1][iD] - Useful.logK() for iD in range(numDeps)]
+    newNe[0] = [math.exp(newNe[1][iD]) for iD in range(numDeps)]   
+    pRad[0] = [ x for x in Restart.pRadRS[0] ]
+    pRad[1] = [ x for x in Restart.pRadRS[1] ]
+    rho[0] = [ x for x in Restart.rhoRS[0] ]
+    rho[1] = [ x for x in Restart.rhoRS[1] ]
+    kappa500[0] = [ x for x in Restart.kappa500RS[0] ]
+    kappa500[1] = [ x for x in Restart.kappa500RS[1] ]
+    kappaRos[0] = [ x for x in Restart.kappaRosRS[0] ]
+    kappaRos[1] = [ x for x in Restart.kappaRosRS[1] ]
+    mmw = [ x for x in Restart.mmwRS ]
+    
+    #We are reading in a converged model - minimal processing:
+    nOuterIter = 1
+    nInnerIter = 1
+    
+else:
+    
+        
+    tauRos = TauScale.tauScale(numDeps, log10MinDepth, log10MaxDepth)
+    if (teff < F0Vtemp):
+        if (logg > 3.5):
+            #//We're a cool dwarf! - rescale from Teff=5000 reference model!
+            #print("cool star branch")
+            temp = ScaleT5000.phxRefTemp(teff, numDeps, tauRos)
+        else:
+            #We're a cool giant - rescale from teff=4250, log(g) = 2.0 model
+            temp = ScaleT4250g20.phxRefTemp(teff, numDeps, tauRos)
+    elif (teff >= F0Vtemp): 
+        #//We're a HOT star! - rescale from Teff=10000 reference model! 
+        temp = ScaleT10000.phxRefTemp(teff, numDeps, tauRos)
+    
+    #//Scaled from Phoenix solar model:
+        
+
+    #//double[][] guessKappa = new double[2][numDeps];
+    if (teff < F0Vtemp):
+        if (logg > 3.5):
+            #//We're a cool dwarf - rescale from  Teff=5000 reference model!
+            #// logAz[1] = log_e(N_He/N_H)
+            guessPGas = ScaleT5000.phxRefPGas(grav, zScale, logAz[1], numDeps, tauRos)
+            guessPe = ScaleT5000.phxRefPe(teff, grav, numDeps, tauRos, zScale, logAz[1])
+            guessNe = ScaleT5000.phxRefNe(numDeps, temp, guessPe) 
+            #//Ne = ScaleSolar.phxSunNe(grav, numDeps, tauRos, temp, kappaScale);
+            #//guessKappa = ScaleSolar.phxSunKappa(numDeps, tauRos, kappaScale);
+        else:
+            #We're a cool giant - rescale from teff=4250, log(g) = 2.0 model
+            guessPGas = ScaleT4250g20.phxRefPGas(grav, zScale, logAz[1], numDeps, tauRos)
+            guessPe = ScaleT4250g20.phxRefPe(teff, grav, numDeps, tauRos, zScale, logAz[1])
+            guessNe = ScaleT4250g20.phxRefNe(numDeps, temp, guessPe)                 
+    elif (teff >= F0Vtemp):
+        #//We're a HOT star!! - rescale from Teff=10000 reference model 
+        #// logAz[1] = log_e(N_He/N_H)
+        guessPGas = ScaleT10000.phxRefPGas(grav, zScale, logAz[1], numDeps, tauRos)
+        guessPe = ScaleT10000.phxRefPe(teff, grav, numDeps, tauRos, zScale, logAz[1])
+        guessNe = ScaleT10000.phxRefNe(numDeps, temp, guessPe)
+        #//logKapFudge = -1.5;  //sigh - don't ask me - makes the Balmer lines show up around A0 
+    
 #//Now do the same for the Sun, for reference:
 tempSun = ScaleSolar.phxSunTemp(teffSun, numDeps, tauRos)
 #//Now do the same for the Sun, for reference:
@@ -1325,52 +1529,6 @@ mmwSun = State.mmwFn(numDeps, tempSun, zScaleSun)
 rhoSun = State.massDensity(numDeps, tempSun, pGasSunGuess, mmwSun, zScaleSun)
 pGasSun = Hydrostat.hydroFormalSoln(numDeps, gravSun, tauRos, kappaSun, tempSun, pGasSunGuess)
 
-#//
-#// BEGIN Initial guess for Sun section:
-#//
-#//Rescaled  kinetic temeprature structure: 
-#//double F0Vtemp = 7300.0;  // Teff of F0 V star (K)                           
-        
-temp = [ [0.0 for i in range(numDeps)] for j in range(2) ]
-if (teff < F0Vtemp):
-    if (logg > 3.5):
-        #//We're a cool dwarf! - rescale from Teff=5000 reference model!
-        #print("cool star branch")
-        temp = ScaleT5000.phxRefTemp(teff, numDeps, tauRos)
-    else:
-        #We're a cool giant - rescale from teff=4250, log(g) = 2.0 model
-        temp = ScaleT4250g20.phxRefTemp(teff, numDeps, tauRos)
-elif (teff >= F0Vtemp): 
-    #//We're a HOT star! - rescale from Teff=10000 reference model! 
-    temp = ScaleT10000.phxRefTemp(teff, numDeps, tauRos)
-    
-#//Scaled from Phoenix solar model:
-        
-guessPGas = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-guessPe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-guessNe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-#//double[][] guessKappa = new double[2][numDeps];
-if (teff < F0Vtemp):
-    if (logg > 3.5):
-        #//We're a cool dwarf - rescale from  Teff=5000 reference model!
-        #// logAz[1] = log_e(N_He/N_H)
-        guessPGas = ScaleT5000.phxRefPGas(grav, zScale, logAz[1], numDeps, tauRos)
-        guessPe = ScaleT5000.phxRefPe(teff, grav, numDeps, tauRos, zScale, logAz[1])
-        guessNe = ScaleT5000.phxRefNe(numDeps, temp, guessPe) 
-        #//Ne = ScaleSolar.phxSunNe(grav, numDeps, tauRos, temp, kappaScale);
-        #//guessKappa = ScaleSolar.phxSunKappa(numDeps, tauRos, kappaScale);
-    else:
-        #We're a cool giant - rescale from teff=4250, log(g) = 2.0 model
-        guessPGas = ScaleT4250g20.phxRefPGas(grav, zScale, logAz[1], numDeps, tauRos)
-        guessPe = ScaleT4250g20.phxRefPe(teff, grav, numDeps, tauRos, zScale, logAz[1])
-        guessNe = ScaleT4250g20.phxRefNe(numDeps, temp, guessPe)                 
-elif (teff >= F0Vtemp):
-    #//We're a HOT star!! - rescale from Teff=10000 reference model 
-    #// logAz[1] = log_e(N_He/N_H)
-    guessPGas = ScaleT10000.phxRefPGas(grav, zScale, logAz[1], numDeps, tauRos)
-    guessPe = ScaleT10000.phxRefPe(teff, grav, numDeps, tauRos, zScale, logAz[1])
-    guessNe = ScaleT10000.phxRefNe(numDeps, temp, guessPe)
-    #//logKapFudge = -1.5;  //sigh - don't ask me - makes the Balmer lines show up around A0 
 #stop
 logNz = State.getNz(numDeps, temp, guessPGas, guessPe, ATot, nelemAbnd, logAz)
 #for i in range(numDeps): 
@@ -1744,43 +1902,7 @@ print("Spectral type: ", spectralType)
     
 log10e = math.log10(math.e)
 
-log10tauRos = [0.0 for i in range(numDeps)]
-log10guessTemp = [0.0 for i in range(numDeps)]
-log10guessPgas = [0.0 for i in range(numDeps)]
-log10guessPe = [0.0 for i in range(numDeps)]
-log10guessNe = [0.0 for i in range(numDeps)]
-log10NH = [0.0 for i in range(numDeps)]
 
-
-#log10mmw = [0.0 for i in range(numDeps)]
-#for i in range(numDeps):
-#    log10tauRos[i] = log10e * tauRos[1][i]
-#    log10guessTemp[i] = log10e * temp[1][i]
-#    log10guessPgas[i] = log10e * guessPGas[1][i]
-#    log10guessPe[i] = log10e * guessPe[1][i]
-#    log10guessNe[i] = log10e * guessNe[1][i]
-#    log10NH[i] = log10e * logNH[i]
-log10tauRos = [ log10e * x for x in tauRos[1] ]
-log10guessTemp = [ log10e * x for x in temp[1] ]
-log10guessPgas = [ log10e * x for x in guessPGas[1] ]
-log10guessPe = [ log10e * x for x in guessPe[1] ]
-log10guessNe = [ log10e * x for x in guessNe[1] ]
-log10NH = [ log10e * x for x in logNH ]
-
-### Uncomment to inspect initial guess:    
-
-"""#Inspect initial guess
-pylab.title = "Pressure structure"
-pylab.xlabel = "log_10 Tau_Ros"
-pylab.ylabel = "log_10 Pgas, Pe (dyne/cm^2)"
-pylab.xlim(-6.5, 2.5)
-yMin = min(log10guessPe) - 0.5
-yMax = max(log10guessPgas) + 0.5
-pylab.ylim(yMin, yMax)
-
-pylab.plot(log10tauRos, log10guessPgas, color='blue')
-pylab.plot(log10tauRos, log10guessPe, color='green', linestyle='-')
-"""
 #
 #
 #// END initial guess for Sun section
@@ -1798,27 +1920,7 @@ pylab.plot(log10tauRos, log10guessPe, color='green', linestyle='-')
 #
 ###################################################################
 
-#Initial pylab plot set-up
-#pylab.title = "Pressure structure"
-#plt.xlabel('$\log\tau_{\rm Ros}$')
-#plt.xlabel(r'$\log \tau_{\rm Ros}$')
-#plt.ylabel(r'$\log P_{\rm gas}, log P_{\rm e}$ (dyne cm$^{-2})$')
-#pylab.xlim(-6.5, 2.5)
-#yMax = max(log10guessPgas[2:numDeps-1]) + 0.5
-#yMin = min(log10guessPe[2:numDeps-1]) - 0.5
 
-
-log10temp = [0.0 for i in range(numDeps)]
-log10pgas = [0.0 for i in range(numDeps)]
-log10pe = [0.0 for i in range(numDeps)]
-pe = [0.0 for i in range(numDeps)]
-log10prad = [0.0 for i in range(numDeps)]
-log10ne = [0.0 for i in range(numDeps)]
-log10rho = [0.0 for i in range(numDeps)]
-log10kappaRos = [0.0 for i in range(numDeps)]
-log10kappa500 = [0.0 for i in range(numDeps)]
-mmwAmu = [0.0 for i in range(numDeps)]
-depthsKm = [0.0 for i in range(numDeps)]
 #log10mmw = [0.0 for i in range(numDeps)]
 #//
 #// *********************
@@ -1861,7 +1963,7 @@ depthsKm = [0.0 for i in range(numDeps)]
 species = " "  #; //default initialization
 #  double rho[][] = new double[2][numDeps];
 #  double[][] tauOneStagePops = new double[nelemAbnd][numStages];
-rho = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+
 tauOneStagePops = [ [ 0.0 for i in range(numStages) ] for j in range(nelemAbnd) ]
 unity = 1.0
 zScaleList = 1.0 #//initialization   
@@ -1902,8 +2004,8 @@ thisUwBV = [ 0.0 for i in range(numAtmPrtTmps) ]
 thisQwAB = [ 0.0 for i in range(numMolPrtTmps) ]
 
 #//
-newNe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-newPe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+
+
 logNums = [ [ 0.0 for i in range(numDeps) ] for j in range(numStages) ]
 #// For diatomic molecules:
 logNumA = [ 0.0 for i in range(numDeps) ]
@@ -1912,17 +2014,13 @@ logNumFracAB = [ 0.0 for i in range(numDeps) ]
 #//
 
 Ng = [ 0.0 for i in range(numDeps) ]
-mmw = [ 0.0 for i in range(numDeps) ]
+
   #double logMmw;
 logKappa = [ [ 0.0 for i in range(numDeps) ] for j in range(numLams) ]
 logKappaHHe = [ [ 0.0 for i in range(numDeps) ] for j in range(numLams) ]
 logKappaMetalBF = [ [ 0.0 for i in range(numDeps) ] for j in range(numLams) ]
 logKappaRayl = [ [ 0.0 for i in range(numDeps) ] for j in range(numLams) ]
-kappaRos = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-kappa500 = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-pGas = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-pRad = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-depths = [ 0.0 for i in range(numDeps) ]
+
 newTemp = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
 
 
@@ -1996,6 +2094,7 @@ for pIter in range(nOuterIter):
                 peDenominator = peDenominator + math.exp(logPeDenomTerm)
             #//iElem chemical element loop
             newPe[1][iD] = guessPGas[1][iD] + math.log(peNumerator) - math.log(peDenominator) 
+            newPe[0] = [ math.exp(x) for x in newPe[1] ]
             guessPe[1][iD] = newPe[1][iD]
             guessPe[0][iD] = math.exp(guessPe[1][iD])
         #//iD depth loop
@@ -2277,10 +2376,10 @@ for pIter in range(nOuterIter):
     #Graphically inspect convergence:  Issue 'matplotlib qt5' in console before running code
 
     thisClr = palette[pIter%numClrs]
-    #pylab.plot(log10tauRos, log10pgas, color=thisClr)
-    #pylab.plot(log10tauRos, log10pgas, color=thisClr)
-    #pylab.plot(log10tauRos, log10pe, color=thisClr, linestyle='--')     
-    #pylab.plot(tauRos[1][:], newNe[1][:], thisClr)
+    #plt.plot(log10tauRos, log10pgas, color=thisClr)
+    #plt.plot(log10tauRos, log10pgas, color=thisClr)
+    #plt.plot(log10tauRos, log10pe, color=thisClr, linestyle='--')     
+    #plt.plot(tauRos[1][:], newNe[1][:], thisClr)
 
 #//end Pgas-kappa iteration, nOuter
 #Save as encapsulated postscript (eps) for LaTex
@@ -2344,75 +2443,7 @@ for i in range(numTCorr):
     #//recall kappas withupdates rhos
     #//Recall depths with re-updated kappas
 
-#Atmospheric structure output: 
-#Convert everything to log_10 OR re-scaled units for plotting, printing, etc:
-    
 
-#for i in range(numDeps):
-#    log10temp[i] = log10e * temp[1][i]
-#    log10pgas[i] = log10e * pGas[1][i]
-#    log10pe[i] = log10e * (newNe[1][i] + Useful.logK() + temp[1][i])
-#    log10prad[i] = log10e * pRad[1][i]
-#    log10ne[i] = log10e * newNe[1][i]
-#    log10rho[i] = log10e * rho[1][i]
-#    log10NH[i] = log10e * logNH[i]
-#    log10kappaRos[i] = log10e * kappaRos[1][i]
-#    log10kappa500[i] = log10e * kappa500[1][i]
-#    mmwAmu[i] = mmw[i] / Useful.amu()
-#    depthsKm[i] = 1.0e-5 * depths[i]
-log10temp = [ log10e * x for x in temp[1] ]
-log10pgas = [ log10e * x for x in pGas[1] ]
-log10pe = [ log10e * (newNe[1][i] + Useful.logK() + temp[1][i]) for i in range(numDeps) ]
-log10prad = [ log10e * x for x in pRad[1] ]
-log10ne = [ log10e * x for x in newNe[1] ]
-log10rho = [ log10e * x for x in rho[1] ]
-log10NH = [ log10e * x for x in logNH ]
-log10kappaRos = [ log10e * x for x in kappaRos[1] ]
-log10kappa500 = [ log10e * x for x in kappa500[1] ]
-mmwAmu = [ x / Useful.amu() for x in mmw ]
-depthsKm = [ 1.0e-5 * x for x in depths ]
-
-
-#Uncomment to inspect T_kin(tau):
-"""
-pylab.title = "Temperature structure"
-pylab.xlabel = "log_10 Tau_Ros"
-pylab.ylabel = "Tkin (K)"
-pylab.xlim(-6.5, 2.5)
-yMax = 1.1 * max(temp[0])
-yMin = 0.9 * min(temp[0])
-pylab.ylim(yMin, yMax)
-
-pylab.plot(log10tauRos, temp[0], color='blue')
-"""
-
-#Uncomment to inspect density structure
-"""
-pylab.title = "Density structure"
-pylab.xlabel = "log_10 Tau_Ros"
-pylab.ylabel = "log_10 rho (g cm^-3)"
-pylab.xlim(-6.5, 2.5)
-yMax = max(log10rho) + 0.5
-yMin = min(log10rho) - 0.5
-pylab.ylim(yMin, yMax)
-
-pylab.plot(log10tauRos, log10rho, color='blue')
-"""
-
-#Uncomment to inspect Pressure structure:
-"""
-pylab.title = "Pressure structure"
-pylab.xlabel = "log_10 Tau_Ros"
-pylab.ylabel = "log_10 Pgas, Pe (dyne/cm^2)"
-pylab.xlim(-6.5, 2.5)
-yMax = max(log10pgas) + 0.5
-yMin = min(log10pe) - 0.5
-pylab.ylim(yMin, yMax)
-
-pylab.plot(log10tauRos, log10pgas, color='blue')
-pylab.plot(log10tauRos, log10pe, color='green', linestyle='-')
-pylab.plot(log10tauRos, log10prad, color='red')
-"""
 
 
 ###################################################
@@ -2432,16 +2463,7 @@ pylab.plot(log10tauRos, log10prad, color='red')
 #//
 #//stuff to save ion stage pops at tau=1:
     
-#Initial pylab plot set-up
-"""
-pylab.title = "Pressure structure"
-pylab.xlabel = "log_10 Tau_Ros"
-pylab.ylabel = "log_10 Pgas, Pe (dyne/cm^2)"
-pylab.xlim(-6.5, 2.5)
-yMax = max(log10pgas) + 0.5
-yMin = min(log10pe) - 0.5
-pylab.ylim(yMin, yMax)
-"""
+
 iTauOne = ToolBox.tauPoint(numDeps, tauRos, unity)
 
 #//
@@ -2783,9 +2805,9 @@ for neIter2 in range(nInnerIter):
     #Uncomment to inspect chem equil convergence
             
     #thisClr = palette[neIter2%numClrs]
-    #pylab.plot(log10tauRos, log10pe, color=thisClr, linestyle='-.')
-    ##pylab.plot(log10tauRos[1], log10ne)  
-    ##pylab.plot(tauRos[1][:], masterMolPops[0][:]) 
+    #plt.plot(log10tauRos, log10pe, color=thisClr, linestyle='-.')
+    ##plt.plot(log10tauRos[1], log10ne)  
+    ##plt.plot(tauRos[1][:], masterMolPops[0][:]) 
          
 #} //end Ne - ionzation fraction -molecular equilibrium iteration neIter2
 
@@ -2801,18 +2823,182 @@ for neIter2 in range(nInnerIter):
 log10pe = [ log10e * (newNe[1][i] + Useful.logK() + temp[1][i]) for i in range(numDeps) ]
 log10ne = [ log10e * x for x in newNe[1] ]
  
-#Uncomment to inspect final Pe(tau) structure acocunting for molecules:
-"""    
-#Final convergence
-pylab.xlim(-6.5, 2.5)
-yMax = 1.1 * max(log10pgas)
-yMin = 0.9 * min(log10pe)
-pylab.ylim(yMin, yMax)
 
-pylab.plot(log10tauRos, log10pgas, color='blue')
-pylab.plot(log10tauRos, log10pe, color='green', linestyle='-')
-pylab.plot(log10tauRos, log10prad, color='red')
-"""
+# Create a restart module for use in spectrum synthesis mode:
+
+ #outFile = outPath + strucFile
+outFile = outPath + fileStem + "_restart.py"
+#print vertical atmospheric structure as a python source file for re-import to ChromaStarPy
+# Can be used as a converged model for an almost pure spectrum syntehsis run
+#with open(outFile, 'w', encoding='utf-8') as strucHandle:
+with open(outFile, 'w') as restartHandle:
+
+    headerString = "# " + inputParamString
+    restartHandle.write(headerString + "\n")
+    
+    restartHandle.write("\n")
+    outLine = "teffRS = " + str(teff) + " # K\n"
+    restartHandle.write(outLine)
+    outLine = "loggRS = " + str(logg) + " #log (cm/^2)\n"
+    restartHandle.write(outLine)
+    outLine = "log10ZScaleRS = " + str(log10ZScale) + "\n"
+    restartHandle.write(outLine)    
+    outLine = "xiTRS = " + str(xiT) + " # (km/s) \n"
+    restartHandle.write(outLine)
+    outLine = "logKapFudgeRS = " + str(logKapFudge) + "\n"
+    restartHandle.write(outLine)    
+    outLine = "logHeFeRS = " + str(logHeFe) + "\n"
+    restartHandle.write(outLine)
+    outLine = "logCORS = " + str(logCO) + "\n"
+    restartHandle.write(outLine)
+    outLine = "logAlphaFeRS = " + str(logAlphaFe) + "\n"
+    restartHandle.write(outLine) 
+
+    restartHandle.write("\n")    
+    numDepsStr = str(numDeps)
+    outLine = "numDeps = " + numDepsStr + "\n"
+    restartHandle.write(outLine)
+    restartHandle.write("\n")    
+
+    outLine = "tauRosRS = [ [ 0.0 for i in range(" + numDepsStr + ") ] for j in range(2) ]\n"
+    restartHandle.write(outLine)
+    restartHandle.write("tauRosRS[0] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(tauRos[0][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(tauRos[0][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)
+
+    restartHandle.write("tauRosRS[1] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(tauRos[1][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(tauRos[1][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine) 
+    
+    outLine = "tempRS = [ [ 0.0 for i in range(" + numDepsStr + ") ] for j in range(2) ]\n"
+    restartHandle.write(outLine)
+    restartHandle.write("tempRS[0] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(temp[0][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(temp[0][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)
+    ### This won't work: restartHandle.write( [ str( temp[0][i] ) + ', ' for i in range(numDeps-1) ]\
+                         # + str(temp[0][numDeps-1]) + ']\n')
+
+    restartHandle.write("tempRS[1] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(temp[1][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(temp[1][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)
+
+    outLine = "pGasRS = [ [ 0.0 for i in range(" + numDepsStr + ") ] for j in range(2) ]\n"
+    restartHandle.write(outLine)
+    restartHandle.write("pGasRS[0] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(pGas[0][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(pGas[0][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)
+
+    restartHandle.write("pGasRS[1] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(pGas[1][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(pGas[1][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)
+
+    outLine = "peRS = [ [ 0.0 for i in range(" + numDepsStr + ") ] for j in range(2) ]\n"
+    restartHandle.write(outLine)
+    restartHandle.write("peRS[0] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(newPe[0][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(newPe[0][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)
+
+    restartHandle.write("peRS[1] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(newPe[1][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(newPe[1][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)
+    
+    outLine = "pRadRS = [ [ 0.0 for i in range(" + numDepsStr + ") ] for j in range(2) ]\n"
+    restartHandle.write(outLine)
+    restartHandle.write("pRadRS[0] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(pRad[0][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(pRad[0][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)
+
+    restartHandle.write("pRadRS[1] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(pRad[1][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(pRad[1][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)    
+    
+    outLine = "rhoRS = [ [ 0.0 for i in range(" + numDepsStr + ") ] for j in range(2) ]\n"
+    restartHandle.write(outLine)
+    restartHandle.write("rhoRS[0] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(rho[0][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(rho[0][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)
+
+    restartHandle.write("rhoRS[1] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(rho[1][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(rho[1][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)
+
+    outLine = "kappa500RS = [ [ 0.0 for i in range(" + numDepsStr + ") ] for j in range(2) ]\n"
+    restartHandle.write(outLine)
+    restartHandle.write("kappa500RS[0] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(kappa500[0][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(kappa500[0][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)
+
+    restartHandle.write("kappa500RS[1] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(kappa500[1][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(kappa500[1][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)        
+
+    outLine = "kappaRosRS = [ [ 0.0 for i in range(" + numDepsStr + ") ] for j in range(2) ]\n"
+    restartHandle.write(outLine)
+    restartHandle.write("kappaRosRS[0] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(kappaRos[0][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(kappaRos[0][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)
+
+    restartHandle.write("kappaRosRS[1] = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(kappaRos[1][i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(kappaRos[1][numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)        
+
+    outLine = "mmwRS = [ [ 0.0 for i in range(" + numDepsStr + ") ] for j in range(2) ]\n"
+    restartHandle.write(outLine)
+    restartHandle.write("mmwRS = [\\\n") #continuation line '\' has to be escaped
+    for i in range(numDeps-1):
+        outLine = str(mmw[i]) + ', '
+        restartHandle.write(outLine)
+    outLine = str(mmw[numDeps-1]) + '\\\n]\n'
+    restartHandle.write(outLine)
+    
 ############################################################
 #
 #
@@ -3522,8 +3708,8 @@ for iLine in range(numGaussLines):
 
     numNow = numNow + listNumPoints
     #numNow = numNow + listNumPoints
-    #pylab.plot(masterLamsOut, [logMasterKapsOut[i][12] for i in range(numNow)]) 
-    #pylab.plot(masterLamsOut, [logMasterKapsOut[i][12] for i in range(numNow)], '.')      
+    #plt.plot(masterLamsOut, [logMasterKapsOut[i][12] for i in range(numNow)]) 
+    #plt.plot(masterLamsOut, [logMasterKapsOut[i][12] for i in range(numNow)], '.')      
     #//update masterLams and logMasterKaps:
 
     for iL in range(numNow):
@@ -3700,7 +3886,8 @@ for iD in range(numDeps):
     for iL in range(numMaster):
         logMasterKapsId[iL] = logMasterKaps[iL][iD]
       
-    keptHelp = ToolBox.interpolV(logMasterKapsId, masterLams, sweptLams)
+    #keptHelp = ToolBox.interpolV(logMasterKapsId, masterLams, sweptLams)
+    keptHelp = numpy.interp(sweptLams, masterLams, logMasterKapsId)
     for iL in range(numKept):
         logSweptKaps[iL][iD] = keptHelp[iL]
 
@@ -3807,8 +3994,8 @@ for il in range(numKept):
 
 masterFlux = Flux.flux3(masterIntens, sweptLams, cosTheta, phi, cgsRadius, omegaSini, macroVkm)
 
-#pylab.plot(sweptLams, masterFlux[0])
-#pylab.plot(sweptLams, masterFlux[0], '.')
+#pltb.plot(sweptLams, masterFlux[0])
+#plt.plot(sweptLams, masterFlux[0], '.')
 
 #Can we find a pythonic way to accumulate instead of this for loop??
 for il in range(numKept):
@@ -3846,7 +4033,8 @@ ldc = LDC.ldc(numLams, lambdaScale, numThetas, cosTheta, contIntens)
 
 
 
-logContFluxI = ToolBox.interpolV(contFlux[1], lambdaScale, sweptLams)
+#logContFluxI = ToolBox.interpolV(contFlux[1], lambdaScale, sweptLams)
+logContFluxI = numpy.interp(sweptLams, lambdaScale, contFlux[1])
 
 #//Quality control:
 tiny = 1.0e-19
@@ -3938,6 +4126,8 @@ tuneBandIntens = PostProcess.tuneColor(masterLams2, masterIntens, numThetas, num
 #//Fourier transform of narrow band image:
 ft = PostProcess.fourier(numThetas, cosTheta, tuneBandIntens)
 numK = len(ft[0])
+
+
     
 #
 #
@@ -3982,9 +4172,11 @@ log10kappa500 = [ round(log10e * x, 4) for x in kappa500[1] ]
 mmwAmu = [ round(x / Useful.amu(), 4) for x in mmw ]
 depthsKm = [ round(1.0e-5 * x, 4) for x in depths ]
 
-outFile = outPath + strucFile
+#outFile = outPath + strucFile
+outFile = outPath + fileStem + ".struc.txt"
 #print vertical atmospheric structure
-with open(outFile, 'w', encoding='utf-8') as strucHandle:
+#with open(outFile, 'w', encoding='utf-8') as strucHandle:
+with open(outFile, 'w') as strucHandle:
 #with open(strucFile, 'w') as strucHandle:    
     strucHandle.write(inputParamString + "\n")
     strucHandle.write("cgs units, unless otherwise noted" + "\n")
@@ -4002,6 +4194,23 @@ with open(outFile, 'w', encoding='utf-8') as strucHandle:
     #                  str(log10kappaRos[i]) + " " + str(log10kappa500[i]) + "\n" for i in range(numDeps) ]
     #strucHandle.write(outLine)
     
+if makePlot == "structure":
+
+    #Initialplot set-up
+    plt.title = "T_kin vs log(tau)"
+    plt.xlabel(r'$\log_{10} \tau_{\rm ROs}$')
+    plt.ylabel(r'$T_{\rm kin}$ (K)')
+    xMin = -6.5
+    xMax = 2.5
+    plt.xlim(xMin, xMax)
+    yMax = max(temp[0]) + 1000.0
+    yMin = min(temp[0]) - 500.0
+    plt.ylim(yMin, yMax)
+    plt.plot(log10tauRos, temp[0])    
+    
+    
+
+
 #
 #
 # Report 2: 
@@ -4022,23 +4231,25 @@ wave = [ round(cm2nm * x, 4) for x in masterLams2 ]
 log10Wave = [ round(math.log10(x), 4) for x in masterLams2 ]
 log10Flux = [ round(log10e * x, 4) for x in masterFlux[1] ]
 
-#Uncomment to inspect SED
-"""
-#Initial pylab plot set-up
-pylab.title = "Spectral energy distribution (SED)"
-plt.xlabel(r'$\log_{10} \lambda$ (nm)')
-plt.ylabel(r'$\log_{10} F_\lambda$ (erg s$^{-1}$ cm$^{-2}$ cm$^{-1}$')
-xMin = min(log10Wave) - 0.1
-xMax = max(log10Wave) + 0.1
-pylab.xlim(xMin, xMax)
-yMax = max(log10Flux) + 0.5
-yMin = min(log10Flux) - 0.5
-pylab.ylim(yMin, yMax)
-#
-pylab.plot(log10Wave, log10Flux)    
-"""
-outFile = outPath + sedFile
-with open(outFile, 'w', encoding='utf-8') as sedHandle:
+
+if makePlot == "sed":
+
+    #Initial plt plot set-up
+    plt.title = "Spectral energy distribution (SED)"
+    plt.xlabel(r'$\log_{10} \lambda$ (nm)')
+    plt.ylabel(r'$\log_{10} F_\lambda$ (erg s$^{-1}$ cm$^{-2}$ cm$^{-1}$')
+    xMin = min(log10Wave) - 0.1
+    xMax = max(log10Wave) + 0.1
+    plt.xlim(xMin, xMax)
+    yMax = max(log10Flux) + 0.5
+    yMin = min(log10Flux) - 0.5
+    plt.ylim(yMin, yMax)
+    plt.plot(log10Wave, log10Flux)    
+
+#outFile = outPath + sedFile
+outFile = outPath + fileStem + ".sed.txt"
+#with open(outFile, 'w', encoding='utf-8') as sedHandle:
+with open(outFile, 'w') as sedHandle:
 #with open(sedFile, 'w') as sedHandle:
     sedHandle.write(inputParamString)
     sedHandle.write("Number of lines treated with Voigt profiles: " + str(numGaussLines) + "\n")
@@ -4067,8 +4278,10 @@ waveSS = [ round(cm2nm * x, 4) for x in specSynLams2 ]
 print("Number of lines treated with Voigt profiles: ", numGaussLines)
 
 #Print rectified high resolution spectrum of synthesis region
-outFile = outPath + specFile
-with open(outFile, 'w', encoding='utf-8') as specHandle:
+#outFile = outPath + specFile
+outFile = outPath + fileStem + ".spec.txt"
+#with open(outFile, 'w', encoding='utf-8') as specHandle:
+with open(outFile, 'w') as specHandle:
 #with open(specFile, 'w') as specHandle:    
     specHandle.write(inputParamString + "\n")
     specHandle.write("Number of lines treated with Voigt profiles: " + str(numGaussLines) + "\n")
@@ -4088,27 +4301,28 @@ with open(outFile, 'w', encoding='utf-8') as specHandle:
         outLine = str(thisLam) + "   " + thisLbl + "\n"
         specHandle.write(outLine)    
 
-#Uncomment to inspect synthetic spectrum:
 
-plt.xlabel(r'$\lambda$ (nm)')
-plt.ylabel(r'$F_\lambda/F^C_\lambda')
-pylab.xlim(-6.5, 2.5)
-pylab.title = "Synthetic spectrum"
-xMin = min(waveSS)
-xMax = max(waveSS)
-pylab.xlim(xMin, xMax)
-pylab.ylim(0.0, 2.0)
-pylab.plot(waveSS, specSynFlux[0])
-#Add spectral line labels:
-for i in range(numGaussLines):
-    thisLam = cm2nm * list2Lam0[gaussLine_ptr[i]]
-    thisLam = round(thisLam, 2)
-    thisLbl = list2Element[gaussLine_ptr[i]] + " " + \
-    list2StageRoman[gaussLine_ptr[i]] + " " + str(thisLam)
-    xPoint = [thisLam, thisLam]
-    yPoint = [1.05, 1.1]
-    pylab.plot(xPoint, yPoint, color='black')
-    pylab.text(thisLam, 1.7, thisLbl, rotation=270)
+if makePlot == "spectrum":
+
+    plt.xlabel(r'$\lambda$ (nm)')
+    plt.ylabel(r'$F_\lambda/F^C_\lambda$')
+    plt.xlim(-6.5, 2.5)
+    plt.title = "Synthetic spectrum"
+    xMin = min(waveSS)
+    xMax = max(waveSS)
+    plt.xlim(xMin, xMax)
+    plt.ylim(0.0, 2.0)
+    plt.plot(waveSS, specSynFlux[0])
+    #Add spectral line labels:
+    for i in range(numGaussLines):
+        thisLam = cm2nm * list2Lam0[gaussLine_ptr[i]]
+        thisLam = round(thisLam, 2)
+        thisLbl = list2Element[gaussLine_ptr[i]] + " " + \
+        list2StageRoman[gaussLine_ptr[i]] + " " + str(thisLam)
+        xPoint = [thisLam, thisLam]
+        yPoint = [1.05, 1.1]
+        plt.plot(xPoint, yPoint, color='black')
+        plt.text(thisLam, 1.7, thisLbl, rotation=270)
     
 
 
@@ -4121,8 +4335,10 @@ for i in range(numGaussLines):
 #    limb darkening curve (LDC) and discrete fourier cosine transform of LDC
 
 normTuneBandIntens = [ x / tuneBandIntens[0] for x in tuneBandIntens ] 
-outFile = outPath + ldcFile
-with open(outFile, 'w', encoding='utf-8') as ldcHandle:
+#outFile = outPath + ldcFile
+outFile = outPath + fileStem + ".ldc.txt"
+#with open(outFile, 'w', encoding='utf-8') as ldcHandle:
+with open(outFile, 'w') as ldcHandle:
 #with open(ldcFile, 'w') as ldcHandle:    
     ldcHandle.write(inputParamString)
     ldcHandle.write("Narrow band limb darkening curve (LDC) \n")
@@ -4144,30 +4360,31 @@ with open(outFile, 'w', encoding='utf-8') as ldcHandle:
     for i in range(numK):
         outLine = str(wave[i]) + "   " + str(round(ldc[i], 4)) + "\n"
         ldcHandle.write(outLine)
-#Uncomment to inspect narrow band limb darkening curve (LDC)
         
-"""
-pylab.title = "Narrow band limb darkening"
-plt.xlabel(r'$cos\theta$ (RAD)')
-plt.ylabel(r'$I^{\rm C}_{\rm band}/I^{\rm C}_{\rm band}(0)$')
-pylab.xlim(-0.1, 1.1)
-pylab.ylim(0, 1.1)
-pylab.plot(cosTheta[1], normTuneBandIntens)
-"""
+#narrow band limb darkening curve (LDC)
+if makePlot == "ldc":        
 
-#Uncomment to inspect discrete fourier cosine transform of LDC
-"""
-pylab.title = "Fourier cosine transform of I_lambda(theta)"
-plt.xlabel('Angular frequency (RAD/RAD)')
-plt.ylabel(r'$I^{\rm C}_{\rm band}(\theta)$')
-xMin = 0.9 * min(ft[0])
-xMax = 1.1 * max(ft[0])
-pylab.xlim(xMin, xMax)
-yMin = 0.9 * min(ft[1])
-yMax = 1.1 * max(ft[1])
-pylab.ylim(yMin, yMax)
-pylab.plot(ft[0], ft[1])
-"""
+    plt.title = "Narrow band limb darkening"
+    plt.xlabel(r'$cos\theta$ (RAD)')
+    plt.ylabel(r'$I^{\rm C}_{\rm band}/I^{\rm C}_{\rm band}(0)$')
+    plt.xlim(-0.1, 1.1)
+    plt.ylim(0, 1.1)
+    plt.plot(cosTheta[1], normTuneBandIntens)
+    
+#discrete fourier cosine transform of LDC
+if makePlot == "ft":
+    
+    plt.title = "Fourier cosine transform of I_lambda(theta)"
+    plt.xlabel('Angular frequency (RAD/RAD)')
+    plt.ylabel(r'$I^{\rm C}_{\rm band}(\theta)$')
+    xMin = 0.9 * min(ft[0])
+    xMax = 1.1 * max(ft[0])
+    plt.xlim(xMin, xMax)
+    yMin = 0.9 * min(ft[1])
+    yMax = 1.1 * max(ft[1])
+    plt.ylim(yMin, yMax)
+    plt.plot(ft[0], ft[1])
+
 #print(" ")       
 #print(" ************** ")
 #print(" ")
@@ -4366,7 +4583,8 @@ lineFlux = Flux.flux3(lineIntens, lineLambdas, cosTheta, phi, cgsRadius, omegaSi
 
 #//Continuum rectify line spectrum:
 #//
-contFlux2 = ToolBox.interpolV(contFlux[0], lambdaScale, lineLambdas)
+#contFlux2 = ToolBox.interpolV(contFlux[0], lambdaScale, lineLambdas)
+contFlux2 = numpy.interp(lineLambdas, lambdaScale, contFlux[0])
 
 lineFlux2 = [ [ 0.0 for i in range(numPoints) ] for j in range(2) ]
 #for i in range(numPoints):
@@ -4390,19 +4608,21 @@ WlambdaLine = PostProcess.eqWidthSynth(lineFlux2, lineLambdas)
 #//"""
 #Print rectified high resolution spectrum of synthesis region
 lineWave = [0.0 for i in range(numPoints)]
-outFile = outPath + lineFile
-with open(outFile, 'w', encoding='utf-8') as lineHandle:
-#with open(lineFile, 'w') as lineHandle:
-    lineHandle.write(inputParamString + "\n")
-    lineHandle.write("User-defined two-level atom and line: Equivalent width: " + str(WlambdaLine) + " pm \n")
-    lineHandle.write("wave (nm)   normalized flux \n")
+#outFile = outPath + lineFile
+outFile = outPath + fileStem + ".tla.txt"
+#with open(outFile, 'w', encoding='utf-8') as tlaHandle:
+with open(outFile, 'w') as tlaHandle:    
+#with open(tlaFile, 'w') as tlaHandle:
+    tlaHandle.write(inputParamString + "\n")
+    tlaHandle.write("User-defined two-level atom and line: Equivalent width: " + str(WlambdaLine) + " pm \n")
+    tlaHandle.write("wave (nm)   normalized flux \n")
     for i in range(numPoints):
         lineWave[i] = cm2nm*lineLambdas[i]
         outLine = str(round(lineWave[i], 4)) + "   " + str(round(lineFlux2[0][i], 4)) + "\n"
-        lineHandle.write(outLine)
-    lineHandle.write("\n")
-    lineHandle.write("log_10 energy level populations (cm^-3) \n")
-    lineHandle.write("tauRos    n_l    n_I    n_II    N_III   N_IV")
+        tlaHandle.write(outLine)
+    tlaHandle.write("\n")
+    tlaHandle.write("log_10 energy level populations (cm^-3) \n")
+    tlaHandle.write("tauRos    n_l    n_I    n_II    N_III   N_IV")
     for i in range(numDeps):
         nI = round(log10e * logNums[0][i], 4)
         nII = round(log10e * logNums[1][i], 4)
@@ -4410,21 +4630,20 @@ with open(outFile, 'w', encoding='utf-8') as lineHandle:
         nIII = round(log10e * logNums[4][i], 4)
         nIV = round(log10e * logNums[5][i], 4)
         outLine = str(log10tauRos[i]) + "   " + str(nl) + "   " + str(nI) + "   " + str(nII) + "   " + str(nIII) + "   " + str(nIV) + "\n" 
-        lineHandle.write(outLine)
+        tlaHandle.write(outLine)
 
 
-#Uncomment to inspect spectral line of user-defined 2-level atom
-"""
-pylab.title = "Fourier cosine transform of I_lambda(theta)"
-plt.xlabel(r'$\lambda$ (nm)')
-plt.ylabel(r'$F_\lambda/F^{\rm C}_\lambda$')
-xMin = min(lineWave)
-xMax = max(lineWave)
-pylab.xlim(xMin, xMax)
-pylab.ylim(0, 1.2)
-pylab.plot(lineWave, lineFlux2[0])
-"""
+#spectral line of user-defined 2-level atom
+if makePlot == "tlaLine":
 
+    plt.title = "Fourier cosine transform of I_lambda(theta)"
+    plt.xlabel(r'$\lambda$ (nm)')
+    plt.ylabel(r'$F_\lambda/F^{\rm C}_\lambda$')
+    xMin = min(lineWave)
+    xMax = max(lineWave)
+    plt.xlim(xMin, xMax)
+    plt.ylim(0, 1.2)
+    plt.plot(lineWave, lineFlux2[0])
 
      
 dbgHandle.close()
