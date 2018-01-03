@@ -12,7 +12,7 @@ This is the main source file for ChromaStarPy.  We start here.
  *
  * ChromaStarPy
  *
- * Version 2017-12-06
+ * Version 2018-01-03
  * Use date based versioning with ISO 8601 date (YYYY-MM-DD)
  *
  * December 2017
@@ -179,13 +179,13 @@ absPath0 = "./"  #default
 
 if thisOS == "nt": 
     #windows
-    absPath0 = subprocess.check_output("cd", shell=True)
-    absPath0 = bytes.decode(absPath0)
+    absPath0 = subprocess.check_output("cd", shell=True)    
     backSpace = 2
 elif thisOS == "posix":
     absPath0 = subprocess.check_output("pwd", shell=True)
     backSpace = 1
-
+    
+absPath0 = bytes.decode(absPath0)
 
 #remove OS_dependent trailing characters 'r\n'
 nCharsPath = len(absPath0)
@@ -891,7 +891,7 @@ if (userChiL < 0.0):
 if ( (userStage == 0) and (userChiL >= userChiI1) ):
     #//ionized = false;
     userChiL = 0.9 * userChiI1
-    userExcStr = userIonStr
+#    userExcStr = userIonStr
 
 if ( (userStage == 1) and (userChiL >= userChiI2) ):
     #//ionized = false;
@@ -1361,7 +1361,7 @@ if (logCO > 0.0):
     #//console.log("logCO " + logCO);
         
 if (logCO < 0.0):
-    eheu[7] = eheu[7] + Math.abs(logCO)
+    eheu[7] = eheu[7] + math.abs(logCO)
     #//console.log("logCO " + logCO);
         
 #//console.log("logCO " + logCO);
@@ -1419,9 +1419,10 @@ logATot = math.log(ATot) #//natural log
 #//
 #// END Initial guess for Sun section:
 #//
-#//Rescaled  kinetic temeprature structure: 
+#//Rescaled  kinetic temperature structure: 
 #//double F0Vtemp = 7300.0;  // Teff of F0 V star (K)  
-                         
+   
+tauRos = [ [0.0 for i in range(numDeps)] for j in range(2) ]                         
 temp = [ [0.0 for i in range(numDeps)] for j in range(2) ]
 guessPGas = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
 guessPe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]

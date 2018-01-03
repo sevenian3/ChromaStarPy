@@ -18,21 +18,20 @@ makePlot = "spectrum"
 # - uses model in Restart.py with minimal structure calculation
 specSynMode = False
 
-#Castelli & Kurucz
-
 #Model atmosphere
-teff = 9550.0  #,    K
-logg = 3.95 #,      cgs
-log10ZScale = -0.5     # [A/H]
-massStar = 2.0 #,      solar masses
-xiT = 2.0  #,       km/s
+teff = 5777.0  #,    K
+logg = 4.44 #,      cgs
+log10ZScale = 0.0     # [A/H]
+massStar = 1.0 #,      solar masses
+xiT = 1.0  #,       km/s
 logHeFe = 0.0  #,   [He/Fe]
 logCO = 0.0  #,   [C/O]
 logAlphaFe = 0.0   #,   [alpha-elements/Fe]
 
+
 #Spectrum synthesis
-lambdaStart = 437.0  #,       nm    
-lambdaStop = 439.0  #,     nm
+lambdaStart = 588.0  #,       nm    
+lambdaStop = 592.0  #,     nm
 
 fileStem = project + "-"\
  + str(round(teff, 7)) + "-" + str(round(logg, 3)) + "-" + str(round(log10ZScale, 3))\
@@ -41,18 +40,18 @@ fileStem = project + "-"\
 
 lineThresh = -3.0  #,    min log(KapLine/kapCnt) for inclusion at all - areally, being used as "lineVoigt" for now
 voigtThresh = -3.0  #,     min log(KapLine/kapCnt) for treatment as Voigt - currently not used - all lines get Voigt
-logGammaCol = 0.0
+logGammaCol = 0.5
 logKapFudge = 0.0
-macroV = 2.0  #,     km/s
-rotV = 275.0  #,   km/s
-rotI = 5.0 #,    degrees
+macroV = 1.0  #,     km/s
+rotV = 2.0  #,   km/s
+rotI = 90.0 #,    degrees
 RV = 0.0 #,   km/s
 vacAir = "vacuum"    
 sampling = "fine"
 
 #Performance vs realism
-nOuterIter = 12   #,     no of outer Pgas(HSE) - EOS - kappa iterations
-nInnerIter = 12   #,    no of inner (ion fraction) - Pe iterations
+nOuterIter = 2   #,     no of outer Pgas(HSE) - EOS - kappa iterations
+nInnerIter = 2   #,    no of inner (ion fraction) - Pe iterations
 ifTiO = 1   #,     where to include TiO JOLA bands in synthesis 
 
 #Gaussian filter for limb darkening curve, fourier transform

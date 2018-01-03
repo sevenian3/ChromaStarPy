@@ -154,6 +154,7 @@ def phxSunPGas(grav, numDeps, tauRos):
     for i in range(numDeps):
         logPhxSunPGas[i] = ToolBox.interpol(logPhxSunTau64, logPhxSunPGas64, tauRos[1][i])
         scalePGas[1][i] = logEg + logPhxSunPGas[i] - phxSunLogEg()
+        #print("i ", i, " scalePGas[1][i] ", scalePGas[1][i])
         scalePGas[0][i] = math.exp(scalePGas[1][i])
         #//System.out.println("scalePGas[1][i] " + logE * scalePGas[1][i])
         

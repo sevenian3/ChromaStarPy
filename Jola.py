@@ -165,7 +165,7 @@ def jolaProfileQ(omega0, logf, vibConst,
          
     dfBydw = [ [ 0.0 for i in range(numDeps) ] for j in range(numPoints) ]
     fvv = math.exp(logf)
-    logHcBbyK = Useful.logH() + Useful.logC() + Math.log(vibConst[0]) \
+    logHcBbyK = Useful.logH() + Useful.logC() + math.log(vibConst[0]) \
                                 - Useful.logK()
 
     Bsum = vibConst[1] + vibConst[0] 
@@ -205,10 +205,10 @@ def jolaProfileQ(omega0, logf, vibConst,
             if (wMinusw0OverBDiff > 0): 
 
                 logHcBbyKt = logHcBbyK - temp[1][iD] 
-                hcBbyKt = Math.exp(logHcBbyKt)
+                hcBbyKt = math.exp(logHcBbyKt)
 
                 help1 = -1.0 * hcBbyKt * mQFctr
-                mQTerm = Math.exp(help1) / denom  
+                mQTerm = math.exp(help1) / denom  
                               
             
                 #//Can this be used like a differential cross-section (once converted to sigma)?  
