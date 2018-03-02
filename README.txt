@@ -119,7 +119,7 @@ program resides in source file ChromaStarPy.py and all other source files are 'i
     Echoes the OS it has detected and echoes the absolute path of the run directory it has detected (value of 
 its absPath variable) in which it expects to find the InputData/ and Outputs/ directories (see "Installation 
 and initial set-up").
-    Echoes which plot the user has selected (see "Setting up a modelling run" and "Outputs").
+    Echoes which plot the user has selected (see "Setting up a modeling run" and "Outputs").
     Confirms that it has parsed the input file by echoing back the names and values of all input parameters.
     Indicates whether it is running the routines suitable for "Hot stars" or "Cool stars" (the "mode"), 
 and the estimated spectral type based on the stellar data in Appendix G of An Introduction to Modern
@@ -134,7 +134,7 @@ values of seven Johnson UBVRIJHK color indices for the model.
 
  
    **
-   ** Setting up a modelling run
+   ** Setting up a modeling run
    **
 
 
@@ -167,7 +167,7 @@ with a descriptive header that begins with a hash (#) symbol.
 #Custom filename, #Default plot, #Spectrum synthesis mode
 
         Includes two string variables, project, and runVers, that the user can use to create distinct file 
-names to distinguish model runs that woudl otherwise have indistinct names (see "Outputs" section).  
+names to distinguish model runs that would otherwise have indistinct names (see "Outputs" section).  
 Includes a string variable, makePlot, that determines which of six build-in plotting routines will be
 executed for the default graphical display.  If specSynMode = True, ChromaStarPy will adopt the atmospheric
 structure in input module Restart.py and only perform one structure iteration before computing the synthetic
@@ -251,7 +251,7 @@ All output files have the *.txt extension so as to be recognizable by simple edi
                      coefficients (LDCs)  ("Report 4")
          *.tla.txt:  The continuum rectified spectral line, and the atomic energy-level populations of the 
                      user-defined two-level atom (TLA) ("Report 5")
-         *_retart.py The stellar parameters and converged structure are written as python assignment statements.
+         *_restart.py: The stellar parameters and converged structure are written as python assignment statements.
 		     This file is automatically input as a module, and whether the structure it contains is
 		     used depends on the value of the input parameter specSynMode (see "Input parameters:" 
  		     under ("Setting up a modeling run").  
@@ -304,7 +304,7 @@ fields and units that match the ascii sample.  Additionally, special characters 
 fields of the raw NIST ascii output (eg. '[', ']', '(', ')', '+', etc.) must be manually removed. 
 
 
-Sample Input.py file for the Sun (see "Setting up a modelling run" section) 
+Sample Input.py file for the Sun (see "Setting up a modeling run" section) 
 
 #
 #
