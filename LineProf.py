@@ -465,7 +465,7 @@ def stark(linePoints, lam0In, logAij, logGammaCol,
     #//Assume K has something to do with "S" and proceed as in Observation and Analysis of
     #// Stellar Photosphere, 3rd Ed. (D. Gray), Eq. 11.50,
     #//
-    logTuneStark = math.log(1.0e9) #//convert DeltaI K parameters to deltaS STark profile parameters
+    logTuneStark = math.log(3.16e7) #//convert DeltaI K parameters to deltaS STark profile parameters
     logKStark = [0.0 for i in range(11)]
     logKStark[0] = math.log(2.56e-03) + logTuneStark  #//Halpha
     logKStark[1] = math.log(7.06e-03) + logTuneStark   #//Hbeta
