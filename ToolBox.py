@@ -8,6 +8,22 @@ Collection of useful utilities
 """
 
 import math
+import numpy
+
+
+            #JB#
+#a function to create a cubic function fit extrapolation
+def cubicFit(x,y):
+    coeffs = numpy.polyfit(x,y,3)
+    #returns an array of coefficents for the cubic fit of the form
+    #Ax^3 + Bx^2 + Cx + D as [A,B,C,D]
+    return coeffs
+
+#this will work for any number of data points!
+def valueFromFit(fit,x):
+    #return the value y for a given fit, at point x
+    return (fit[0]*(x**3)+fit[1]*(x**2)+fit[2]*x+fit[3])
+    
 
 def interpol(x, y, newX): 
 

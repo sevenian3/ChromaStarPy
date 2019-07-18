@@ -8,7 +8,24 @@ Created on Tue Apr 25 14:48:00 2017
 import math
 import Useful
 import PartitionFn
+import ToolBox
+#import numpy
+            #JB#
+"""
+#a function to create a cubic function fit extrapolation
+def cubicFit(x,y):
+    coeffs = numpy.polyfit(x,y,3)
+    #returns an array of coefficents for the cubic fit of the form
+    #Ax^3 + Bx^2 + Cx + D as [A,B,C,D]
+    return coeffs
+#this will work for any number of data points!
+def valueFromFit(fit,x):
+    #return the value y for a given fit, at point x
+    return (fit[0]*(x**3)+fit[1]*(x**2)+fit[2]*x+fit[3])
+"""    
 
+masterTemp=[130,500,3000,8000,10000]
+            #JB#
 def masterMetal(numDeps, numLams, temp, lambdaScale, stagePops):
     
     """/* Metal b-f opacity routines taken from Moog (moogjul2014/, MOOGJUL2014.tar)
@@ -128,9 +145,56 @@ http://www.as.utexas.edu/~chris/moog.html
             logStatWFe1 = logUFe1[0]
         """
 
+        thisTemp = temp[0][iD]
+            #JB#
+        logWC1Fit = ToolBox.cubicFit(masterTemp,logUC1)
+        logStatWC1 = ToolBox.valueFromFit(logWC1Fit,thisTemp)
+
+        logWMg1Fit = ToolBox.cubicFit(masterTemp,logUMg1)
+        logStatWMg1 = ToolBox.valueFromFit(logWMg1Fit,thisTemp)
+        
+        logWSi1Fit = ToolBox.cubicFit(masterTemp,logUSi1)
+        logStatWSi1 = ToolBox.valueFromFit(logWSi1Fit,thisTemp)
+        
+        logWMg2Fit = ToolBox.cubicFit(masterTemp,logUMg2)
+        logStatWMg2 = ToolBox.valueFromFit(logWMg2Fit,thisTemp)
+        
+        logWSi2Fit = ToolBox.cubicFit(masterTemp,logUSi2)
+        logStatWSi2 = ToolBox.valueFromFit(logWSi2Fit,thisTemp)
+        
+        logWFe1Fit = ToolBox.cubicFit(masterTemp,logUFe1)
+        logStatWFe1 = ToolBox.valueFromFit(logWFe1Fit,thisTemp)
+        
+        logWAl1Fit = ToolBox.cubicFit(masterTemp,logUAl1)
+        logStatWAl1 = ToolBox.valueFromFit(logWAl1Fit,thisTemp)
+        
+        
+        
+        #logStatWC1Fun = spline(masterTemp,logUC1)
+        #logStatWC1=logStatWC1Fun(thisTemp)
+
+        #logStatWMg1Fun = spline(masterTemp,logUMg1)
+        #logStatWMg1=logStatWMg1Fun(thisTemp)
+
+        #logStatWMg2Fun = spline(masterTemp,logUMg2)
+        #logStatWMg2=logStatWMg2Fun(thisTemp)
+
+        #logStatWAl1Fun = spline(masterTemp,logUAl1)
+        #logStatWAl1=logStatWAl1Fun(thisTemp)
+
+        #logStatWSi1Fun = spline(masterTemp,logUSi1)
+        #logStatWSi1=logStatWSi1Fun(thisTemp)
+
+        #logStatWSi2Fun = spline(masterTemp,logUSi2)
+        #logStatWSi2=logStatWSi2Fun(thisTemp)
+
+        #logStatWFe1Fun = spline(masterTemp,logUFe1)
+        #logStatWFe1=logStatWFe1Fun(thisTemp)
+            #JB#
+        
 #// NEW Interpolation involving temperature for new partition function: lburns
         thisTemp = temp[0][iD]
-        if (thisTemp <= 130):
+        if (thisTemp <= 130.0):
             logStatWC1 = logUC1[0]
             logStatWMg1 = logUMg1[0]
             logStatWMg2 = logUMg2[0]
@@ -138,6 +202,15 @@ http://www.as.utexas.edu/~chris/moog.html
             logStatWSi1 = logUSi1[0]
             logStatWSi2 = logUSi2[0]
             logStatWFe1 = logUFe1[0]
+        if (thisTemp >= 10000.0):
+            logStatWC1 = logUC1[4]
+            logStatWMg1 = logUMg1[4]
+            logStatWMg2 = logUMg2[4]
+            logStatWAl1 = logUAl1[4]
+            logStatWSi1 = logUSi1[4]
+            logStatWSi2 = logUSi2[4]
+            logStatWFe1 = logUFe1[4]        
+        """
         elif (thisTemp > 130 and thisTemp <= 500):
             #// Add in interpolation here lburns
             logStatWC1 = logUC1[1] * (thisTemp - 130)/(500 - 130) \
@@ -208,7 +281,7 @@ http://www.as.utexas.edu/~chris/moog.html
             logStatWSi1 = logUSi1[4]
             logStatWSi2 = logUSi2[4]
             logStatWFe1 = logUFe1[4]
-            
+        """           
 
         
 

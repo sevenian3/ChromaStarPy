@@ -1,6 +1,7 @@
 
    ChromaStarPy README:  Getting Started quickly:
 
+   Updated July 2019
    December 2017
 
    Ian Short 
@@ -15,9 +16,15 @@ This is the python V. 3 port of the Java atmospheric modeling and spectrum synth
 code ChromaStarServer, formerly known as GrayStarServer,
 supplemented with the two-level-atom facility of ChromaStar (formerly GrayStar).
 
+July 2019 - Equation sof state (EOS) and chemical/ionization equilibrium now computed
+with Phil Bennett's "GAS" package.  Includes 51 molecules, including 16 polyatomic
+molecules
+
 The version numbering is date-based using the ISO 8601 scheme YYYY-MM-DD
 
 References:
+Bennett, P.D., "A fast, robust algorithm for the solution of the equation of state for
+	late-type stellar atmospheres", 1983, M.Sc. Thesis, University of British Columbia" ("GAS")
 Short, C. Ian, 2017, ChromaStarDB: SQL Database-driven Spectrum Synthesis and More, 
 PASP, 129, 094504, 11 pp., arXiv:1707.07725 
 Short, C. Ian, 2016, GrayStarServer: Server-side Spectrum Synthesis with a Browser-based 
@@ -56,6 +63,7 @@ Client-side User Interface, PASP, 128, 104503, 11 pp., arXiv:1605.09368
    ** Fundamental assumptions
 
      Atmospheric structure: Un-blanketed, LTE, static, 1D, plane-parallel geometry
+     Chemical equilibrium: See Phil Bennett's GAS package
      Spectrum synthesis: Power law approximation for the Voigt line profile, opacity due to lines whose line-center 
 wavelengths fall in the synthesis region only (eg. if you synthesize from 390 to 395 nm for the Sun, you will get 
 the Ca II K line opacity, but NOT the effect of the Ca II H blue line wing - synthesize from 390 - 400 nm to get both
@@ -73,9 +81,9 @@ everywhere in the range.)
    tar xvf ChromaStarPy.tar
 
    This will create a subdirectory in the current directory called ChromaStarPy/ with subdirectories called
-    InputData/, Inputs/, and Outputs/
+    InputData/, Inputs/, Outputs/, linpack/ and blas/
 
-	- All source files (*.py) are in ChromaStarPy/
+	- All source files (*.py) are in ChromaStarPy/, linpack/, and blas/
 	- The ascii and byte-data versions of the atomic line list are in InputData/ in files with a .dat file 
           extension.  The byte-data version contains the string "Bytes" at the end of its main filename
 	- Sample input files for setting up an atmosphere and spectrum modeling run are in the Input/ directory.  
@@ -129,7 +137,7 @@ been calculated), and when it has finished doing so.
     Indicates when it has begun the spectrum synthesis stage of the calculation, and then when it has 
 finished doing so.  
     Echoes the value of Teff that it has recovered from an extended rectangle-rule numerical 
-integration of the modelled monochromatic flux spectrum between 260 and 2600 nm, and the computed 
+integration of the modeled monochromatic flux spectrum between 260 and 2600 nm, and the computed 
 values of seven Johnson UBVRIJHK color indices for the model.     
 
  
@@ -167,7 +175,7 @@ with a descriptive header that begins with a hash (#) symbol.
 #Custom filename, #Default plot, #Spectrum synthesis mode
 
         Includes two string variables, project, and runVers, that the user can use to create distinct file 
-names to distinguish model runs that would otherwise have indistinct names (see "Outputs" section).  
+names to distinguish model runs that woudl otherwise have indistinct names (see "Outputs" section).  
 Includes a string variable, makePlot, that determines which of six build-in plotting routines will be
 executed for the default graphical display.  If specSynMode = True, ChromaStarPy will adopt the atmospheric
 structure in input module Restart.py and only perform one structure iteration before computing the synthetic
@@ -219,7 +227,7 @@ Restart.py in the run directory (see "Inputs" directory).
 
 	This source file must always be present and contains an atmospheric model structure as python assignment 
 statements.  When running with 'specSynMode = True' (see above), the user must manually ensure that the desired
-atmospheric structure is contained in Restart.py.  This can be done by copying the *.restart.py file (see "Outputs"
+atmospheric structure is contained in Restart.py.  This can be done by copying the *_restart.py file (see "Outputs"
 section) from the relevant structure run.    
 
 
@@ -251,10 +259,12 @@ All output files have the *.txt extension so as to be recognizable by simple edi
                      coefficients (LDCs)  ("Report 4")
          *.tla.txt:  The continuum rectified spectral line, and the atomic energy-level populations of the 
                      user-defined two-level atom (TLA) ("Report 5")
-         *_restart.py: The stellar parameters and converged structure are written as python assignment statements.
+         *_retart.py The stellar parameters and converged structure are written as python assignment statements.
 		     This file is automatically input as a module, and whether the structure it contains is
 		     used depends on the value of the input parameter specSynMode (see "Input parameters:" 
  		     under ("Setting up a modeling run").  
+	*.ppress.txt	Partial pressures of all atmoic, ionic, and molecular species that are treated in
+			Phil Bennett's integrated EOS/Checmical Equilibrium package "GAS"
 
    **
    ** Integrated post-processing, reporting, and visualization
@@ -283,6 +293,8 @@ ranges from 1 to 5.
    One output block is found after the user-defined two-level atom section of the code:
    Report 5 block: Spectral line profile and atomic energy level populations of user-defined two-level
      atom (writes to *.tla.txt file) 
+   Report 6 block: Found after Report 4 block: Log10 partial pressures for 105 species, including 51 molecules
+     computed by Phil Bennett's multi-D linearization package "GAS" - now integrated with ChromaStarPy
 
 
    **
@@ -321,6 +333,9 @@ makePlot = "spectrum"
 #makePlot = "ldc"
 #makePlot = "ft"
 #makePlot = "tlaLine" 
+###The following two plot variables refer to the partial pressure outpue ("Report 6")
+#makePlot = "ppress"
+#plotSpec = "H"
 
 #Spectrum synthesis mode
 # - uses model in Restart.py with minimal structure calculation
