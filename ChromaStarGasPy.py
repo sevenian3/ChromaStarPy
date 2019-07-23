@@ -1204,6 +1204,8 @@ logAz[0:2] = [ logE10 * (x - 12.0) for x in eheu[0:2] ]
 #Everything else does:
 logAz[2:] = [ logE10 * (x + log10ZScale - 12.0) for x in eheu[2:] ]
 
+#print("logAz ", [logE*x for x in logAz] )
+
 expAz = [ math.exp(x) for x in logAz ]
 ATot = sum(expAz)
 logATot = math.log(ATot) #//natural log
@@ -1302,7 +1304,7 @@ else:
     
         
     tauRos = TauScale.tauScale(numDeps, log10MinDepth, log10MaxDepth)
-    if (teff < F0Vtemp):
+    if (teff <= F0Vtemp):
         if (logg > 3.5):
             #//We're a cool dwarf! - rescale from Teff=5000 reference model!
             #print("cool star branch")
@@ -1310,7 +1312,7 @@ else:
         else:
             #We're a cool giant - rescale from teff=4250, log(g) = 2.0 model
             temp = ScaleT4250g20.phxRefTemp(teff, numDeps, tauRos)
-    elif (teff >= F0Vtemp): 
+    elif (teff > F0Vtemp): 
         #//We're a HOT star! - rescale from Teff=10000 reference model! 
         temp = ScaleT10000.phxRefTemp(teff, numDeps, tauRos)
     
@@ -1318,7 +1320,7 @@ else:
         
 
     #//double[][] guessKappa = new double[2][numDeps];
-    if (teff < F0Vtemp):
+    if (teff <= F0Vtemp):
         if (logg > 3.5):
             #//We're a cool dwarf - rescale from  Teff=5000 reference model!
             #// logAz[1] = log_e(N_He/N_H)
@@ -1332,7 +1334,7 @@ else:
             guessPGas = ScaleT4250g20.phxRefPGas(grav, zScale, logAz[1], numDeps, tauRos)
             guessPe = ScaleT4250g20.phxRefPe(teff, grav, numDeps, tauRos, zScale, logAz[1])
             guessNe = ScaleT4250g20.phxRefNe(numDeps, temp, guessPe)                 
-    elif (teff >= F0Vtemp):
+    elif (teff > F0Vtemp):
         #//We're a HOT star!! - rescale from Teff=10000 reference model 
         #// logAz[1] = log_e(N_He/N_H)
         guessPGas = ScaleT10000.phxRefPGas(grav, zScale, logAz[1], numDeps, tauRos)
@@ -1854,74 +1856,240 @@ log10MasterGsPp = [ [0.0e0 for iD in range(numDeps)] for iSpec in range(gsNspec)
 
 #//Begin Pgas-kapp iteration
 
+#Test: 
+#F0Vtemp = 100000.0
+
 for pIter in range(nOuterIter):
 #//
 
     #Try making return value a tuple:
 
-    for iD in range(numDeps):
+    
         
-        #print("isolv ", isolv, " temp ", temp[0][iD], " guessPGas ", guessPGas[0][iD])
-        gasestReturn = CSGasEst.gasest(isolv, temp[0][iD], guessPGas[0][iD])
-        gsPe0 = gasestReturn[0]
-        gsP0 = gasestReturn[1]
-        neq = gasestReturn[2]
+    if (teff <= F0Vtemp):
         
-        #print("iD ", iD, " gsPe0 ", gsPe0, " gsP0 ", gsP0, " neq ", neq)
+        for iD in range(numDeps):
+        #if (teff <= 100000.0):   #test
+            #print("isolv ", isolv, " temp ", temp[0][iD], " guessPGas ", guessPGas[0][iD])
+            gasestReturn = CSGasEst.gasest(isolv, temp[0][iD], guessPGas[0][iD])
+            gsPe0 = gasestReturn[0]
+            gsP0 = gasestReturn[1]
+            neq = gasestReturn[2]
+        
+            #print("iD ", iD, " gsPe0 ", gsPe0, " gsP0 ", gsP0, " neq ", neq)
 
-        gasReturn = CSGas.gas(isolv, temp[0][iD], guessPGas[0][iD], gsPe0, gsP0, neq, tol, maxit)
-        #a = gasReturn[0]
-        #nit = gasReturn[1]
-        gsPe = gasReturn[2]
-        #pd = gasReturn[3]
-        gsPp = gasReturn[4]
-        #Can't pythonize this - gsPp padded at end with 0.0s
-        #log10MasterGsPp[:][iD] = [math.log10(x) for x in gsPp]
-        #for iSpec in range(gsNspec):
-        #    log10MasterGsPp[iSpec][iD] = math.log10(gsPp[iSpec])
-        #print("1: ", gsPp[0]/guessPGas[0][iD])
-        #ppix = gasReturn[5]
-        gsMu = gasReturn[6]
-        gsRho = gasReturn[7]
+            gasReturn = CSGas.gas(isolv, temp[0][iD], guessPGas[0][iD], gsPe0, gsP0, neq, tol, maxit)
+            #a = gasReturn[0]
+            #nit = gasReturn[1]
+            gsPe = gasReturn[2]
+            #pd = gasReturn[3]
+            gsPp = gasReturn[4]
+            #Can't pythonize this - gsPp padded at end with 0.0s
+            #log10MasterGsPp[:][iD] = [math.log10(x) for x in gsPp]
+            #for iSpec in range(gsNspec):
+            #    log10MasterGsPp[iSpec][iD] = math.log10(gsPp[iSpec])
+            #print("1: ", gsPp[0]/guessPGas[0][iD])
+            #ppix = gasReturn[5]
+            gsMu = gasReturn[6]
+            gsRho = gasReturn[7]
         
         
-        newPe[0][iD] = gsPe
-        newPe[1][iD] = math.log(gsPe)
-        newNe[0][iD] = gsPe / Useful.k() / temp[0][iD]
-        newNe[1][iD] = math.log(newNe[0][iD])
-        guessPe[0][iD] = newPe[0][iD]
-        guessPe[1][iD] = newPe[1][iD]
-        guessNe[0][iD] = newNe[0][iD]
-        guessNe[1][iD] = newNe[1][iD]        
+            newPe[0][iD] = gsPe
+            newPe[1][iD] = math.log(gsPe)
+            newNe[0][iD] = gsPe / Useful.k() / temp[0][iD]
+            newNe[1][iD] = math.log(newNe[0][iD])
+            guessPe[0][iD] = newPe[0][iD]
+            guessPe[1][iD] = newPe[1][iD]
+            guessNe[0][iD] = newNe[0][iD]
+            guessNe[1][iD] = newNe[1][iD]        
         
-        rho[0][iD] = gsRho
-        rho[1][iD] = math.log(gsRho)
-        mmw[iD] = gsMu * Useful.amu()
+            rho[0][iD] = gsRho
+            rho[1][iD] = math.log(gsRho)
+            mmw[iD] = gsMu * Useful.amu()
+            
+                    #Take neutral stage populations for atomic species from GAS: 
+            for iElem in range(nelemAbnd):
+            
+                if (csp2gas[iElem] != -1):
+                    #element is in GAS package:
+                    thisN = gsPp[csp2gas[iElem]] / Useful.k() / temp[0][iD]    
+                    masterStagePops[iElem][0][iD] = math.log(thisN)
+            
+            #print("iD ", iD, cname[19], gsName[csp2gas[19]], " logNCaI ", logE*masterStagePops[19][0][iD])
+            
+            for i in range(gsNumMols):
+                thisN = gsPp[i+gsFirstMol] / Useful.k() / temp[0][iD]
+                masterMolPops[i][iD] = math.log(thisN)
         
+            #Needed  now GAS??  
+            for iA in range(nelemAbnd):
+                if (csp2gas[iA] != -1):
+                    #element is in GAS package:
+                    logNz[iA][iD] = math.log10(gsPp[csp2gas[iA]]) - Useful.logK() - temp[1][iD]
+                    
+        for iElem in range(26):
+            species = cname[iElem] + "I"
+            chiIArr[0] = IonizationEnergy.getIonE(species)
+            #//THe following is a 2-element vector of temperature-dependent partitio fns, U, 
+            #// that are base e log_e U
+            log10UwAArr[0] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "II"
+            chiIArr[1] = IonizationEnergy.getIonE(species)
+            log10UwAArr[1] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "III"
+            chiIArr[2] = IonizationEnergy.getIonE(species)
+            log10UwAArr[2] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "IV"
+            chiIArr[3] = IonizationEnergy.getIonE(species)
+            log10UwAArr[3] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "V"
+            chiIArr[4] = IonizationEnergy.getIonE(species)
+            log10UwAArr[4] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "VI"
+            chiIArr[5] = IonizationEnergy.getIonE(species)
+            log10UwAArr[5] = PartitionFn.getPartFn2(species) #//base e log_e U
+            #//double logN = (eheu[iElem] - 12.0) + logNH;
+
+
+        
+            #Neeed?  Now GAS:
+            logNums = LevelPopsGasServer.stagePops3(masterStagePops[iElem][0], guessNe, chiIArr, log10UwAArr,   \
+                                #thisNumMols, logNumBArr, dissEArr, log10UwBArr, logQwABArr, logMuABArr, \
+                                numDeps, temp)
+
+        #for iStage in range(numStages):
+        #    for iTau in range(numDeps):
+        #
+        #        masterStagePops[iElem][iStage][iTau] = logNums[iStage][iTau]
+        #masterStagePops[iElem][:][:] = [ [logNums[iStage][iTau] for iTau in range(numDeps)] for iStage in range(numStages) ]
+        
+            masterStagePops[iElem][:] = [x for x in logNums[:]]                    
+        
+        
+            
+    if (teff > F0Vtemp):  #teff > FoVtemp:
+            
+            #//  Converge Pg-Pe relation starting from intital guesses at Pg and Pe
+            #//  - assumes all free electrons are from single ionizations
+            #//  - David Gray 3rd Ed. Eq. 9.8:
+        #print("guessPe[1] ", [logE*x for x in guessPe[1]] )
+        for neIter in range(nInnerIter):
+            
+            for iD in range(numDeps):
+                #//System.out.println("iD    logE*newPe[1][iD]     logE*guessPe[1]     logE*guessPGas[1]");
+        
+                #//re-initialize accumulators:
+                thisTemp[0] = temp[0][iD]
+                thisTemp[1] = temp[1][iD]
+                peNumerator = 0.0 
+                peDenominator = 0.0
+                for iElem in range(nelemAbnd):
+                    species = cname[iElem] + "I"
+                    chiI = IonizationEnergy.getIonE(species)
+                    #//THe following is a 2-element vector of temperature-dependent partitio fns, U, 
+                #// that are base e log_e U
+                    log10UwLArr = PartitionFn.getPartFn2(species) #//base e log_e U
+                    species = cname[iElem] + "II"
+                    log10UwUArr = PartitionFn.getPartFn2(species) #//base e log_e U
+                    logPhi = LevelPopsGasServer.sahaRHS(chiI, log10UwUArr, log10UwLArr, thisTemp)
+                    #if (iD%10 == 0):
+                    #    print("iD ", iD, " iElem ", iElem, " logPhi ", logE*logPhi)
+                    logPhiOverPe = logPhi - guessPe[1][iD]
+                    logOnePlusPhiOverPe = math.log(1.0 + math.exp(logPhiOverPe)) 
+                    logPeNumerTerm = logAz[iElem] + logPhiOverPe - logOnePlusPhiOverPe
+                    peNumerator = peNumerator + math.exp(logPeNumerTerm)
+                    logPeDenomTerm = logAz[iElem] + math.log(1.0 + math.exp(logPeNumerTerm))
+                    peDenominator = peDenominator + math.exp(logPeDenomTerm)
+                    #if (iD%10 == 0):
+                    #    print("iD ", iD, " iElem ", iElem, " peNum ", peNumerator, " peDen ", peDenominator)                    
+                #print("peNum ", math.log10(peNumerator), " peDen ", math.log10(peDenominator))
+                #//iElem chemical element loop
+                newPe[1][iD] = guessPGas[1][iD] + math.log(peNumerator) - math.log(peDenominator) 
+                newPe[0] = [ math.exp(x) for x in newPe[1] ]
+                guessPe[1][iD] = newPe[1][iD]
+                guessPe[0][iD] = math.exp(guessPe[1][iD])
+            
+        newNe[1] = [newPe[1][iD] - temp[1][iD] - Useful.logK() for iD in range(numDeps)]
+        newNe[0] = [math.exp(newNe[1][iD]) for iD in range(numDeps)]   
+        #guessNe[1][:] = [newNe[1][iD] for iD in range(numDeps)]
+        #guessNe[0][:] = [newNe[0][iD] for iD in range(numDeps)]
+        guessNe[1][:] = [ x for x in newNe[1][:] ]
+        guessNe[0][:] = [ x for x in newNe[0][:] ]
+
+        #print("newPe ", [logE*x for x in newPe[1]])
+        #print("guessNe ", [logE*x for x in guessNe[1]])       
         #print("iD ", iD, " logT ", logE*temp[1][iD], " logNe ", logE*newNe[1][iD], " logRho ", logE*rho[1][iD], " mmw ", logE*math.log(mmw[iD]*Useful.amu()) )
         
+    #if (teff > 100000.0):     #test
         
-        #Take neutral stage populations for atomic species from GAS: 
-        for iElem in range(nelemAbnd):
+        logNz = State.getNz(numDeps, temp, guessPGas, guessPe, ATot, nelemAbnd, logAz)
+    #for i in range(numDeps): 
+    #    logNH[i] = logNz[0][i]
+    #logNH[:] = [ logNz[0][i] for i in range(numDeps) ]
+        logNH = [ x for x in logNz[0] ]
+        
+        zScaleList = 1.0 #//initialization   
+        
+        for iElem in range(26):
+            species = cname[iElem] + "I"
+            chiIArr[0] = IonizationEnergy.getIonE(species)
+                #//THe following is a 2-element vector of temperature-dependent partitio fns, U, 
+            #// that are base e log_e U
+            log10UwAArr[0] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "II"
+            chiIArr[1] = IonizationEnergy.getIonE(species)
+            log10UwAArr[1] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "III"
+            chiIArr[2] = IonizationEnergy.getIonE(species)
+            log10UwAArr[2] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "IV"
+            chiIArr[3] = IonizationEnergy.getIonE(species)
+            log10UwAArr[3] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "V"
+            chiIArr[4] = IonizationEnergy.getIonE(species)
+            log10UwAArr[4] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "VI"
+            chiIArr[5] = IonizationEnergy.getIonE(species)
+            log10UwAArr[5] = PartitionFn.getPartFn2(species) #//base e log_e U
             
-            if (csp2gas[iElem] != -1):
-                #element is in GAS package:
-                thisN = gsPp[csp2gas[iElem]] / Useful.k() / temp[0][iD]    
-                masterStagePops[iElem][0][iD] = math.log(thisN)
+            logNums = LevelPopsGasServer.stagePops(logNz[iElem], guessNe, chiIArr, log10UwAArr,\
+                     numDeps, temp)
+
+            #for iStage in range(numStages):
+            #    for iTau in range(numDeps):
+            #
+            #        masterStagePops[iElem][iStage][iTau] = logNums[iStage][iTau]
+            #masterStagePops[iElem][:][:] = [ [logNums[iStage][iTau] for iTau in range(numDeps)] for iStage in range(numStages) ]
+            masterStagePops[iElem][:] = [x for x in logNums[:]]
             
-        #print("iD ", iD, cname[19], gsName[csp2gas[19]], " logNCaI ", logE*masterStagePops[19][0][iD])
+        #print("logNz[0] ", [logE*x for x in logNz[0]])
+        #print("masterStagePops[0][0] ", [logE*x for x in masterStagePops[0][0]])            
+    
             
-        for i in range(gsNumMols):
-            thisN = gsPp[i+gsFirstMol] / Useful.k() / temp[0][iD]
-            masterMolPops[i][iD] = math.log(thisN)
+        #//double logN = (eheu[iElem] - 12.0) + logNH;
         
-        #Needed  now GAS??  
-        for iA in range(nelemAbnd):
-            if (csp2gas[iA] != -1):
-                #element is in GAS package:
-                logNz[iA][iD] = math.log10(gsPp[csp2gas[iA]]) - Useful.logK() - temp[1][iD]
-        
-        
+            #//Get mass density from chemical composition: 
+        rho = State.massDensity2(numDeps, nelemAbnd, logNz, cname)
+
+        #//Total number density of gas particles: nuclear species + free electrons:
+        #//AND
+        # //Compute mean molecular weight, mmw ("mu"):
+        #for i in range(numDeps):
+        #    Ng[i] = newNe[0][i] #//initialize accumulation with Ne 
+        #Ng[:] = [ newNe[0][i] for i in range(numDeps) ]
+        Ng[:] = [ x for x in newNe[0] ]
+    
+        #Seems like this can't be "de-looped" without resorting to cryptic black boxes in python, like zip()
+        for i in range(numDeps):
+            for j in range(nelemAbnd):
+                Ng[i] =  Ng[i] + math.exp(logNz[j][i]) #//initialize accumulation 
+      
+        #logMmw = rho[1][i] - math.log(Ng[i]) # // in g
+        #mmw[i] = math.exp(logMmw) 
+    
+        mmw = [ rho[1][i] - math.log(Ng[i]) for i in range(numDeps) ]
+        mmw = [ math.exp(x) for x in mmw ]
+
     
 #//
 #//Refine the number densities of the chemical elements at all depths  
@@ -1939,7 +2107,7 @@ for pIter in range(nOuterIter):
 #//  Compute ionization fractions of H & He for kappa calculation 
 #//
 #//  Default inializations:
-    zScaleList = 1.0 #//initialization   
+
     #//these 2-element temperature-dependent partition fns are logarithmic  
 
 
@@ -1947,43 +2115,8 @@ for pIter in range(nOuterIter):
 #////H & He only for now... we only compute H, He, and e^- opacity sources: 
 #   //for (int iElem = 0; iElem < 2; iElem++){
 #//H to Fe only for now... we only compute opacity sources for elements up to Fe: 
-    for iElem in range(26):
-        species = cname[iElem] + "I"
-        chiIArr[0] = IonizationEnergy.getIonE(species)
-        #//THe following is a 2-element vector of temperature-dependent partitio fns, U, 
-        #// that are base e log_e U
-        log10UwAArr[0] = PartitionFn.getPartFn2(species) #//base e log_e U
-        species = cname[iElem] + "II"
-        chiIArr[1] = IonizationEnergy.getIonE(species)
-        log10UwAArr[1] = PartitionFn.getPartFn2(species) #//base e log_e U
-        species = cname[iElem] + "III"
-        chiIArr[2] = IonizationEnergy.getIonE(species)
-        log10UwAArr[2] = PartitionFn.getPartFn2(species) #//base e log_e U
-        species = cname[iElem] + "IV"
-        chiIArr[3] = IonizationEnergy.getIonE(species)
-        log10UwAArr[3] = PartitionFn.getPartFn2(species) #//base e log_e U
-        species = cname[iElem] + "V"
-        chiIArr[4] = IonizationEnergy.getIonE(species)
-        log10UwAArr[4] = PartitionFn.getPartFn2(species) #//base e log_e U
-        species = cname[iElem] + "VI"
-        chiIArr[5] = IonizationEnergy.getIonE(species)
-        log10UwAArr[5] = PartitionFn.getPartFn2(species) #//base e log_e U
-        #//double logN = (eheu[iElem] - 12.0) + logNH;
+    
 
-
-        
-        #Neeed?  Now GAS:
-        logNums = LevelPopsGasServer.stagePops3(masterStagePops[iElem][0], guessNe, chiIArr, log10UwAArr,   \
-                     #thisNumMols, logNumBArr, dissEArr, log10UwBArr, logQwABArr, logMuABArr, \
-                     numDeps, temp)
-
-        #for iStage in range(numStages):
-        #    for iTau in range(numDeps):
-        #
-        #        masterStagePops[iElem][iStage][iTau] = logNums[iStage][iTau]
-        #masterStagePops[iElem][:][:] = [ [logNums[iStage][iTau] for iTau in range(numDeps)] for iStage in range(numStages) ]
-        
-        masterStagePops[iElem][:] = [x for x in logNums[:]]
         
     #for iD in range(numDeps):
         #print("CSGPy: iD ", iD, cname[0], " logNCaI ", logE*masterStagePops[0][0][iD])
@@ -2211,97 +2344,104 @@ zScaleList = 1.0 #/initialization
 #for neIter2 in range(nInnerIter):
     
 #Final run through Phil's GAS EOS/Chemic equil. for consistency with last HSE call above:
-for iD in range(numDeps):
-        
-    #print("isolv ", isolv, " temp ", temp[0][iD], " guessPGas ", guessPGas[0][iD])
-    gasestReturn = CSGasEst.gasest(isolv, temp[0][iD], guessPGas[0][iD])
-    gsPe0 = gasestReturn[0]
-    gsP0 = gasestReturn[1]
-    neq = gasestReturn[2]
-        
-    #print("iD ", iD, " gsPe0 ", gsPe0, " gsP0 ", gsP0, " neq ", neq)
 
-    gasReturn = CSGas.gas(isolv, temp[0][iD], guessPGas[0][iD], gsPe0, gsP0, neq, tol, maxit)
-    #a = gasReturn[0]
-    #nit = gasReturn[1]
-    gsPe = gasReturn[2]
-    #pd = gasReturn[3]
-    gsPp = gasReturn[4]
-    #Can't pythonize this - gsPp padded at end with 0.0s
-    #log10MasterGsPp[:][iD] = [math.log10(x) for x in gsPp]
-    for iSpec in range(gsNspec):
-        log10MasterGsPp[iSpec][iD] = math.log10(gsPp[iSpec])
-    #print("1: ", gsPp[0]/guessPGas[0][iD])
-    #ppix = gasReturn[5]
-    gsMu = gasReturn[6]
-    gsRho = gasReturn[7]
+    
+if (teff <= F0Vtemp):
+        
+    for iD in range(numDeps):    
+        
+        #print("isolv ", isolv, " temp ", temp[0][iD], " guessPGas ", guessPGas[0][iD])
+        gasestReturn = CSGasEst.gasest(isolv, temp[0][iD], guessPGas[0][iD])
+        gsPe0 = gasestReturn[0]
+        gsP0 = gasestReturn[1]
+        neq = gasestReturn[2]
+        
+        #print("iD ", iD, " gsPe0 ", gsPe0, " gsP0 ", gsP0, " neq ", neq)
+
+        gasReturn = CSGas.gas(isolv, temp[0][iD], guessPGas[0][iD], gsPe0, gsP0, neq, tol, maxit)
+        #a = gasReturn[0]
+        #nit = gasReturn[1]
+        gsPe = gasReturn[2]
+        #pd = gasReturn[3]
+        gsPp = gasReturn[4]
+        #Can't pythonize this - gsPp padded at end with 0.0s
+        #log10MasterGsPp[:][iD] = [math.log10(x) for x in gsPp]
+        for iSpec in range(gsNspec):
+            log10MasterGsPp[iSpec][iD] = math.log10(gsPp[iSpec])
+            #print("1: ", gsPp[0]/guessPGas[0][iD])
+            #ppix = gasReturn[5]
+            gsMu = gasReturn[6]
+            gsRho = gasReturn[7]
         
         
-    newPe[0][iD] = gsPe
-    newPe[1][iD] = math.log(gsPe)
-    newNe[0][iD] = gsPe / Useful.k() / temp[0][iD]
-    newNe[1][iD] = math.log(newNe[0][iD])
-    guessPe[0][iD] = newPe[0][iD]
-    guessPe[1][iD] = newPe[1][iD]
+        newPe[0][iD] = gsPe
+        newPe[1][iD] = math.log(gsPe)
+        newNe[0][iD] = gsPe / Useful.k() / temp[0][iD]
+        newNe[1][iD] = math.log(newNe[0][iD])
+        guessPe[0][iD] = newPe[0][iD]
+        guessPe[1][iD] = newPe[1][iD]
         
-    rho[0][iD] = gsRho
-    rho[1][iD] = math.log(gsRho)
-    mmw[iD] = gsMu * Useful.amu()
+        rho[0][iD] = gsRho
+        rho[1][iD] = math.log(gsRho)
+        mmw[iD] = gsMu * Useful.amu()
         
-    #print("iD ", iD, " logT ", logE*temp[1][iD], " logNe ", logE*newNe[1][iD], " logRho ", logE*rho[1][iD], " mmw ", logE*math.log(mmw[iD]*Useful.amu()) )
+        #print("iD ", iD, " logT ", logE*temp[1][iD], " logNe ", logE*newNe[1][iD], " logRho ", logE*rho[1][iD], " mmw ", logE*math.log(mmw[iD]*Useful.amu()) )
         
         
-    #Take neutral stage populations for atomic species from GAS: 
+        #Take neutral stage populations for atomic species from GAS: 
+        for iElem in range(nelemAbnd):
+            
+            if (csp2gas[iElem] != -1):
+                #element is in GAS package:
+                thisN = gsPp[csp2gas[iElem]] / Useful.k() / temp[0][iD]    
+                masterStagePops[iElem][0][iD] = math.log(thisN)
+            
+            #print("iD ", iD, cname[19], gsName[csp2gas[19]], " logNCaI ", logE*masterStagePops[19][0][iD])
+            
+        for i in range(gsNumMols):
+            thisN = gsPp[i+gsFirstMol] / Useful.k() / temp[0][iD]
+            masterMolPops[i][iD] = math.log(thisN)
+        
+        #Needed  now GAS??  
+        for iA in range(nelemAbnd):
+            if (csp2gas[iA] != -1):
+                #element is in GAS package:
+                logNz[iA][iD] = math.log10(gsPp[csp2gas[iA]]) - Useful.logK() - temp[1][iD]
+
+    #end iD loop        
+
+    #Catch species NOT in Phil's GAS Chem. Equil. package   
     for iElem in range(nelemAbnd):
-            
-        if (csp2gas[iElem] != -1):
-            #element is in GAS package:
-            thisN = gsPp[csp2gas[iElem]] / Useful.k() / temp[0][iD]    
-            masterStagePops[iElem][0][iD] = math.log(thisN)
-            
-    #print("iD ", iD, cname[19], gsName[csp2gas[19]], " logNCaI ", logE*masterStagePops[19][0][iD])
-            
-    for i in range(gsNumMols):
-        thisN = gsPp[i+gsFirstMol] / Useful.k() / temp[0][iD]
-        masterMolPops[i][iD] = math.log(thisN)
         
-    #Needed  now GAS??  
-    for iA in range(nelemAbnd):
-        if (csp2gas[iA] != -1):
-            #element is in GAS package:
-            logNz[iA][iD] = math.log10(gsPp[csp2gas[iA]]) - Useful.logK() - temp[1][iD]
-        
+        if (csp2gas[iElem] == -1):
 
-#Catch species NOT in Phil's GAS Chem. Equil. package   
-for iElem in range(nelemAbnd):
-
-    species = cname[iElem] + "I"
-    chiIArr[0] = IonizationEnergy.getIonE(species)
-    #//The following is a 2-element vector of temperature-dependent partitio fns, U,
-    #// that are base e log_e U
-    log10UwAArr[0] = PartitionFn.getPartFn2(species) #//base e log_e U
-    species = cname[iElem] + "II"
-    chiIArr[1] = IonizationEnergy.getIonE(species)
-    log10UwAArr[1] = PartitionFn.getPartFn2(species) #//base e log_e U
-    species = cname[iElem] + "III"
-    chiIArr[2] = IonizationEnergy.getIonE(species)
-    log10UwAArr[2] = PartitionFn.getPartFn2(species) #//base e log_e U
-    species = cname[iElem] + "IV"
-    chiIArr[3] = IonizationEnergy.getIonE(species)
-    log10UwAArr[3]= PartitionFn.getPartFn2(species) #//base 1e log_e U
-    species = cname[iElem] + "V"
-    chiIArr[4] = IonizationEnergy.getIonE(species)
-    log10UwAArr[4]= PartitionFn.getPartFn2(species) #//base 1e log_e U
-    species = cname[iElem] + "VI"
-    chiIArr[5] = IonizationEnergy.getIonE(species)
-    log10UwAArr[5]= PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "I"
+            chiIArr[0] = IonizationEnergy.getIonE(species)
+            #//The following is a 2-element vector of temperature-dependent partitio fns, U,
+            #// that are base e log_e U
+            log10UwAArr[0] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "II"
+            chiIArr[1] = IonizationEnergy.getIonE(species)
+            log10UwAArr[1] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "III"
+            chiIArr[2] = IonizationEnergy.getIonE(species)
+            log10UwAArr[2] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "IV"
+            chiIArr[3] = IonizationEnergy.getIonE(species)
+            log10UwAArr[3]= PartitionFn.getPartFn2(species) #//base 1e log_e U
+            species = cname[iElem] + "V"
+            chiIArr[4] = IonizationEnergy.getIonE(species)
+            log10UwAArr[4]= PartitionFn.getPartFn2(species) #//base 1e log_e U
+            species = cname[iElem] + "VI"
+            chiIArr[5] = IonizationEnergy.getIonE(species)
+            log10UwAArr[5]= PartitionFn.getPartFn2(species) #//base e log_e U
     
         
-    if (csp2gas[iElem] == -1):
-        #Element NOT in GAS package - compute ionization equilibrium:
-        logNums = LevelPopsGasServer.stagePops(logNz[iElem], guessNe, chiIArr, log10UwAArr, \
-                #thisNumMols, logNumBArr, dissEArr, log10UwBArr, logQwABArr, logMuABArr, \
-                numDeps, temp);
+
+            #Element NOT in GAS package - compute ionization equilibrium:
+            logNums = LevelPopsGasServer.stagePops(logNz[iElem], guessNe, chiIArr, log10UwAArr, \
+                                                   #thisNumMols, logNumBArr, dissEArr, log10UwBArr, logQwABArr, logMuABArr, \
+                            numDeps, temp);
 
     #for iStage in range(numStages):
     #    for iTau in range(numDeps):
@@ -2311,13 +2451,79 @@ for iElem in range(nelemAbnd):
     #    tauOneStagePops[iElem][iStage] = logNums[iStage][iTauOne]
         
     #} //iStage loop
-        masterStagePops[iElem] = [ [ logNums[iStage][iTau] for iTau in range(numDeps) ] for iStage in range(numStages) ]
-        tauOneStagePops[iElem] = [ logNums[iStage][iTauOne] for iStage in range(numStages) ]
+            masterStagePops[iElem] = [ [ logNums[iStage][iTau] for iTau in range(numDeps) ] for iStage in range(numStages) ]
+            tauOneStagePops[iElem] = [ logNums[iStage][iTauOne] for iStage in range(numStages) ]
     #} //iElem loop
 
-     
-#} //end Ne - ionzation fraction -molecular equilibrium iteration neIter2
+if (teff > F0Vtemp):
+    
+    for neIter2 in range(nInnerIter):
+    
+        for iElem in range(nelemAbnd):
 
+            species = cname[iElem] + "I"
+            chiIArr[0] = IonizationEnergy.getIonE(species)
+            #//The following is a 2-element vector of temperature-dependent partitio fns, U,
+            #// that are base e log_e U
+            log10UwAArr[0] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "II"
+            chiIArr[1] = IonizationEnergy.getIonE(species)
+            log10UwAArr[1] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "III"
+            chiIArr[2] = IonizationEnergy.getIonE(species)
+            log10UwAArr[2] = PartitionFn.getPartFn2(species) #//base e log_e U
+            species = cname[iElem] + "IV"
+            chiIArr[3] = IonizationEnergy.getIonE(species)
+            log10UwAArr[3]= PartitionFn.getPartFn2(species) #//base 1e log_e U
+            species = cname[iElem] + "V"
+            chiIArr[4] = IonizationEnergy.getIonE(species)
+            log10UwAArr[4]= PartitionFn.getPartFn2(species) #//base 1e log_e U
+            species = cname[iElem] + "VI"
+            chiIArr[5] = IonizationEnergy.getIonE(species)
+            log10UwAArr[5]= PartitionFn.getPartFn2(species) #//base e log_e U
+    
+#} //end Ne - ionzation fraction -molecular equilibrium iteration neIter2
+            logNums = LevelPopsGasServer.stagePops(logNz[iElem], guessNe, chiIArr, log10UwAArr, \
+                  numDeps, temp);
+
+            #for iStage in range(numStages):
+            #    for iTau in range(numDeps):
+            #        masterStagePops[iElem][iStage][iTau] = logNums[iStage][iTau]
+            #    #//save ion stage populations at tau = 1:
+            #    #} //iTau loop
+            #    tauOneStagePops[iElem][iStage] = logNums[iStage][iTauOne]
+        
+            #} //iStage loop
+            masterStagePops[iElem] = [ [ logNums[iStage][iTau] for iTau in range(numDeps) ] for iStage in range(numStages) ]
+            tauOneStagePops[iElem] = [ logNums[iStage][iTauOne] for iStage in range(numStages) ]
+
+        log10UwA = [0.0 for i in range(numAtmPrtTmps)]
+        newNe[0] = [ 0.0 for iTau in range(numDeps) ]
+     
+    #This is cumulative and not trivially pythonizable
+        for iTau in range(numDeps):
+            for iElem in range(nelemAbnd):
+                #//1 e^- per ion, #//2 e^- per ion
+                newNe[0][iTau] = newNe[0][iTau]   \
+                + math.exp(masterStagePops[iElem][1][iTau])  \
+                + 2.0 * math.exp(masterStagePops[iElem][2][iTau])   
+            #//+ 3.0 * Math.exp(masterStagePops[iElem][3][iTau])   #//3 e^- per ion
+            #//+ 4.0 * Math.exp(masterStagePops[iElem][4][iTau]);  #//3 e^- per ion
+        #}
+        #    newNe[1][iTau] = math.log(newNe[0][iTau])
+        #    #// Update guess for iteration:
+        #    guessNe[0][iTau] = newNe[0][iTau]
+        #    guessNe[1][iTau] = newNe[1][iTau] 
+        #newNe[0] = [ [ newNe[0][iTau]   \
+        #        + math.exp(masterStagePops[iElem][1][iTau])  \
+        #        + 2.0 * math.exp(masterStagePops[iElem][2][iTau]) \
+        #        for iElem in range(nelemAbnd) ] for iTau in range(numDeps) ]
+        newNe[1] = [ math.log(x) for x in newNe[0] ]
+        guessNe[0] = [ x for x in newNe[0][:] ]
+        guessNe[1] = [ x for x in newNe[1][:] ]
+
+        log10pe = [ log10e * (newNe[1][i] + Useful.logK() + temp[1][i]) for i in range(numDeps) ]
+        log10ne = [ log10e * x for x in newNe[1] ]
 
 #//
 #Some atmospheric structure output AGAIN after chemical equilibrium: 
@@ -3173,12 +3379,12 @@ for iLine in range(numGaussLines):
             #if (iTau%5 == 1):
             #    outline = ("iTau "+ str(iTau)+ " Na I list2LogNums[2]: "+ str(log10e*list2LogNums[2][iTau]) + "\n")
             #    outHandle.write(outline)
-    if ( ((list2Lam0[gaussLine_ptr[iLine]]) > lambdaStart) and ((list2Lam0[gaussLine_ptr[iLine]]) < lambdaStop) and species=="CaI"):
-        print("iLine ", iLine , " gaussLine_ptr ", gaussLine_ptr[iLine] ," list2Lam0 ", list2Lam0[gaussLine_ptr[iLine]], " list2LogAij ", list2LogAij[gaussLine_ptr[iLine]], " list2Logf ", list2Logf[gaussLine_ptr[iLine]])
-        print("list2Mass ", list2Mass[gaussLine_ptr[iLine]], " list2LogGammaCol ", list2LogGammaCol[gaussLine_ptr[iLine]])
+    #if ( ((list2Lam0[gaussLine_ptr[iLine]]) > lambdaStart) and ((list2Lam0[gaussLine_ptr[iLine]]) < lambdaStop) and species=="CaI"):
+    #    print("iLine ", iLine , " gaussLine_ptr ", gaussLine_ptr[iLine] ," list2Lam0 ", list2Lam0[gaussLine_ptr[iLine]], " list2LogAij ", list2LogAij[gaussLine_ptr[iLine]], " list2Logf ", list2Logf[gaussLine_ptr[iLine]])
+    #    print("list2Mass ", list2Mass[gaussLine_ptr[iLine]], " list2LogGammaCol ", list2LogGammaCol[gaussLine_ptr[iLine]])
 
-    if ( ((list2Lam0[gaussLine_ptr[iLine]]) > lambdaStart) and ((list2Lam0[gaussLine_ptr[iLine]]) < lambdaStop) and species=="CaI"):
-        print("list2LogNums[2] ", list2LogNums[2])             
+    #if ( ((list2Lam0[gaussLine_ptr[iLine]]) > lambdaStart) and ((list2Lam0[gaussLine_ptr[iLine]]) < lambdaStop) and species=="CaI"):
+    #    print("list2LogNums[2] ", list2LogNums[2])             
 
     #//Proceed only if line strong enough: 
     #// 
@@ -3310,7 +3516,7 @@ if (teff <= jolaTeff):
             
                 jolaRawF = MolecData.getFel(jolaSystem[iJola])
                 jolaF = jolaRawF * jolaQuantumS
-                print(iJola, " jQS ", jolaQuantumS, " jRF ", jolaRawF, " jF ", jolaF)
+                #print(iJola, " jQS ", jolaQuantumS, " jRF ", jolaRawF, " jF ", jolaF)
                 jolaLogF = math.log(jolaF)
                 #print("iJola ", iJola, " logF ", 10.0**(logE*jolaLogF+14) )
             

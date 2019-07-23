@@ -84,9 +84,10 @@ import numpy
 #from scipy.linalg.blas import dscal
 #from scipy.linalg.blas import idamax
 
-from Documents.ChromaStarPy.linpack.Dgesl import dgesl
-from Documents.ChromaStarPy.linpack.Dgefa import dgefa
-
+#from Documents.ChromaStarPy.linpack.Dgesl import dgesl
+#from Documents.ChromaStarPy.linpack.Dgefa import dgefa
+import Dgesl
+import Dgefa
 #from Documents.ChromaStarPy.GAS.blas.Daxpy import daxpy
 #from Documents.ChromaStarPy.GAS.blas.Ddot import ddot
 #from Documents.ChromaStarPy.GAS.blas.Dscal import dscal
@@ -728,7 +729,7 @@ def gas(isolv, temp, pt, pe0, p0, neq, tol, maxit):
                 #print("idum ", idum, [a[idum][jdum] for jdum in range(neq)])
             #print("b ", [b[kk] for kk in range(neq)])
 
-            dgefaReturn = dgefa(a, neq, neq)
+            dgefaReturn = Dgefa.dgefa(a, neq, neq)
             a = dgefaReturn[0]
             iperm = dgefaReturn[1]
             info = dgefaReturn[2]
@@ -748,7 +749,7 @@ def gas(isolv, temp, pt, pe0, p0, neq, tol, maxit):
             #Fortanized call call dgesl(a,neq,neq,iperm,b,job)
             #print("Before ddgesl, b is:")
             #print("b ", b)
-            b = dgesl(a, neq, neq, iperm, b, job)
+            b = Dgesl.dgesl(a, neq, neq, iperm, b, job)
             #print("After dgesl, a is:")
             #for idum in range(neq):
                 #print("idum ", idum, [a[idum][jdum] for jdum in range(neq)])
