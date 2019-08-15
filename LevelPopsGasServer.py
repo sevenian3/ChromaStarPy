@@ -196,11 +196,11 @@ def levelPops(lam0In, logNStage, chiL, logUw, gwL, numDeps, temp):
     #print (uw)
     return logNums
 
+#//This version - ionization equilibrium *WITHOUT* molecules - logNum is TOTAL element population
 #def stagePops2(logNum, Ne, chiIArr, log10UwAArr,  \
 #               numMols, logNumB, dissEArr, log10UwBArr, logQwABArr, logMuABArr, \
 #               numDeps, temp):
 def stagePops(logNum, Ne, chiIArr, logUw,  \
-               #numMols, logNumB, dissEArr, logUwB, logQwABArr, logMuABArr, \
                numDeps, temp):
     #line 1: //species A data - ionization equilibrium of A
     #line 2: //data for set of species "B" - molecular equlibrium for set {AB}
@@ -288,7 +288,7 @@ def stagePops(logNum, Ne, chiIArr, logUw,  \
     
     #JB#
     uua=[]
-    uub=[]
+    #uub=[]
     #qwab=[]
     for iStg in range(numStages):
         currentUwArr=list(logUw[iStg])#u(T) determined values

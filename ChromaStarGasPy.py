@@ -310,7 +310,8 @@ log10ZScale = Input.log10ZScale
 massStar = Input.massStar
 
 #// Sanity check:
-F0Vtemp = 7300.0;  #// Teff of F0 V star (K)                           
+F0Vtemp = 7300.0;  #// Teff of F0 V star (K) 
+                          
 if (teff < 3000.0): 
     teff = 3000.0
 #    teffStr = "3000"
@@ -941,6 +942,7 @@ logAz = [0.0 for i in range(nelemAbnd)] #N_z/H_H for element z
 cname = ["" for i in range(nelemAbnd)]
 logNH = [0.0 for i in range(numDeps)]
 #double[][] logNz = new double[nelemAbnd][numDeps]; //N_z for element z
+#logNz *normally* holds total population of that element over all ionization stages
 logNz = [ [ 0.0 for i in range(numDeps) ] for j in range(nelemAbnd) ] #N_z for element z
 #double[][][] masterStagePops = new double[nelemAbnd][numStages][numDeps];
 masterStagePops = [ [ [ 0.0 for i in range(numDeps) ] for j in range(numStages) ] for k in range(nelemAbnd) ]
@@ -1090,11 +1092,26 @@ gsNumEls = len(gsComp)
 
 #Default value of -1 means CSPy element NOT in GAS package
 csp2gas = [-1 for i in range(nelemAbnd)]
+csp2gasIon1 = [-1 for i in range(nelemAbnd)]
+csp2gasIon2 = [-1 for i in range(nelemAbnd)]
+
+#gas2csp = [-1 for i in range(gsNspec)]
 
 for i in range(nelemAbnd):
     for j in range(gsNspec):
+        #print("i ", i, " j ", j, " cname ", cname[i], " gsName ", gsName[j]);
+        #Captures neutral stages only in gsName[] 
         if (cname[i].strip() == gsName[j].strip()):
             csp2gas[i] = j
+        if (cname[i].strip()+"+" == gsName[j].strip()):
+            csp2gasIon1[i] = j
+        if (cname[i].strip()+"++" == gsName[j].strip()):
+            csp2gasIon2[i] = j          
+            
+#for i in range(gsNspec):
+#    for j in range(nelemAbnd):
+#        if (gsName[i].strip() == cname[j].strip()):
+#            gas2csp[i] = j
             
 #print("csp2gas ", csp2gas)
     
@@ -1352,7 +1369,7 @@ mmwSun = State.mmwFn(numDeps, tempSun, zScaleSun)
 rhoSun = State.massDensity(numDeps, tempSun, pGasSunGuess, mmwSun, zScaleSun)
 pGasSun = Hydrostat.hydroFormalSoln(numDeps, gravSun, tauRos, kappaSun, tempSun, pGasSunGuess)
 
-#stop
+#Total population of element over all ionization stages:
 logNz = State.getNz(numDeps, temp, guessPGas, guessPe, ATot, nelemAbnd, logAz)
 #for i in range(numDeps): 
 #    logNH[i] = logNz[0][i]
@@ -1375,7 +1392,7 @@ masterStagePops[:][0][:] = [ [ logNz[i][j] for j in range(numDeps) ] for i in ra
 
 
 warning = "";
-if (teff < 6000):
+if (teff < F0Vtemp):
     #//warning = "<span style='color:red'><em>T</em><sub>eff</sub> < 6000 K <br />Cool star mode";
     warning = "Cool star mode"
     print(warning)
@@ -1392,7 +1409,7 @@ luminClass = "V" #//defaults to V
 #//var luminClass = "V" or luminClass = "VI" or luminClass = "WD"
 #// Based on the data in Appendix G of An Introduction to Modern Astrophysics, 2nd Ed. by
 #// Carroll & Ostlie
-if (((logg >= 4.0) and (logg < 5.0)) or ((logg >= 5.0) and (logg < 6.0)) or (logg >= 5.0)):
+if ((logg >= 4.0) and (logg <= 6.0)):
     if (teff < 3000.0):
         spectralClass = "L";
     elif ((teff >= 3000.0) and (teff < 3900.0)):
@@ -1498,7 +1515,7 @@ if (((logg >= 4.0) and (logg < 5.0)) or ((logg >= 5.0) and (logg < 6.0)) or (log
 #//var luminClass = "III" or luminClass = "IV"
 #//Determine the spectralClass and subClass of giants and subgiants. lburns
 #//var luminClass = "III" or luminClass = "IV"
-if (((logg >= 1.5) and (logg < 3.0)) or ((logg >= 3.0) and (logg < 4.0))):
+if ((logg >= 1.5) and (logg < 4.0)):
     if (teff < 3000.0):
         spectralClass = "L";
     elif ((teff >= 3000.0) and (teff < 3700.0)):
@@ -1601,7 +1618,7 @@ if (((logg >= 1.5) and (logg < 3.0)) or ((logg >= 3.0) and (logg < 4.0))):
 
 #//Determine the spectralClass and subClass of supergiants and bright giants. lburns
 #//var luminClass = "I" or luminClass = "II"
-if (((logg >= 0.0) and (logg < 1.0)) or ((logg >= 1.0) and (logg < 1.5))):
+if ((logg >= 0.0) and (logg < 1.5)):
     if (teff < 2700.0):
         spectralClass = "L";
     elif ((teff >= 2700.0) and (teff < 3650.0)):
@@ -1703,7 +1720,7 @@ if (((logg >= 0.0) and (logg < 1.0)) or ((logg >= 1.0) and (logg < 1.5))):
 
 
 #//Determine luminClass based on logg
-if ((logg >= 0.0) and (logg < 1.0)):
+if ((logg >= 0.5) and (logg < 1.0)):
     luminClass = "I";
 elif ((logg >= 1.0) and (logg < 1.5)):
     luminClass = "II";
@@ -1848,16 +1865,18 @@ maxit = 100
 
 #GAS package interface variables:
 gsP0 = [0.0e0 for i in range(40)]
+topP0 = [0.0e0 for i in range(40)]
 gsPp = [0.0e0 for i in range(150)]
 #For reporting purposes only:
-log10MasterGsPp = [ [0.0e0 for iD in range(numDeps)] for iSpec in range(gsNspec) ]
+log10MasterGsPp = [ [-99.0e0 for iD in range(numDeps)] for iSpec in range(gsNspec) ]
 #ppix = [0.0e0 for i in range(30)]
 #a = [0.0e0 for i in range(625)]
 
 #//Begin Pgas-kapp iteration
 
 #Test: 
-#F0Vtemp = 100000.0
+GAStemp = 6000.0
+#GAStemp = 100000.0
 
 for pIter in range(nOuterIter):
 #//
@@ -1866,18 +1885,30 @@ for pIter in range(nOuterIter):
 
     
         
-    if (teff <= F0Vtemp):
+    if (teff <= GAStemp):
+    #if (teff <= 100000.0):   #test        
         
         for iD in range(numDeps):
-        #if (teff <= 100000.0):   #test
+
             #print("isolv ", isolv, " temp ", temp[0][iD], " guessPGas ", guessPGas[0][iD])
             gasestReturn = CSGasEst.gasest(isolv, temp[0][iD], guessPGas[0][iD])
             gsPe0 = gasestReturn[0]
             gsP0 = gasestReturn[1]
             neq = gasestReturn[2]
         
-            #print("iD ", iD, " gsPe0 ", gsPe0, " gsP0 ", gsP0, " neq ", neq)
+            if (iD == 1):
+                topP0 = [ (0.5 * gsP0[iSpec]) for iSpec in range(40) ]    
+                
+            #Upper boundary causes problems:
+            if (pIter > 0 and iD == 0):
+                gsPe0 = 0.5 * newPe[0][1]
+                gsP0 = [ topP0[iSpec] for iSpec in range(40) ] 
+                
+            
+            #print("Calling GAS 1 iD ", iD, " temp ", temp[0][iD])
+            #print("iD ", iD, " gsPe0 ", gsPe0, " gsP0[0] ", gsP0[0], " neq ", neq)
 
+            
             gasReturn = CSGas.gas(isolv, temp[0][iD], guessPGas[0][iD], gsPe0, gsP0, neq, tol, maxit)
             #a = gasReturn[0]
             #nit = gasReturn[1]
@@ -1893,6 +1924,7 @@ for pIter in range(nOuterIter):
             gsMu = gasReturn[6]
             gsRho = gasReturn[7]
         
+            #print("iD ", iD, " gsPe ", gsPe, " gsPp[0] ", gsPp[0], " gsMu ", gsMu, " gsRho ", gsRho)
         
             newPe[0][iD] = gsPe
             newPe[1][iD] = math.log(gsPe)
@@ -1911,7 +1943,8 @@ for pIter in range(nOuterIter):
             for iElem in range(nelemAbnd):
             
                 if (csp2gas[iElem] != -1):
-                    #element is in GAS package:
+                    #element is in GAS package:  
+                    #Neutral stage onnly:
                     thisN = gsPp[csp2gas[iElem]] / Useful.k() / temp[0][iD]    
                     masterStagePops[iElem][0][iD] = math.log(thisN)
             
@@ -1924,7 +1957,8 @@ for pIter in range(nOuterIter):
             #Needed  now GAS??  
             for iA in range(nelemAbnd):
                 if (csp2gas[iA] != -1):
-                    #element is in GAS package:
+                    #element is in GAS package:  
+                    #Captures neutral stage only
                     logNz[iA][iD] = math.log10(gsPp[csp2gas[iA]]) - Useful.logK() - temp[1][iD]
                     
         for iElem in range(26):
@@ -1967,7 +2001,7 @@ for pIter in range(nOuterIter):
         
         
             
-    if (teff > F0Vtemp):  #teff > FoVtemp:
+    if (teff > GAStemp):  #teff > FoVtemp:
             
             #//  Converge Pg-Pe relation starting from intital guesses at Pg and Pe
             #//  - assumes all free electrons are from single ionizations
@@ -2005,7 +2039,7 @@ for pIter in range(nOuterIter):
                 #print("peNum ", math.log10(peNumerator), " peDen ", math.log10(peDenominator))
                 #//iElem chemical element loop
                 newPe[1][iD] = guessPGas[1][iD] + math.log(peNumerator) - math.log(peDenominator) 
-                newPe[0] = [ math.exp(x) for x in newPe[1] ]
+                newPe[0][iD] = math.exp(newPe[1][iD])
                 guessPe[1][iD] = newPe[1][iD]
                 guessPe[0][iD] = math.exp(guessPe[1][iD])
             
@@ -2166,9 +2200,17 @@ for pIter in range(nOuterIter):
 #//Add in Rayleigh scattering opacity from adapted Moog routines:
     logKappaRayl = KappasRaylGas.masterRayl(numDeps, numLams, temp, lambdaScale, masterStagePops, gsName, gsFirstMol, masterMolPops)
     
-    #print("logKappaHHe ", logKappaHHe[:][36])
-    #print("logKappaMetalBF ", logKappaMetalBF[:][36])
-    #print("logKappaRayl ", logKappaRayl[:][36])
+    #print("logKappaHHe ", [logKappaHHe[:][36]])
+    #print("logKappaMetalBF ", [logKappaMetalBF[:][36]])
+    #print("logKappaRayl ", [logKappaRayl[:][36]])
+    
+    #for i in range(numLams):
+    #    print("logKappaHHe " , logE*logKappaHHe[i][36]);
+    #for i in range(numLams):
+    #    print("logKappaMetalBF " , logE*logKappaMetalBF[i][36]);
+    #for i in range(numLams):
+    #   print("logKappaRayl " , logE*logKappaRayl[i][36]);
+
 
 #//Convert metal b-f & Rayleigh scattering opacities to cm^2/g and sum up total opacities
     #double logKapMetalBF, logKapRayl, kapContTot;
@@ -2346,7 +2388,7 @@ zScaleList = 1.0 #/initialization
 #Final run through Phil's GAS EOS/Chemic equil. for consistency with last HSE call above:
 
     
-if (teff <= F0Vtemp):
+if (teff <= GAStemp):
         
     for iD in range(numDeps):    
         
@@ -2370,8 +2412,8 @@ if (teff <= F0Vtemp):
             log10MasterGsPp[iSpec][iD] = math.log10(gsPp[iSpec])
             #print("1: ", gsPp[0]/guessPGas[0][iD])
             #ppix = gasReturn[5]
-            gsMu = gasReturn[6]
-            gsRho = gasReturn[7]
+        gsMu = gasReturn[6]
+        gsRho = gasReturn[7]
         
         
         newPe[0][iD] = gsPe
@@ -2393,6 +2435,7 @@ if (teff <= F0Vtemp):
             
             if (csp2gas[iElem] != -1):
                 #element is in GAS package:
+                #neutral stage only
                 thisN = gsPp[csp2gas[iElem]] / Useful.k() / temp[0][iD]    
                 masterStagePops[iElem][0][iD] = math.log(thisN)
             
@@ -2406,6 +2449,7 @@ if (teff <= F0Vtemp):
         for iA in range(nelemAbnd):
             if (csp2gas[iA] != -1):
                 #element is in GAS package:
+                #neutral stage only
                 logNz[iA][iD] = math.log10(gsPp[csp2gas[iA]]) - Useful.logK() - temp[1][iD]
 
     #end iD loop        
@@ -2455,7 +2499,7 @@ if (teff <= F0Vtemp):
             tauOneStagePops[iElem] = [ logNums[iStage][iTauOne] for iStage in range(numStages) ]
     #} //iElem loop
 
-if (teff > F0Vtemp):
+if (teff > GAStemp):
     
     for neIter2 in range(nInnerIter):
     
@@ -2496,6 +2540,17 @@ if (teff > F0Vtemp):
             #} //iStage loop
             masterStagePops[iElem] = [ [ logNums[iStage][iTau] for iTau in range(numDeps) ] for iStage in range(numStages) ]
             tauOneStagePops[iElem] = [ logNums[iStage][iTauOne] for iStage in range(numStages) ]
+            #Fill in in PP report:
+            if (csp2gas[iElem] != -1):
+                log10MasterGsPp[csp2gas[iElem]] = [ logE*(logNums[0][iTau] + temp[1][iTau] + Useful.logK())\
+                               for iTau in range(numDeps) ]
+            if (csp2gasIon1[iElem] != -1):
+                log10MasterGsPp[csp2gasIon1[iElem]] = [ logE*(logNums[1][iTau] + temp[1][iTau] + Useful.logK())\
+                               for iTau in range(numDeps) ]
+            if (csp2gasIon2[iElem] != -1):
+                log10MasterGsPp[csp2gasIon2[iElem]] = [ logE*(logNums[2][iTau] + temp[1][iTau] + Useful.logK())\
+                               for iTau in range(numDeps) ]
+            
 
         log10UwA = [0.0 for i in range(numAtmPrtTmps)]
         newNe[0] = [ 0.0 for iTau in range(numDeps) ]

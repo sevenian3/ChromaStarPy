@@ -344,7 +344,7 @@ def getDeltaLambda(system):
     # State:  Sigma    Pi    Delta    Phi??
     #Lambda:   0       1     2        3
     
-    deltaLambda = 0.0 #//
+    deltaLambda = 0 #//
 
     #TiO alpha system
     if ("TiO_C3Delta_X3Delta" == system):

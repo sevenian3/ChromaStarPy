@@ -512,10 +512,10 @@ def gsread(cname, eheu):
                         outFile.write(outString)
         """
         # Replace Gas abundnaces with the ones from CSPy
-        #for i in range(natom):
-        #    for j in range(len(cname)):
-        #        if (name[i].strip() == cname[j].strip()):
-        #            comp[i] = 10.0**(eheu[j]-12.0)
+        for i in range(natom):
+            for j in range(len(cname)):
+                if (name[i].strip() == cname[j].strip()):
+                    comp[i] = 10.0**(eheu[j]-12.0)
         #cis: Try this:
         nlin1+=1
         nlin2+=1

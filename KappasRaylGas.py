@@ -80,7 +80,7 @@ c******************************************************************************
     for iH2 in range(len(gsName)):
         if (gsName[iH2].strip() == "H2"):
             break;
-    #print("iH2 ", iH2, " iH2-gsFirstMol ", iH2-gsFirstMol)
+    #print("iH2 ", iH2, " iH2-gsFirstMol ", (iH2-gsFirstMol))
 
     #//System.out.println("iD     PopsH1     PopsHe1");
     for iD in range(numDeps):
@@ -158,6 +158,8 @@ c******************************************************************************
         logGroundPopsH1[iD] = stagePops[0][0][iD] - logStatWH1 
         logGroundPopsHe1[iD] = stagePops[1][0][iD] - logStatWHe1
         logH2Pops[iD] = molPops[iH2-gsFirstMol][iD]
+        #print("iD " , iD , " logH2 " , logH2Pops[iD])
+        
 
            #// if (iD%10 == 1){
            #//     System.out.format("%03d, %21.15f, %21.15f %n",
@@ -282,8 +284,10 @@ def opacH2scat(numDeps, temp, lambda2, molPops):
     wavetemp = 2.997925e18 / min(freq, 2.463e15)
     ww = wavetemp**2
     sig = ( 8.14e-13 + (1.28e-6/ww) + (1.61/(ww*ww)) ) / (ww*ww)
+    #print("freq ", freq, " wavetemp ", wavetemp, " ww ", ww, " sig ", sig)
     for i in range(numDeps):
         sigH2[i] = sig * math.exp(molPops[i])
+        #print("i " , i , " molPops " , molPops[i] , " sigH2 " , sigH2[i])
 
     return sigH2
 
