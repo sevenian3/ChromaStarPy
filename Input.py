@@ -10,13 +10,13 @@ runVers = "Run"
 #makePlot = "none"
 #makePlot = "structure"
 #makePlot = "sed"
-makePlot = "spectrum"
+#makePlot = "spectrum"
 #makePlot = "ldc"
 #makePlot = "ft"
 #makePlot = "tlaLine"
 ###The following two plot variables refer to the partial pressure outpue ("Report 6")
-#makePlot = "ppress"
-#plotSpec = "H"
+makePlot = "ppress"
+plotSpec = "H"
 
 #Spectrum synthesis mode
 # - uses model in Restart.py with minimal structure calculation
@@ -24,8 +24,8 @@ makePlot = "spectrum"
 specSynMode = False
 
 #Model atmosphere
-teff = 15000.0  #,    K
-logg = 4.0 #,      cgs
+teff = 6100.0  #,    K
+logg = 4.5 #,      cgs
 #teff = 5777.0  #,    K
 #logg = 4.44 #,      cgs
 log10ZScale = 0.0     # [A/H]
@@ -61,8 +61,8 @@ logAlphaFe = 0.0   #,   [alpha-elements/Fe]
 #lambdaStop = 1110.0  #,     nm
 
 #CH A2Delta_X2Pi ("G-band" at 4314 A)
-lambdaStart = 655.0  #,       nm    
-lambdaStop = 657.5  #,     nm
+lambdaStart = 395.0  #,       nm    
+lambdaStop = 400.0  #,     nm
 
 
 fileStem = project + "-"\
