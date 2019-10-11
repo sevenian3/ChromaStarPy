@@ -112,14 +112,14 @@ directory called InputData/*.dat.  A default line list ships with the tarball.
 
     ChromaStarPy is known to run in Python V. 3.6 in the spYder V. 3.2.3 IDE under Windows 10, and is python 
 V. 2.7 under linux (see the note about required python modules in "Installation and initial set-up").  The main 
-program resides in source file ChromaStarPy.py and all other source files are 'import'ed here - the user must 
+program resides in source file ChromaStarGasPy.py and all other source files are 'import'ed here - the user must 
 "run" this file in the IDE to run the code.  
 
     To run at the command line prompt outside an IDE:
-    python ./ChromaStarPy.py
+    python ./ChromaStarGasPy.py
 
     To run in an IDE:
-    Open ChromaStarPy.py
+    Open ChromaStarGasPy.py
     Click 'Run'
 
     Textual run-time indicators at the console prompt, in order of appearance:
