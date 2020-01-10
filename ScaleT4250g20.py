@@ -235,6 +235,13 @@ def phxRefPGas(grav, zScale, logAHe, numDeps, tauRos):
     #print("*********")
     #stop        
 
+    #Carefull here - P at upper boundary can be an underestimate, but it must not be greater than value at next depth in!
+    if (scalePGas[0][0] >= scalePGas[0][1]):
+        scalePGas[0][0] = 0.5 * scalePGas[0][1];
+        scalePGas[1][0] = math.log(scalePGas[0][0]);
+
+
+
     return scalePGas
 
 

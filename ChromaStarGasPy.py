@@ -146,7 +146,9 @@ import CSGas
 #plotting:
 import matplotlib
 import matplotlib.pyplot as plt
-#%matplotlib inline
+
+#Type %matplotlib qt5 at python IDE prompt before running to get multiple plot sin different qt windows.
+
 import math
 import numpy
 
@@ -154,6 +156,8 @@ from functools import reduce
 import subprocess
 import os
 import sys
+
+
 
 #############################################
 #
@@ -230,10 +234,15 @@ while slashIndex != -1:
     
 absPath = absPath0 + '/'
 
-makePlot = Input.makePlot
+#Deprecated
+#makePlot = Input.makePlot
+#print("")
+#print("Will make plot: ", makePlot)
+#print("")
 print("")
-print("Will make plot: ", makePlot)
+print("Type %matplotlib qt5 at python IDE prompt before running to get multiple plot sin different qt windows")
 print("")
+
 #stop
 #color platte for plt plotting
 #palette = ['black', 'brown','red','orange','yellow','green','blue','indigo','violet']
@@ -1860,8 +1869,8 @@ log2 = math.log(2.0)
 
 #GAS package parameters:
 isolv = 1
-tol = 1.0e-4
-maxit = 100
+tol = 1.0e-2
+maxit = 10
 
 #GAS package interface variables:
 gsP0 = [0.0e0 for i in range(40)]
@@ -2307,7 +2316,7 @@ ifConvec = False
 numTCorr = 0
 for i in range(numTCorr):
     #//newTemp = TCorr.tCorr(numDeps, tauRos, temp);
-    newTemp = MulGrayTCorr.mgTCorr(numDeps, teff, tauRos, temp, rho, kappaRos)
+    #Not yet newTemp = MulGrayTCorr.mgTCorr(numDeps, teff, tauRos, temp, rho, kappaRos)
     #//newTemp = MulGrayTCorr.mgTCorr(numDeps, teff, tauRos, temp, rho, kappa500);
     #for iTau in range(numDeps):
     #    temp[1][iTau] = newTemp[1][iTau]
@@ -4005,8 +4014,12 @@ with open(outFile, 'w') as strucHandle:
     #                  " " + str(log10prad[i]) + " " + str(log10ne[i]) + " " + str(log10NH[i]) + " " + str(log10rho[i]) + " " + str(mmwAmu[i]) +   \
     #                  str(log10kappaRos[i]) + " " + str(log10kappa500[i]) + "\n" for i in range(numDeps) ]
     #strucHandle.write(outLine)
-    
+
+makePlot = "structure"   
 if makePlot == "structure":
+    
+    plt.figure()
+    plt.subplot(1, 1, 1)
 
     #Initialplot set-up
     plt.title = "T_kin vs log(tau)"
@@ -4043,9 +4056,12 @@ wave = [ round(cm2nm * x, 4) for x in masterLams2 ]
 log10Wave = [ round(math.log10(x), 4) for x in masterLams2 ]
 log10Flux = [ round(log10e * x, 4) for x in masterFlux[1] ]
 
-
+makePlot = "sed"
 if makePlot == "sed":
 
+    plt.figure()
+    plt.subplot(1, 1, 1)    
+    
     #Initial plt plot set-up
     plt.title = "Spectral energy distribution (SED)"
     plt.xlabel(r'$\log_{10} \lambda$ (nm)')
@@ -4114,8 +4130,12 @@ with open(outFile, 'w') as specHandle:
         specHandle.write(outLine)    
 
 
+makePlot = "spectrum"
 if makePlot == "spectrum":
 
+    plt.figure()
+    plt.subplot(1, 1, 1)    
+    
     plt.xlabel(r'$\lambda$ (nm)')
     plt.ylabel(r'$F_\lambda/F^C_\lambda$')
     plt.xlim(-6.5, 2.5)
@@ -4174,8 +4194,12 @@ with open(outFile, 'w') as ldcHandle:
         ldcHandle.write(outLine)
         
 #narrow band limb darkening curve (LDC)
+makePlot = "ldc"        
 if makePlot == "ldc":        
 
+    plt.figure()
+    plt.subplot(1, 1, 1)    
+    
     plt.title = "Narrow band limb darkening"
     plt.xlabel(r'$cos\theta$ (RAD)')
     plt.ylabel(r'$I^{\rm C}_{\rm band}/I^{\rm C}_{\rm band}(0)$')
@@ -4184,7 +4208,11 @@ if makePlot == "ldc":
     plt.plot(cosTheta[1], normTuneBandIntens)
     
 #discrete fourier cosine transform of LDC
+makePlot = "ft"    
 if makePlot == "ft":
+    
+    plt.figure()
+    plt.subplot(1, 1, 1)    
     
     plt.title = "Fourier cosine transform of I_lambda(theta)"
     plt.xlabel('Angular frequency (RAD/RAD)')
@@ -4214,7 +4242,7 @@ with open(outFile, 'w') as ppHandle:
 #with open(tlaFile, 'w') as tlaHandle:
     ppHandle.write(inputParamString + "\n")
     ppHandle.write("Log_10 partial pressures every 10th depth: \n")
-    for iD in range(0, numDeps, 4): 
+    for iD in range(0, numDeps): 
         ppHandle.write("log_10(Tau_Ros) " + str(log10tauRos[iD]) + " T_Kin " + str(log10temp[iD]) +\
                                " (K) log_10(P_Gas) " + str(log10pgas[iD]) +\
                                " (dynes/cm^2) log_10(P_e) " + str(log10pe[iD]) + "\n" )
@@ -4225,8 +4253,12 @@ with open(outFile, 'w') as ppHandle:
         #print("R6 ", (10.0**log10MasterGsPp[0][iD])/(10.0**log10pgas[iD]))
         
 #spectral line of user-defined 2-level atom
+makePlot = "ppress"
 if makePlot == "ppress":
 
+    plt.figure()
+    plt.subplot(1, 1, 1)    
+    
     whichSpec = Input.plotSpec
     for thisSpec in range(gsNspec):
         if (gsName[thisSpec].strip() == whichSpec.strip()):
@@ -4494,8 +4526,12 @@ with open(outFile, 'w') as tlaHandle:
 
 
 #spectral line of user-defined 2-level atom
+makePlot = "tlaLine"
 if makePlot == "tlaLine":
 
+    plt.figure()
+    plt.subplot(1, 1, 1)    
+    
     plt.title = "Fourier cosine transform of I_lambda(theta)"
     plt.xlabel(r'$\lambda$ (nm)')
     plt.ylabel(r'$F_\lambda/F^{\rm C}_\lambda$')

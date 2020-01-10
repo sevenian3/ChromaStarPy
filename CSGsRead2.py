@@ -427,7 +427,7 @@ def gsread(cname, eheu):
     if (nspec != 0):
         
         for j in range(natom):
-            natsp[j] = - 1
+            natsp[j] = -1
             comp[j] = comp[j]/tcomp
 
 #c

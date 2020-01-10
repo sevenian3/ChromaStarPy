@@ -7,6 +7,7 @@ runVers = "Run"
 #Default plot
 #Select ONE only:
 
+##makeplot deprecated:
 #makePlot = "none"
 #makePlot = "structure"
 #makePlot = "sed"
@@ -15,17 +16,22 @@ runVers = "Run"
 #makePlot = "ft"
 #makePlot = "tlaLine"
 ###The following two plot variables refer to the partial pressure outpue ("Report 6")
-makePlot = "ppress"
+#makePlot = "ppress"
+
+#Chemical species for partial rpessure plot:
 plotSpec = "H"
 
 #Spectrum synthesis mode
 # - uses model in Restart.py with minimal structure calculation
 #specSynMode = True
-specSynMode = False
+specSynMode = True
+#safety:
+if (specSynMode):
+    runVers+="SS"
 
 #Model atmosphere
-teff = 6100.0  #,    K
-logg = 4.5 #,      cgs
+teff = 3600.0  #,    K
+logg = 1.0 #,      cgs
 #teff = 5777.0  #,    K
 #logg = 4.44 #,      cgs
 log10ZScale = 0.0     # [A/H]
@@ -61,8 +67,8 @@ logAlphaFe = 0.0   #,   [alpha-elements/Fe]
 #lambdaStop = 1110.0  #,     nm
 
 #CH A2Delta_X2Pi ("G-band" at 4314 A)
-lambdaStart = 395.0  #,       nm    
-lambdaStop = 400.0  #,     nm
+lambdaStart = 511.8  #,       nm    
+lambdaStop = 527.0  #,     nm
 
 
 fileStem = project + "-"\

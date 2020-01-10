@@ -178,6 +178,11 @@ def phxRefPGas(grav, zScale, logAHe, numDeps, tauRos):
     scalePGas[1] = [ -0.5*logZScale + x for x in scalePGas[1] ]
     scalePGas[1] = [ 0.666667 * math.log(1.0 + 4.0*AHe) + x - logHeDenom for x in scalePGas[1] ]
     scalePGas[0] = [ math.exp(x) for x in scalePGas[1] ]
+    
+    #Carefull here - P at upper boundary can be an underestimate, but it must not be greater than value at next depth in!
+    if (scalePGas[0][0] >= scalePGas[0][1]):
+        scalePGas[0][0] = 0.5 * scalePGas[0][1];
+        scalePGas[1][0] = math.log(scalePGas[0][0]);
 
     return scalePGas
 
