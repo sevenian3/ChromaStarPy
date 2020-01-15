@@ -289,8 +289,8 @@ def jolaKap(jolaLogNums, dfBydw, jolaPoints,
 
             thisDeltaF = deltaW * dfBydw[iW][iD]
             if (thisDeltaF > 0.0):
-                thisF += thisDeltaF #//cumulative version
-                #//thisF = thisDeltaF; //non-cumulative version
+                #thisF += thisDeltaF #//cumulative version
+                thisF = thisDeltaF; #//non-cumulative version
                 logSigma = math.log(thisF) + math.log(math.pi) + 2.0*Useful.logEe() - Useful.logMe() - Useful.logC()
             else:
                 logSigma = -999.0

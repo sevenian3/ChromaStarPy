@@ -29,7 +29,7 @@ This is the main source file for ChromaStarPy.  We start here.
  * Philip D. Bennett
  * Saint Mary's University
  * Department of Astronomy and Physics
- * Institute for Computational Astrophysics (ICA)
+ * Eureka Scientific
  * Halifax, NS, Canada
  *
  *
@@ -157,7 +157,8 @@ import subprocess
 import os
 import sys
 
-
+#debugging in spyder
+import pdb
 
 #############################################
 #
@@ -1268,7 +1269,8 @@ logATot = math.log(ATot) #//natural log
 #// END Initial guess for Sun section:
 #//
 #//Rescaled  kinetic temperature structure: 
-#//double F0Vtemp = 7300.0;  // Teff of F0 V star (K)  
+#//double F0Vtemp = 7300.0;  // Teff of F0 V star (K) 
+   
    
 tauRos = [ [0.0 for i in range(numDeps)] for j in range(2) ]                         
 temp = [ [0.0 for i in range(numDeps)] for j in range(2) ]
@@ -1288,14 +1290,108 @@ depths = [ 0.0 for i in range(numDeps) ]
 
 if Input.specSynMode == True:
     
+    
     #ensure self-consistency between parameters and model being read in:
+    
+    print(" ")
+    print(" !!!!!!!!!! ALERT !!!!!!!!!!!!!!!!! ")
+    print(" ")
+    print("Spectrum synthesis mode - structure will NOT be re-converged")
+    print(" ")
+    print(" !!!!!!!!!! ALERT !!!!!!!!!!!!!!!!! ")
+    print(" ")
+    
+    if (Restart.teffRS != teff):
+        print(" ")
+        print(" !!!!!!!!!! BOOM !!!!!!!!!!!!!!!!! ")
+        print(" ")
+        print("Input.teff = ", teff, " BUT Restart.teff =", Restart.teffRS)
+        print(" ")
+        print(" Calling sys.exit() ")
+        print(" ")
+        print(" !!!!!!!!!! BOOM !!!!!!!!!!!!!!!!! ")
+        print(" ")
+        sys.exit()
+
+    if (Restart.loggRS != logg):
+        print(" ")
+        print(" !!!!!!!!!! BOOM !!!!!!!!!!!!!!!!! ")
+        print(" ")
+        print("Input.logg = ", logg, " BUT Restart.logg =", Restart.loggRS)
+        print(" ")
+        print(" Calling sys.exit() ")
+        print(" ")
+        print(" !!!!!!!!!! BOOM !!!!!!!!!!!!!!!!! ")
+        print(" ") 
+        sys.exit()        
+
+    if (Restart.log10ZScaleRS != log10ZScale):
+        print(" ")
+        print(" !!!!!!!!!! BOOM !!!!!!!!!!!!!!!!! ")
+        print(" ")
+        print("Input.log10ZScale = ", log10ZScale, " BUT Restart.log10ZScale =", Restart.log10ZScaleRS)
+        print(" ")
+        print(" Calling sys.exit() ")
+        print(" ")
+        print(" !!!!!!!!!! BOOM !!!!!!!!!!!!!!!!! ")
+        print(" ")  
+        sys.exit()        
+
+    if (Restart.massStarRS != massStar):
+        print(" ")
+        print(" !!!!!!!!!! WARNING !!!!!!!!!!!!!!!!! ")
+        print(" ")
+        print("Input.massStar = ", massStar, " BUT Restart.massStar =", Restart.massStarRS)
+        print(" ")
+        print(" !!!!!!!!!! Warning !!!!!!!!!!!!!!!!! ")
+        print(" ") 
+
+    if (Restart.logKapFudgeRS != logKapFudge):
+        print(" ")
+        print(" !!!!!!!!!! WARNING !!!!!!!!!!!!!!!!! ")
+        print(" ")
+        print("Input.logKapFudge = ", logKapFudge, " BUT Restart.logKapFudge =", Restart.logKapFudgeRS)
+        print(" ")
+        print(" !!!!!!!!!! Warning !!!!!!!!!!!!!!!!! ")
+        print(" ")  
+
+    if (Restart.logHeFeRS != logHeFe):
+        print(" ")
+        print(" !!!!!!!!!! WARNING !!!!!!!!!!!!!!!!! ")
+        print(" ")
+        print("Input.logHeFe = ", logHeFe, " BUT Restart.logHeFe =", Restart.logHeFeRS)
+        print(" ")
+        print(" !!!!!!!!!! Warning !!!!!!!!!!!!!!!!! ")
+        print(" ")           
+
+    if (Restart.logCORS != logCO):
+        print(" ")
+        print(" !!!!!!!!!! WARNING !!!!!!!!!!!!!!!!! ")
+        print(" ")
+        print("Input.logCO = ", logCO, " BUT Restart.logCO =", Restart.logCORS)
+        print(" ")
+        print(" !!!!!!!!!! Warning !!!!!!!!!!!!!!!!! ")
+        print(" ")           
+
+    if (Restart.logAlphaFeRS != logAlphaFe):
+        print(" ")
+        print(" !!!!!!!!!! WARNING !!!!!!!!!!!!!!!!! ")
+        print(" ")
+        print("Input.logAlphaFe = ", logAlphaFe, " BUT Restart.logAlphaFe =", Restart.logAlphaFeRS)
+        print(" ")
+        print(" !!!!!!!!!! Warning !!!!!!!!!!!!!!!!! ")
+        print(" ") 
+
+          
     teff = Restart.teffRS
     logg = Restart.loggRS
-    log10ZSale = Restart.log10ZScaleRS
+    log10ZScale = Restart.log10ZScaleRS
+    massStar = Restart.massStarRS    
+    xiT = Restart.xiTRS    
     logKapFudge = Restart.logKapFudgeRS
     logHeFe = Restart.logHeFeRS
     logCO = Restart.logCORS
-    logAlphaFe = Restart.logAlphaFeRS
+    logAlphaFe = Restart.logAlphaFeRS        
 
     tauRos[0] = [ x for x in Restart.tauRosRS[0] ]
     tauRos[1] = [ x for x in Restart.tauRosRS[1] ]    
@@ -1310,8 +1406,8 @@ if Input.specSynMode == True:
     guessPGas[1] = [ x for x in Restart.pGasRS[1] ]
     guessPe[0] = [ x for x in Restart.peRS[0] ]
     guessPe[1] = [ x for x in Restart.peRS[1] ]    
-    newNe[1] = [newPe[1][iD] - temp[1][iD] - Useful.logK() for iD in range(numDeps)]
-    newNe[0] = [math.exp(newNe[1][iD]) for iD in range(numDeps)]   
+    guessNe[1] = [newPe[1][iD] - temp[1][iD] - Useful.logK() for iD in range(numDeps)]
+    guessNe[0] = [math.exp(guessNe[1][iD]) for iD in range(numDeps)]   
     pRad[0] = [ x for x in Restart.pRadRS[0] ]
     pRad[1] = [ x for x in Restart.pRadRS[1] ]
     rho[0] = [ x for x in Restart.rhoRS[0] ]
@@ -1367,6 +1463,12 @@ else:
         guessPe = ScaleT10000.phxRefPe(teff, grav, numDeps, tauRos, zScale, logAz[1])
         guessNe = ScaleT10000.phxRefNe(numDeps, temp, guessPe)
         #//logKapFudge = -1.5;  //sigh - don't ask me - makes the Balmer lines show up around A0 
+
+##In every case - initialization:        
+#newNe[0] = [ guessNe[0][i] for i in range(numDeps)]
+#newNe[1] = [ guessNe[1][i] for i in range(numDeps)]
+    
+    
     
 #//Now do the same for the Sun, for reference:
 tempSun = ScaleSolar.phxSunTemp(teffSun, numDeps, tauRos)
@@ -2620,6 +2722,8 @@ with open(outFile, 'w') as restartHandle:
     outLine = "loggRS = " + str(logg) + " #log (cm/^2)\n"
     restartHandle.write(outLine)
     outLine = "log10ZScaleRS = " + str(log10ZScale) + "\n"
+    restartHandle.write(outLine)
+    outLine = "massStarRS = " + str(massStar) + " # (M_Sun) \n"
     restartHandle.write(outLine)    
     outLine = "xiTRS = " + str(xiT) + " # (km/s) \n"
     restartHandle.write(outLine)
@@ -3733,11 +3837,28 @@ for iD in range(numDeps):
     for iL in range(numKept):
         logSweptKaps[iL][iD] = logMasterKaps[iL][iD]
 #end special sweeper test block"""
+# doesn't work  ipdb.set_trace(pdb debug command  
+
+##Debug:
+#print("numLams ", numLams, " numKept ", numKept)
+#print("logKappa[:][36]")
+#for iL in range(0, numLams, 10):
+#    print(lambdaScale[iL], logKappa[iL][36])
+#print("logSweptKaps[:][36]")
+#for iL in range(0, numKept, 10):
+#    print(sweptLams[iL], logSweptKaps[iL][36])
+#plt.figure()
+#plt.subplot(1,1,1)
+#plt.plot(lambdaScale, [logKappa[iL][36] for iL in range(numLams) ], linewidth=3 )
+#plt.plot(sweptLams, [logSweptKaps[iL][36] for iL in range(numKept) ], '--' )  
+
 #//
 #////
 #//Continuum monochromatic optical depth array:
 logTauCont = LineTau2.tauLambdaCont(numLams, logKappa,
                  kappa500, numDeps, tauRos, logTotalFudge)
+
+
 
 #//Evaluate formal solution of rad trans eq at each lambda 
 #// Initial set to put lambda and tau arrays into form that formalsoln expects
@@ -3880,7 +4001,11 @@ specSynFlux = [ [ 0.0 for i in range(numSpecSyn) ] for j in range(2) ]
 #   specSynFlux[0][iCount] = math.exp(specSynFlux[1][iCount])
     
 specSynLams = [ x for x in sweptLams[iStart: iStart+numSpecSyn] ]
-specSynFlux[1] = [ masterFlux[1][iStart+iCount] - logContFluxI[iStart+iCount] for iCount in range(numSpecSyn) ]
+specSynFlux[1] = [ (masterFlux[1][iStart+iCount] - logContFluxI[iStart+iCount]) for iCount in range(numSpecSyn) ]
+#print("log masterFlux")
+#print([masterFlux[1][iStart+iCount] for iCount in range(numSpecSyn)])
+#print("logContFluxI")
+#print([logContFluxI[iStart+iCount] for iCount in range(numSpecSyn)])
 specSynFlux[0] = [math.exp(x) for x in specSynFlux[1] ]
 
 #//
@@ -4055,6 +4180,11 @@ log10Flux = [0.0 for i in range(numWave)]
 wave = [ round(cm2nm * x, 4) for x in masterLams2 ]
 log10Wave = [ round(math.log10(x), 4) for x in masterLams2 ]
 log10Flux = [ round(log10e * x, 4) for x in masterFlux[1] ]
+#Debug
+#log10WaveC = [ round(math.log10(x), 4) for x in lambdaScale ]
+#log10FluxC = [ round(log10e * x, 4) for x in contFlux[1] ]
+#log10WaveCI = [ round(math.log10(x), 4) for x in sweptLams ]
+#log10FluxCI = [ round(log10e * x, 4) for x in logContFluxI ]
 
 makePlot = "sed"
 if makePlot == "sed":
@@ -4064,7 +4194,7 @@ if makePlot == "sed":
     
     #Initial plt plot set-up
     plt.title = "Spectral energy distribution (SED)"
-    plt.xlabel(r'$\log_{10} \lambda$ (nm)')
+    plt.xlabel(r'$\log_{10} \lambda$ (cm)')
     plt.ylabel(r'$\log_{10} F_\lambda$ (erg s$^{-1}$ cm$^{-2}$ cm$^{-1}$')
     xMin = min(log10Wave) - 0.1
     xMax = max(log10Wave) + 0.1
@@ -4072,7 +4202,10 @@ if makePlot == "sed":
     yMax = max(log10Flux) + 0.5
     yMin = min(log10Flux) - 0.5
     plt.ylim(yMin, yMax)
-    plt.plot(log10Wave, log10Flux)    
+    plt.plot(log10Wave, log10Flux, linewidth=3)  
+    #Debug
+    #plt.plot(log10WaveC, log10FluxC, "--", linewidth = 2)
+    #plt.plot(log10WaveCI, log10FluxCI, "-.")
 
 #outFile = outPath + sedFile
 outFile = outPath + fileStem + ".sed.txt"
