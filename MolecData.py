@@ -253,36 +253,36 @@ def getQuantumS(system):
 
     #TiO alpha system
     if ("TiO_C3Delta_X3Delta" == system):
-        jolaQuantumS = 1.0e-16
+        jolaQuantumS = 1.0e-15
 
     #TiO beta system
     if ("TiO_c1Phi_a1Delta" == system):
-        jolaQuantumS = 1.0e-16
+        jolaQuantumS = 1.0e-15
         
     #TiO Gamma system
     if ("TiO_A3Phi_X3Delta" == system):
-        jolaQuantumS = 1.5e-15
+        jolaQuantumS = 1.5e-14
         
     #These ones are from Jorgensen, 1994, A&A, 284, 179  
     #TiO gamma prime system
     if ("TiO_B3Pi_X3Delta" == system):
-        jolaQuantumS = 1.0e-16
+        jolaQuantumS = 1.0e-15
         
     #TiO epsilon system    
     if ("TiO_E3Pi_X3Delta" == system):
-        jolaQuantumS = 1.0e-15
+        jolaQuantumS = 1.0e-14
         
     #TiO delta system    
     if ("TiO_b1Pi_a1Delta" == system):
-        jolaQuantumS = 5.0e-16
+        jolaQuantumS = 5.0e-15
         
     #TiO phi system    
     if ("TiO_b1Pi_d1Sigma" == system):
-        jolaQuantumS = 1.0e-15
+        jolaQuantumS = 1.0e-14
         
     #CH A^2Delta_X^2Pi system - "G band" at 4300 A
     if ("CH_A2Delta_X2Pi" == system):
-        jolaQuantumS = 1.0e-15  #who really knows...     
+        jolaQuantumS = 1.0e-14  #who really knows...     
 
     return jolaQuantumS
 

@@ -156,6 +156,7 @@ def gsread(cname, eheu):
     nlin2 = -1
     tcomp = 0.0e0
     
+    
     """
     with open(inFile, 'r') as inputHandle:
         
@@ -407,7 +408,30 @@ def gsread(cname, eheu):
     #Ends file read loop "with open(infile...??)
         
     #After read loop:
-    
+    #print("tcomp ", tcomp)
+    # Replace Gas abundances with the ones from CSPy
+    #CSPy/Phoenix eheu[] values on A_12 scale where 
+    # eheu[i] = log_10(N_i/N_H) + 12
+    # I *think* GAS comp[] value are comp[i] = N_i/N_tot
+    #print("n ", n)
+    CSNiOverNH = 0.0
+    convTerm = 0.0
+    invComp = 1.0
+    #skip Hydrogen
+    for i in range(n):
+        #if (name[i].strip() != 'H'):
+            #print("element: name ", name[i], " comp[] ", comp[iat[i]])
+            for j in range(len(cname)):
+                #print("element: name ", name[i], " cname ", cname[j])
+                if (name[i].strip() == cname[j].strip()):
+                    CSNiOverNH = 10.0**(eheu[j]-12.0)
+                    #Assumes 1st GAS element is H
+                    for k in range(1, n):
+                        convTerm += comp[iat[k]]/comp[iat[i]]
+                    invComp = 1.0/CSNiOverNH + convTerm
+                    comp[iat[i]] = 1.0 / invComp
+                    #print("Abundance fix element: name ", name[i], " cname ", cname[j], " newComp ", comp[iat[i]])
+                    convTerm = 0.0 #reset accumulator
 #c
 #c Normalize abundances such that SUM(COMP) = 1
 #c
@@ -511,15 +535,13 @@ def gsread(cname, eheu):
                         #outString = str(i) + " " + str(name[i]) + " " + str(awt[i]) + " " + str(nch[i]) + " " + str(neut[i]) + " " + str(ip[i]) + " " + str(logwt[i]) + "\n"
                         outFile.write(outString)
         """
-        # Replace Gas abundnaces with the ones from CSPy
-        for i in range(natom):
-            for j in range(len(cname)):
-                if (name[i].strip() == cname[j].strip()):
-                    comp[i] = 10.0**(eheu[j]-12.0)
+
         #cis: Try this:
         nlin1+=1
         nlin2+=1
         natom+=1
+
+
 
     return
 
