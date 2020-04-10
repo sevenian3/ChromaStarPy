@@ -16,37 +16,19 @@ import Useful
 import ToolBox
 nm2cm = 1.0e-7
 
-def UBVRI(lambdaScale, flux, numDeps, tauRos, temp):
+def UBVRIraw(lambdaScale, flux):
 
-    """/**
- * First, reality check raw colours, THEN Run Vega model and subtract off Vega
- * colours for single-point calibration
- */"""    
-        
+    """
+    #Computes raw UBVRI fluxes
+    """
+    
     filters = filterSet()
-
-    numCols = 7  #//five band combinations in Johnson-Bessell UxBxBVRI: Ux-Bx, B-V, V-R, V-I, R-I, V-K, J-K
-    colors = [0.0 for i in range(numCols)]
 
     numBands = len(filters)
     #var numLambdaFilt
 
     bandFlux = [0.0 for i in range(numBands)]
 
-
-    #// Single-point calibration to Vega:
-    #// Vega colours computed self-consistntly with GrayFox 1.0 using 
-    #// Stellar parameters of Castelli, F.; Kurucz, R. L., 1994, A&A, 281, 817
-    #// Teff = 9550 K, log(g) = 3.95, ([Fe/H] = -0.5 - not directly relevent):
-
-    #vegaColors = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]; #//For re-calibrating with raw Vega colours
-    #// Aug 2015 - with 14-line linelist:
-    #//var vegaColors = [0.289244, -0.400324, 0.222397, -0.288568, -0.510965];
-    #//var vegaColors = [0.163003, -0.491341, 0.161940, -0.464265, -0.626204];
-    #//With Balmer line linear Stark broadening wings:
-    #//vegaColors = [0.321691, -0.248000, 0.061419, -0.463083, -0.524502];
-    #vegaColors = [0.53, -0.66, 0.11, -0.51, -0.62]
-    vegaColors = [0.0528, -0.6093, 0.3241, -1.1729, -0.6501, -3.2167, -1.5526] #//lburns, June 2017
 
     #var deltaLam, newY, product;
 
@@ -85,6 +67,50 @@ def UBVRI(lambdaScale, flux, numDeps, tauRos, temp):
     #}  //ib loop - bands
 
     #var raw;
+
+    return bandFlux
+
+#}; //UBVRI
+
+#//
+#//
+    
+def UBVRI(bandFlux):
+
+    """/**
+ * Computes colors from band-integrated fluxes from UBVRIraw()
+ * First, reality check raw colours, THEN Run Vega model and subtract off Vega
+ * colours for single-point calibration
+ */"""    
+
+    #Must be consistent with UBVRIraw()
+    #As of April 2020:  Index, band
+    #                   0,     Ux
+    #                   1,     Bx
+    #                   2,     B
+    #                   3,     V
+    #                   4,     R
+    #                   5,     I
+    #                   6,     H
+    #                   7,     J
+    #                   8,     K
+
+    numCols = 7  #//seven band combinations in Johnson-Bessell UxBxBVRI: Ux-Bx, B-V, V-R, V-I, R-I, V-K, J-K
+    colors = [0.0 for i in range(numCols)]
+
+    #// Single-point calibration to Vega:
+    #// Vega colours computed self-consistently using 
+    #// Stellar parameters of Castelli, F.; Kurucz, R. L., 1994, A&A, 281, 817
+    #// Teff = 9550 K, log(g) = 3.95, [Fe/H] = -0.5:
+
+    #vegaColors = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]; #//For re-calibrating with raw Vega colours
+    #// Aug 2015 - with 14-line linelist:
+    #//var vegaColors = [0.289244, -0.400324, 0.222397, -0.288568, -0.510965];
+    #//var vegaColors = [0.163003, -0.491341, 0.161940, -0.464265, -0.626204];
+    #//With Balmer line linear Stark broadening wings:
+    #//vegaColors = [0.321691, -0.248000, 0.061419, -0.463083, -0.524502];
+    #vegaColors = [0.53, -0.66, 0.11, -0.51, -0.62]
+    vegaColors = [0.0528, -0.6093, 0.3241, -1.1729, -0.6501, -3.2167, -1.5526] #//lburns, June 2017
 
     #// Ux-Bx: 
     raw = 2.5 * math.log10(bandFlux[1] / bandFlux[0])

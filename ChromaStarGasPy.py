@@ -12,7 +12,7 @@ This is the main source file for ChromaStarPy.  We start here.
  *
  * ChromaStarPy
  *
- * Version 2019-07-08
+ * Version 2020-04-10
  * Use date based versioning with ISO 8601 date (YYYY-MM-DD)
  *
  * December 2017
@@ -126,8 +126,12 @@ import LineKappa
 import LineTau2
 import FormalSoln
 import Flux
+import FluxTrans
 import LDC
 import PostProcess
+
+#Integrated Planetary transit light curve modelling
+import TransitLightCurve2
 
 # GAS ESO/checmial equilibrium package, ported from Phil Bennett/Athena
 #Requires special python ports of some blas and lapack routines - part of CSPy distribution
@@ -458,8 +462,8 @@ if (voigtThresh > 6.0):
 #    voigtThreshStr = "6.0"
         
 #//User defined spetrum synthesis region:
-lamUV = 260.0;
-lamIR = 2600.0;
+lamUV = numpy.double(260.0);
+lamIR = numpy.double(2600.0);
 
 #// Argument 8: starting wavelength for spectrum synthesis 
 
@@ -520,8 +524,8 @@ if (lambdaStop > lamIR):
 
 #//console.log("lambdaStop " + lambdaStop);
 
-nm2cm = 1.0e-7
-cm2nm = 1.0e7     
+nm2cm = numpy.double(1.0e-7)
+cm2nm = numpy.double(1.0e7)     
 lambdaStart = nm2cm * lambdaStart #//nm to cm 
 lambdaStop = nm2cm * lambdaStop  #//nm to cm
 lamUV = nm2cm * lamUV
@@ -825,6 +829,38 @@ if (userLogGammaCol > 1.0):
 #    useLogGammaColStr = "1.0"
 
 userLam0 = userLam0 * nm2cm #// line centre lambda from nm to cm
+
+#
+
+#Planetary transit light-curve modelling input:
+# Oribital period is not a free parameter - it is set by the 
+# size of the orbit and the planet's mass by basic 
+#Kepler's 3rd law
+
+#Sanity checks on inputs occur after stellar 'radius' defined below...
+
+#For development - plantary transit light curve stuff
+#TransLight(rotI, radius, rOrbit, rPlanet, cosTheta, phi):
+#ifTransit = True
+#rOrbit = 1.0 # AU
+#rPlanet = 1.0 #Earth radii
+#mPlanet = 1.0 #Earth masses
+ifTransit = Input.ifTransit
+rOrbit = Input.rOrbit # AU
+rPlanet = Input.rPlanet #Earth radii
+#mPlanet = Input.mPlanet #Earth masses (not needed (yet??))
+
+
+#Upper limit ensures Kepler III is valid
+
+#if (mPlanet > 0.1*massStar): 
+#    mPlanet = 0.1*massStar
+#        
+#if (mPlanet <= 0.0): 
+#    mPlanet = 0.001*massStar
+
+
+
 #stop
 #Create output file
 
@@ -881,23 +917,26 @@ logTotalFudge = logKapFudge + logFudgeTune
 logE = math.log10(math.e) #// for debug output
 logE10 = math.log(10.0) #//natural log of 10
 
+tiny = numpy.double(1.0e-49)
+logTiny = math.log(tiny)
+
 #//Gray structure and Voigt line code code begins here:
 #// Initial set-up:
 #// optical depth grid
 numDeps = 48
-log10MinDepth = -6.0
-log10MaxDepth = 2.0
+log10MinDepth = numpy.double(-6.0)
+log10MaxDepth = numpy.double(2.0)
 #//int numThetas = 10;  #// Guess
 
 #//wavelength grid (cm):
-lamSetup = [ 0.0 for i in range(3) ]
+lamSetup = [ numpy.double(0.0) for i in range(3) ]
 #for i in range(3):
 #    lamSetup.append(0.0)
 
-lamSetup[0] = 260.0 * nm2cm  #// test Start wavelength, cm
-#lamSetup[0] = 100.0 * 1.0e-7;  // test Start wavelength, cm
-lamSetup[1] = 2600.0 * nm2cm #// test End wavelength, cm
-lamSetup[2] = 250;  #// test number of lambda
+lamSetup[0] = numpy.double(260.0) * nm2cm  #// test Start wavelength, cm
+#lamSetup[0] = numpy.double(100.0) * 1.0e-7;  // test Start wavelength, cm
+lamSetup[1] = numpy.double(2600.0) * nm2cm #// test End wavelength, cm
+lamSetup[2] = numpy.double(250);  #// test number of lambda
 #//int numLams = (int) (( lamSetup[1] - lamSetup[0] ) / lamSetup[2]) + 1;  
 numLams = int(lamSetup[2])
 
@@ -921,9 +960,9 @@ radius = math.exp(logRadius); #//solar radii
 logLum = 2.0 * math.log(radius) + 4.0 * math.log(teff / teffSun)
 bolLum = math.exp(logLum) #// L_Bol in solar luminosities 
 #//cgs units:
-rSun = 6.955e10 #// solar radii to cm
+#rSun = 6.955e10 #// solar radii to cm
 
-cgsRadius = radius * rSun
+cgsRadius = radius * Useful.rSun()
 omegaSini = (1.0e5 * vsini) / cgsRadius #// projected rotation rate in 1/sec
 macroVkm = macroV * 1.0e5  #//km/s to cm/s
 
@@ -933,6 +972,51 @@ massX = 0.70 #//Hydrogen
 massY = 0.28 #//Helium
 massZSun = 0.02 #// "metals"
 massZ = massZSun * zScale #//approximation
+
+
+#For planetary transit light curve:
+#Now we can do sanity checks on these inputs:
+rPlanetSol = rPlanet * Useful.rEarth() / Useful.rSun() #Earth radii to solar radii    
+if (rPlanetSol > 0.1*radius): 
+    rPlanetSol = 0.1*radius 
+    rPlanet = rPlanetSol * Useful.rSun() / Useful.rEarth()       
+if (rPlanet <= 0.0): 
+    rPlanetSol = 0.001*radius
+    rPlanet = rPlanetSol * Useful.rSun() / Useful.rEarth() 
+
+rOrbitSol = rOrbit * Useful.AU2cm() / Useful.rSun()
+if (rOrbitSol < radius):
+    rOrbitSol = radius
+    rOrbit = rOrbitSol * Useful.rSun() / Useful.AU2cm()
+if (rOrbit > 100.0*Useful.AU2cm()):
+    rOrbitSol = 100.0*Useful.AU2cm() 
+
+logMassStar = math.log(massStar) + Useful.logMSun() #MSun to g
+#print("MassStar ", math.exp(logMassStar))
+logROrbCm = math.log(rOrbit) + Useful.logAU2cm() #AU to cm
+#print("ROrbCm ", math.exp(logROrbCm))
+
+#linear velocity of planetary orbit from Kepler's 3rd law
+#Assumes planet at same distance as stellar surface
+logVtransSq = Useful.logGConst() + logMassStar - logROrbCm
+logVtrans = 0.5*logVtransSq
+vTrans = math.exp(logVtrans)  #cm/s approximately at star's surface 
+#print("vTrans ", vTrans)
+
+#For period calculation only:
+#angular velocity of planetary orbit from Kepler's 3rd law
+logOmegaSq = Useful.logGConst() + logMassStar - 3*logROrbCm
+logOmega = 0.5 * logOmegaSq  # RAD/s
+#print("Omega ", math.exp(logOmega))
+
+#Orbital period - for interest
+logPplanet = math.log(2.0) + math.log(math.pi) - logOmega
+pPlanet = math.exp(logPplanet)
+print("Planetary orbital period (s) ", pPlanet)  # in s
+#Establish ephemeris with zero epoch (phase = 0) at mid-transit
+#time interval should be equal to or less than time taken for plane to
+#move through its own diameter - time interval of ingress or egress 
+ingressT = ( 2.0*rPlanet*Useful.rEarth() ) / vTrans
 
 #//double logNH = 17.0
 
@@ -999,6 +1083,7 @@ nome[37]=  5600
 nome[38]=  5700
 nome[39]=  5500  
 nome[40]=  3200  
+"""
 #//log_10 "A_12" values:
 eheu[0]= 12.00  
 eheu[1]= 10.93 
@@ -1030,6 +1115,40 @@ eheu[26]=  4.99
 eheu[27]=  6.22
 eheu[28]=  4.19  
 eheu[29]=  4.56 
+"""
+#Reset 1st 30 element abundances to Phoenix values for 
+#comparison of GAS package molecular equilibrium with PPRESS
+eheu[0]= 12.00 
+eheu[1]= 10.99 
+eheu[2]=  1.16 
+eheu[3]=  1.15
+eheu[4]=  2.60 
+eheu[5]=  8.55 
+eheu[6]=  7.97 
+eheu[7]=  8.87 
+eheu[8]=  4.56 
+eheu[9]=  8.08 
+eheu[10]=  6.33 
+eheu[11]=  7.58 
+eheu[12]=  6.47 
+eheu[13]=  7.55 
+eheu[14]=  5.45 
+eheu[15]=  7.21 
+eheu[16]=  5.50 
+eheu[17]=  6.52 
+eheu[18]=  5.12 
+eheu[19]=  6.36 
+eheu[20]=  3.17 
+eheu[21]=  5.02 
+eheu[22]=  4.00 
+eheu[23]=  5.67 
+eheu[24]=  5.39 
+eheu[25]=  7.50 
+eheu[26]=  4.92 
+eheu[27]=  6.25
+eheu[28]=  4.21 
+eheu[29]=  4.60
+# Remainder are original CSPy values as of Jan 2020
 eheu[30]=  3.04
 eheu[31]=  3.25  
 eheu[32]=  2.52 
@@ -1271,20 +1390,19 @@ logATot = math.log(ATot) #//natural log
 #//Rescaled  kinetic temperature structure: 
 #//double F0Vtemp = 7300.0;  // Teff of F0 V star (K) 
    
-   
-tauRos = [ [0.0 for i in range(numDeps)] for j in range(2) ]                         
-temp = [ [0.0 for i in range(numDeps)] for j in range(2) ]
-guessPGas = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-guessPe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-guessNe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-kappaRos = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-kappa500 = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-pGas = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-newPe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-pRad = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-rho = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-newNe = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
-mmw = [ 0.0 for i in range(numDeps) ]
+tauRos = [ [numpy.double(0.0) for i in range(numDeps)] for j in range(2) ]                         
+temp = [ [numpy.double(0.0) for i in range(numDeps)] for j in range(2) ]
+guessPGas = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(2) ]
+guessPe = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(2) ]
+guessNe = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(2) ]
+kappaRos = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(2) ]
+kappa500 = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(2) ]
+pGas = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(2) ]
+newPe = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(2) ]
+pRad = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(2) ]
+rho = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(2) ]
+newNe = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(2) ]
+mmw = [ numpy.double(0.0) for i in range(numDeps) ]
 
 depths = [ 0.0 for i in range(numDeps) ]
 
@@ -1393,30 +1511,30 @@ if Input.specSynMode == True:
     logCO = Restart.logCORS
     logAlphaFe = Restart.logAlphaFeRS        
 
-    tauRos[0] = [ x for x in Restart.tauRosRS[0] ]
-    tauRos[1] = [ x for x in Restart.tauRosRS[1] ]    
-    temp[0] = [ x for x in Restart.tempRS[0] ]
-    temp[1] = [ x for x in Restart.tempRS[1] ]
-    pGas[0] = [ x for x in Restart.pGasRS[0] ]
-    pGas[1] = [ x for x in Restart.pGasRS[1] ]
-    newPe[0] = [ x for x in Restart.peRS[0] ]
-    newPe[1] = [ x for x in Restart.peRS[1] ]
+    tauRos[0] = [ numpy.double(x) for x in Restart.tauRosRS[0] ]
+    tauRos[1] = [ numpy.double(x) for x in Restart.tauRosRS[1] ]    
+    temp[0] = [ numpy.double(x) for x in Restart.tempRS[0] ]
+    temp[1] = [ numpy.double(x) for x in Restart.tempRS[1] ]
+    pGas[0] = [ numpy.double(x) for x in Restart.pGasRS[0] ]
+    pGas[1] = [ numpy.double(x) for x in Restart.pGasRS[1] ]
+    newPe[0] = [ numpy.double(x) for x in Restart.peRS[0] ]
+    newPe[1] = [ numpy.double(x) for x in Restart.peRS[1] ]
     # set up everything as in normal structure mode:
-    guessPGas[0] = [ x for x in Restart.pGasRS[0] ]
-    guessPGas[1] = [ x for x in Restart.pGasRS[1] ]
-    guessPe[0] = [ x for x in Restart.peRS[0] ]
-    guessPe[1] = [ x for x in Restart.peRS[1] ]    
+    guessPGas[0] = [ numpy.double(x) for x in Restart.pGasRS[0] ]
+    guessPGas[1] = [ numpy.double(x) for x in Restart.pGasRS[1] ]
+    guessPe[0] = [ numpy.double(x) for x in Restart.peRS[0] ]
+    guessPe[1] = [ numpy.double(x) for x in Restart.peRS[1] ]    
     guessNe[1] = [newPe[1][iD] - temp[1][iD] - Useful.logK() for iD in range(numDeps)]
     guessNe[0] = [math.exp(guessNe[1][iD]) for iD in range(numDeps)]   
-    pRad[0] = [ x for x in Restart.pRadRS[0] ]
-    pRad[1] = [ x for x in Restart.pRadRS[1] ]
-    rho[0] = [ x for x in Restart.rhoRS[0] ]
-    rho[1] = [ x for x in Restart.rhoRS[1] ]
-    kappa500[0] = [ x for x in Restart.kappa500RS[0] ]
-    kappa500[1] = [ x for x in Restart.kappa500RS[1] ]
-    kappaRos[0] = [ x for x in Restart.kappaRosRS[0] ]
-    kappaRos[1] = [ x for x in Restart.kappaRosRS[1] ]
-    mmw = [ x for x in Restart.mmwRS ]
+    pRad[0] = [ numpy.double(x) for x in Restart.pRadRS[0] ]
+    pRad[1] = [ numpy.double(x) for x in Restart.pRadRS[1] ]
+    rho[0] = [ numpy.double(x) for x in Restart.rhoRS[0] ]
+    rho[1] = [ numpy.double(x) for x in Restart.rhoRS[1] ]
+    kappa500[0] = [ numpy.double(x) for x in Restart.kappa500RS[0] ]
+    kappa500[1] = [ numpy.double(x) for x in Restart.kappa500RS[1] ]
+    kappaRos[0] = [ numpy.double(x) for x in Restart.kappaRosRS[0] ]
+    kappaRos[1] = [ numpy.double(x) for x in Restart.kappaRosRS[1] ]
+    mmw = [ numpy.double(x) for x in Restart.mmwRS ]
     
     #We are reading in a converged model - minimal processing:
     nOuterIter = 1
@@ -1488,7 +1606,7 @@ logNz = State.getNz(numDeps, temp, guessPGas, guessPe, ATot, nelemAbnd, logAz)
 #    masterStagePops[0][1][i] = guessPe[1][i] #//iElem = 0: H; iStage = 1: II
     #//System.out.println("i " + i + " logNH[i] " + logE*logNH[i]);
 logNH = [ x for x in logNz[0] ]
-masterStagePops[0][1] = [ x for x in guessPe[1] ]
+masterStagePops[0][1] = [ numpy.double(x) for x in guessPe[1] ]
     
 #//Load the total no. density of each element into the nuetral stage slots of the masterStagePops array as a first guess at "species B" neutral
 #//populations for the molecular Saha eq. - Reasonable first guess at low temp where molecuales form
@@ -1906,8 +2024,8 @@ species = " "  #; //default initialization
 #  double rho[][] = new double[2][numDeps];
 #  double[][] tauOneStagePops = new double[nelemAbnd][numStages];
 
-tauOneStagePops = [ [ 0.0 for i in range(numStages) ] for j in range(nelemAbnd) ]
-unity = 1.0
+tauOneStagePops = [ [ numpy.double(0.0) for i in range(numStages) ] for j in range(nelemAbnd) ]
+unity = numpy.double(1.0)
 zScaleList = 1.0 #//initialization   
 
 numAtmPrtTmps = 5
@@ -1937,21 +2055,21 @@ speciesB = " "
 
 
 #//initialize masterMolPops for mass density (rho) calculation:
-masterMolPops = [ [ -49.0 for i in range(numDeps) ] for j in range(gsNumMols) ]
+masterMolPops = [ [ logTiny for i in range(numDeps) ] for j in range(gsNumMols) ]
 for i in range(gsNumMols):
     for j in range(numDeps):
         masterMolPops[i][j] = -49.0  #//these are logarithmic
     
   
-Ng = [ 0.0 for i in range(numDeps) ]
+Ng = [ numpy.double(0.0) for i in range(numDeps) ]
 
   #double logMmw;
-logKappa = [ [ 0.0 for i in range(numDeps) ] for j in range(numLams) ]
-logKappaHHe = [ [ 0.0 for i in range(numDeps) ] for j in range(numLams) ]
-logKappaMetalBF = [ [ 0.0 for i in range(numDeps) ] for j in range(numLams) ]
-logKappaRayl = [ [ 0.0 for i in range(numDeps) ] for j in range(numLams) ]
+logKappa = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(numLams) ]
+logKappaHHe = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(numLams) ]
+logKappaMetalBF = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(numLams) ]
+logKappaRayl = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(numLams) ]
 
-newTemp = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+newTemp = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(2) ]
 
 
 #//
@@ -1979,7 +2097,7 @@ gsP0 = [0.0e0 for i in range(40)]
 topP0 = [0.0e0 for i in range(40)]
 gsPp = [0.0e0 for i in range(150)]
 #For reporting purposes only:
-log10MasterGsPp = [ [-99.0e0 for iD in range(numDeps)] for iSpec in range(gsNspec) ]
+log10MasterGsPp = [ [logTiny for iD in range(numDeps)] for iSpec in range(gsNspec) ]
 #ppix = [0.0e0 for i in range(30)]
 #a = [0.0e0 for i in range(625)]
 
@@ -2911,16 +3029,112 @@ numThetas = len(cosTheta[0])
 #//        // increases CCW)
 numPhiPerQuad = 6
 numPhi = 4 * numPhiPerQuad
-numPhiD = float(numPhi)
-phi = [0.0 for i in range(numPhi)]
+numPhiD = numpy.double(numPhi)
+phi = [numpy.double(0.0) for i in range(numPhi)]
 #//Compute phi values in whole range (0 - 2pi radians):
-delPhi = 2.0 * math.pi / numPhiD
+delPhi = numpy.double(2.0 * math.pi / numPhiD)
 #double ii
 #for i in range(numPhi):
 #    ii = float(i)
 #    phi[i] = delPhi * ii
-phi = [ delPhi * float(i) for i in range(numPhi) ]
+phi = [ delPhi * numpy.double(i) for i in range(numPhi) ]
+
+#Planetary transit quantities
+#Angle of orbital axis wrt plane-of-sky
+iPrime = numpy.double(90.0) - rotI
     
+#Degrees to RAD
+iPrimeRad = iPrime * math.pi / numpy.double(180.0)
+    
+#Right angle triangle with hypoteneuse = rOrbit
+#  angle = rotIRad, 
+#  and opposite = planet's minimum impact parameters wrt substellar point
+#impact parameter (minimum offset from substellar point)in AU
+impct = rOrbit * math.sin(iPrimeRad)
+#impact parameter in solar radii
+impct = impct * Useful.AU2cm() / Useful.rSun()
+#print("rotI ", rotI, " iPrime ", iPrime, " iPrimeRad ", iPrimeRad,\
+#      " impct/radius ", impct/radius)
+#thetaMinRad is also the minimum theta of the eclipse path chord, in RAD
+thetaMinRad =  math.asin(impct/radius)
+#cos(theta) *decreases* with increasing theta in Quadrant I:
+cosThetaMax = math.cos(thetaMinRad)
+
+print(" thetaMinRad ", thetaMinRad,\
+          " cosThetaMax ", cosThetaMax)
+   
+#Find out how many input cosTheta values from Gaussian quadrature are on
+# the half-transit semi-chord:
+numThetas = len(cosTheta[0])
+
+i = 0
+iFirstTheta = 0
+#ifFirst = False
+#for i in range(numThetas):
+#cosTheta[1] *decreases* (ie. theta increases) with increasing array number 
+while ( (cosTheta[1][i] >= cosThetaMax)
+       & (i < numThetas) ):
+    #print("In while loop: i ", i, " cosTheta[1] ", cosTheta[1][i])
+    #if (ifFirst == False):
+    #    iFirstTheta = i
+    #    ifFirst = True
+    # We are on the eclipse semi-chord:
+    i+=1
+iFirstTheta = i
+numTransThetas = numThetas - i
+numTransThetas2 = (2*numTransThetas + 2)
+#print("iFirstTheta ", iFirstTheta, " numTransThetas ", numTransThetas) 
+transit = [0.0 for i in range(numTransThetas)]
+transit2 = [0.0 for i in range(numTransThetas2)]
+
+if (impct >= radius):
+    #There is no eclipse (transit)
+    numTransThetas = 0
+    ifTransit = False
+    
+
+# blocking factor should be projected planet area over that annulus area 
+#transit[][] is array of distances traveled, r, along semi-chord from position of
+#minimum impact parameter, and corresponding theta values:
+# 2D array of 2 x numThetas
+#row 0 is log_e of ratio of projected planet area to area of annulus for each theta being transited
+#row 1 is times corresponding to linear distance travelled along transit 
+#  semi-path at surface of star in solar radii
+
+#transit = [[numpy.double(0.0) for i in range(numTransThetas)] for j in range(2)] # Default
+#Row 0 is logarithmic ratio of planet area to annulus area 
+# - set default value to log of neglible value:
+#transit[0] = [logTiny for i in range(numThetas)]
+if (ifTransit):
+    transit = TransitLightCurve2.TransLight2(radius, cosTheta, vTrans, iFirstTheta, numTransThetas, impct)
+    #print("numTransThetas ", numTransThetas)
+    #reflect the half-transit profile and add the first and last points just before
+    #ingress and just after egress    
+    for i in range(numTransThetas):
+        transit2[1+i] = -1.0 * transit[(numTransThetas-1)-i]
+        #print("1st half: i ", i, " (numTransThetas-1)-i ", (numTransThetas-1)-i)
+    for i in range(numTransThetas):
+        transit2[1+(numTransThetas+i)] = transit[i]
+        #print("2nd half: i ", i)
+    transit2[0] = transit2[1] - ingressT
+    transit2[numTransThetas2-1] = transit2[numTransThetas2-2] + ingressT 
+
+transDuration = transit2[numTransThetas2-1] - transit2[0]
+#print("transit2[0] ", transit2[0], " transit2[numTransThetas2-1] ", transit2[numTransThetas2-1])
+transTime0 = transit2[0] - transDuration/2
+transTime1 = transit2[numTransThetas2-1] + transDuration/2
+totalDuration = transTime1 - transTime0
+#print("transTime0 ", transTime0, " transTime1 ", transTime1)
+#print("transDuration ", transDuration, " totalDuration ", totalDuration)
+#numEpochs = 200
+#deltaT = transDuration / numEpochs
+#Make time sampling interval equal to the time of ingress/egress
+deltaT = ingressT
+numEpochs = int(totalDuration / deltaT)
+#print("deltaT ", deltaT, " numEpochs ", numEpochs)
+#ephemeris in time units (s)
+ephemT = [ ((x*deltaT)+transTime0) for x in range(numEpochs) ]  
+         
     
 #boolean lineMode;
 
@@ -3657,7 +3871,7 @@ if (teff <= jolaTeff):
             jolaLambda = MolecData.getWaveRange(jolaSystem[iJola]) #//approx wavelength range of band
             jolaDeltaLambda = MolecData.getDeltaLambda
             
-            jolaLogF = -99.0 #Default
+            jolaLogF = logTiny #Default
             
             if (jolaWhichF[iJola] == "Allen"):
              
@@ -3768,14 +3982,14 @@ if (teff <= jolaTeff):
 #//Sweep the wavelength grid for line-specific wavelength points that are closer together than needed for
 #//critical sampling:
 #//equivalent spectral resolution of wavelength-dependent critical sampling interval
-sweepRes = 500000.0 #//equivalent spectral resolution of wavelength-dependent critical sampling interval
+sweepRes = numpy.double(500000.0) #//equivalent spectral resolution of wavelength-dependent critical sampling interval
 #//cm //use shortest wavelength to avoid under-smapling:
 sweepDelta = lambdaStart / sweepRes #//cm //use shortest wavelength to avoid under-smapling
-sweepHelp = [ 0.0 for i in range(numMaster) ] #//to be truncated later
+sweepHelp = [ numpy.double(0.0) for i in range(numMaster) ] #//to be truncated later
 #//Initialize sweepHelp
 #for iSweep in range(numMaster):
 #    sweepHelp[iSweep] = 0.0
-sweepHelp = [ 0.0 for iSweep in range(numMaster) ]
+sweepHelp = [ numpy.double(0.0) for iSweep in range(numMaster) ]
    
 #//
 sweepHelp[0] = masterLams[0] #//An auspicous start :-)
@@ -3795,16 +4009,16 @@ for iLam in range(1, numMaster):
 
 numKept = iSweep-1
 #sweptLams = [x for x in sweepHelp]
-sweptLams = [0.0 for i in range(numKept)]
+sweptLams = [numpy.double(0.0) for i in range(numKept)]
 #for iKept in range(numKept):
 #    sweptLams[iKept] = sweepHelp[iKept]
 sweptLams = [ sweepHelp[iKept] for iKept in range(numKept) ]
 
 #stop
 #//Interpolate the total extinction array onto the swept wavelength grid:
-keptHelp = [0.0 for i in range(numKept)]
-logSweptKaps = [ [ 0.0 for i in range(numDeps) ] for j in range(numKept) ]
-logMasterKapsId = [0.0 for i in range(numMaster)]
+keptHelp = [numpy.double(0.0) for i in range(numKept)]
+logSweptKaps = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(numKept) ]
+logMasterKapsId = [numpy.double(0.0) for i in range(numMaster)]
 #Not trivially pythonizable:
 for iD in range(numDeps):
     #//extract 1D kappa vs lambda at each depth:
@@ -3862,31 +4076,40 @@ logTauCont = LineTau2.tauLambdaCont(numLams, logKappa,
 
 #//Evaluate formal solution of rad trans eq at each lambda 
 #// Initial set to put lambda and tau arrays into form that formalsoln expects
-contIntens = [ [ 0.0 for i in range(numThetas) ] for j in range(numLams) ]
-contIntensLam = [0.0 for i in range(numThetas)]
+#Untransited I_lambda(cosTheta)
+contIntens = [ [ numpy.double(0.0) for i in range(numThetas) ] for j in range(numLams) ]
+contIntensLam = [numpy.double(0.0) for i in range(numThetas)]
 
-contFlux = [ [ 0.0 for i in range(numLams) ] for j in range(2) ]
-contFluxLam = [0.0 for i in range(2)]
-thisTau = [ [ 0.0 for i in range(numDeps) ] for j in range(2) ]
+contFlux = [ [ numpy.double(0.0) for i in range(numLams) ] for j in range(2) ]
+contFluxLam = [numpy.double(0.0) for i in range(2)]
+thisTau = [ [ numpy.double(0.0) for i in range(numDeps) ] for j in range(2) ]
 lineMode = False  #//no scattering for overall SED
+
+##For testing:
+#thisR = [0.0 for i in range(numThetas)]
+#for iT in range(numThetas):
+#    thisTheta = math.acos(cosTheta[1][iT])
+#    thisR[iT] = math.sin(thisTheta)
 
 for il in range(numLams):
 
     #for id in range(numDeps):
     #    thisTau[1][id] = logTauCont[il][id]
     #    thisTau[0][id] = math.exp(logTauCont[il][id])
-    thisTau[1] = [ x for x in logTauCont[il] ]
-    thisTau[0] = [ math.exp(x) for x in logTauCont[il] ]
+    thisTau[1] = [ numpy.double(x) for x in logTauCont[il] ]
+    thisTau[0] = [ numpy.double(math.exp(x)) for x in logTauCont[il] ]
     #} // id loop
 
     contIntensLam = FormalSoln.formalSoln(numDeps,
                     cosTheta, lambdaScale[il], thisTau, temp, lineMode)
+    
+#    if (il == 87):
+#        print("plot lambda = ", 1.0e7*lambdaScale[il])
+#        plt.plot(thisR, contIntensLam/contIntensLam[0])
 
-    #for it in range(numThetas):
-    #    contIntens[il][it] = contIntensLam[it]
-    contIntens[il] = [ x for x in contIntensLam ]
-    #} //it loop - thetas
 
+    contIntens[il] = [ numpy.double(x) for x in contIntensLam ]
+    
 
     #//// Teff test - Also needed for convection module!:
     if (il > 1):
@@ -3896,19 +4119,46 @@ for il in range(numLams):
 
 #//il loop
 
+#Untransited flux
 contFlux = Flux.flux3(contIntens, lambdaScale, cosTheta, phi, cgsRadius, omegaSini, macroVkm)
+   
+contFluxTrans = [ [ [ numpy.double(0.0) for i in range(numTransThetas) ] for k in range(numLams) ] for j in range(2) ]
+contFluxTrans2 = [ [ [ numpy.double(0.0) for i in range(numTransThetas2) ] for k in range(numLams) ] for j in range(2) ]
 
+if (ifTransit):               
+    contFluxTrans = FluxTrans.fluxTrans(contIntens, contFlux, lambdaScale, cosTheta, phi,
+          radius, omegaSini, macroV,
+             iFirstTheta, numTransThetas, rPlanet)
+    #reflect the half-transit profile and add the first and last points just before
+    #ingress and just after egress
+    for j in range(numLams):
+        contFluxTrans2[1][j][0] = contFlux[1][j]
+        contFluxTrans2[0][j][0] = contFlux[0][j]        
+        for i in range(numTransThetas):
+            indx = ( (numTransThetas-1)-i )
+            contFluxTrans2[1][j][1+i] = contFluxTrans[1][j][indx]
+            contFluxTrans2[0][j][1+i] = contFluxTrans[0][j][indx]
+        for i in range(numTransThetas):
+            contFluxTrans2[1][j][1+(numTransThetas+i)] = contFluxTrans[1][j][i]
+            contFluxTrans2[0][j][1+(numTransThetas+i)] = contFluxTrans[0][j][i]
+        contFluxTrans2[1][j][numTransThetas2-1] = contFlux[1][j]
+        contFluxTrans2[0][j][numTransThetas2-1] = contFlux[0][j]        
+
+        
 logTauMaster = LineTau2.tauLambda(numKept, sweptLams, logSweptKaps,
                 numDeps, kappa500, tauRos, logTotalFudge)
 
 #//Line blanketed formal Rad Trans solution:
 #//Evaluate formal solution of rad trans eq at each lambda throughout line profile
 #// Initial set to put lambda and tau arrays into form that formalsoln expects
-masterIntens = [ [ 0.0 for i in range(numThetas) ] for j in range(numKept) ]  
-masterIntensLam = [0.0 for i in range(numThetas)]
+#Untransited I_lambda(cosTheta)
+masterIntens = [ [ numpy.double(0.0) for i in range(numThetas) ] for j in range(numKept) ] 
+#Transited I_lambda(cosTheta)
+#masterIntensTrans = [ [ numpy.double(0.0) for i in range(numThetas) ] for j in range(numKept) ] 
+masterIntensLam = [numpy.double(0.0) for i in range(numThetas)]
 
-masterFlux = [ [ 0.0 for i in range(numKept) ] for j in range(2) ]
-masterFluxLam = [0.0 for i in range(2)]
+masterFlux = [ [ numpy.double(0.0) for i in range(numKept) ] for j in range(2) ]
+masterFluxLam = [numpy.double(0.0) for i in range(2)]
 
 lineMode = False  #//no scattering for overall SED
 
@@ -3919,8 +4169,8 @@ for il in range(numKept):
     #    thisTau[1][id] = logTauMaster[il][id]
     #    thisTau[0][id] = math.exp(logTauMaster[il][id])
     #} // id loop
-    thisTau[1] = [ x for x in logTauMaster[il] ]
-    thisTau[0] = [ math.exp(x) for x in logTauMaster[il] ]
+    thisTau[1] = [ numpy.double(x) for x in logTauMaster[il] ]
+    thisTau[0] = [ numpy.double(math.exp(x)) for x in logTauMaster[il] ]
 
     masterIntensLam = FormalSoln.formalSoln(numDeps,
                 cosTheta, sweptLams[il], thisTau, temp, lineMode)
@@ -3928,14 +4178,43 @@ for il in range(numKept):
 
     #for it in range(numThetas):
     #    masterIntens[il][it] = masterIntensLam[it]
-    masterIntens[il] = [ x for x in masterIntensLam ]
+    masterIntens[il] = [ numpy.double(x) for x in masterIntensLam ]
+
+
 #} //it loop - thetas
 
 
 #} //il loop
 
+#Untransited flux
 masterFlux = Flux.flux3(masterIntens, sweptLams, cosTheta, phi, cgsRadius, omegaSini, macroVkm)
+### CAUTION  
+#contIntensTrans[][] is recycled - one theta "column" at a time is replaced by its
+# transited I_lambda value - the rest have their un-transited values  
+#The flux will only affected by one of these theta "columns" at a time
+#Transited I_lambda(cosTheta)
 
+masterFluxTrans = [ [ [ numpy.double(0.0) for i in range(numTransThetas) ] for k in range(numKept) ] for j in range(2) ]
+masterFluxTrans2 = [ [ [ numpy.double(0.0) for i in range(numTransThetas2) ] for k in range(numKept) ] for j in range(2) ]
+
+if (ifTransit):
+    masterFluxTrans = FluxTrans.fluxTrans(masterIntens, masterFlux, sweptLams, cosTheta, phi,
+          radius, omegaSini, macroV,
+             iFirstTheta, numTransThetas, rPlanet)
+    #reflect the half-transit profile and add the first and last points just before
+    #ingress and just after egress    
+    for j in range(numKept):  
+        masterFluxTrans2[1][j][0] = masterFlux[1][j]
+        masterFluxTrans2[0][j][0] = masterFlux[0][j]                   
+        for i in range(numTransThetas):
+            masterFluxTrans2[1][j][1+i] = masterFluxTrans[1][j][(numTransThetas-1)-i]
+            masterFluxTrans2[0][j][1+i] = masterFluxTrans[0][j][(numTransThetas-1)-i]
+        for i in range(numTransThetas):
+            masterFluxTrans2[1][j][1+(numTransThetas+i)] = masterFluxTrans[1][j][i]
+            masterFluxTrans2[0][j][1+(numTransThetas+i)] = masterFluxTrans[0][j][i]
+        masterFluxTrans2[1][j][numTransThetas2-1] = masterFlux[1][j]
+        masterFluxTrans2[0][j][numTransThetas2-1] = masterFlux[0][j]              
+            
 #pltb.plot(sweptLams, masterFlux[0])
 #plt.plot(sweptLams, masterFlux[0], '.')
 
@@ -3979,8 +4258,7 @@ ldc = LDC.ldc(numLams, lambdaScale, numThetas, cosTheta, contIntens)
 logContFluxI = numpy.interp(sweptLams, lambdaScale, contFlux[1])
 
 #//Quality control:
-tiny = 1.0e-19
-logTiny = math.log(tiny)
+
 #iStart = ToolBox.lamPoint(numMaster, masterLams, (nm2cm*lambdaStart))
 #iStop = ToolBox.lamPoint(numMaster, masterLams, (nm2cm*lambdaStop))
 iStart = ToolBox.lamPoint(numKept, sweptLams, lambdaStart);
@@ -4056,7 +4334,8 @@ if (vacAir == "air"):
     specSynLams2 = [ invnAir * x for x in specSynLams2 ]   
      
 
-colors =  PostProcess.UBVRI(masterLams2, masterFlux, numDeps, tauRos, temp)
+bandFlux =  PostProcess.UBVRIraw(masterLams2, masterFlux)
+colors =  PostProcess.UBVRI(bandFlux)
 #print("U-V: ", colors[0], " B-V: ", colors[1], " V-R ", colors[2], " V-I: ", colors[3],\
 #      " R-I ", colors[4], " V- K ", colors[5], " J-K: ", colors[6])
 print("U-B: %6.2f B-V: %6.2f V-R: %6.2f V-I: %6.2f R-I: %6.2f V-K: %6.2f J-K: %6.2f" %\
@@ -4069,12 +4348,32 @@ gaussFilter = PostProcess.gaussian(masterLams2, numKept, diskLambda, diskSigma, 
 tuneBandIntens = PostProcess.tuneColor(masterLams2, masterIntens, numThetas, numKept, \
                                        gaussFilter, lamUV, lamIR) 
 
+    
+    
 #//Fourier transform of narrow band image:
 ft = PostProcess.fourier(numThetas, cosTheta, tuneBandIntens)
 numK = len(ft[0])
 
+#Planetary transit light curves as seen through photometric filters:
+numBands = len(bandFlux)
+bandFluxTransit = [[0.0 for i in range(numTransThetas2)] for j in range(numBands)]
+#Sign - I don't know how to directly assign a 2D list column slice (2nd index):
+helpBandFlux = [0.0 for i in range(numBands)]
+helpMasterFlux = [[0.0 for i in range(numKept)] for j in range(2)]
 
-    
+for iEpoch in range(numTransThetas2):
+    for il in range(numKept):
+        helpMasterFlux[1][il] = masterFluxTrans2[1][il][iEpoch]
+        helpMasterFlux[0][il] = masterFluxTrans2[0][il][iEpoch]
+    helpBandFlux = PostProcess.UBVRIraw(masterLams2, helpMasterFlux)
+    for iBand in range(numBands):
+        bandFluxTransit[iBand][iEpoch] = helpBandFlux[iBand]
+
+bandFluxTransit2 = [[0.0 for i in range(numEpochs)] for j in range(numBands)]        
+#Interpolate transit light curves onto total duration we are following: 
+for iBand in range(numBands):
+    bandFluxTransit2[iBand] = ToolBox.interpolV(bandFluxTransit[iBand], transit2, ephemT)       
+        
 #
 #
 # Report 1:
@@ -4408,8 +4707,80 @@ if makePlot == "ppress":
     plt.ylim(yMin, yMax)
     plt.plot(log10tauRos, log10MasterGsPp[thisSpec])
     #print(log10tauRos)
-    #print(log10MasterGsPp[thisSpec])     
+    #print(log10MasterGsPp[thisSpec])    
+    
+#
+#
+# Report 7:
+#
+#   
+#//Exo-planet Transit light curves through UBVRIK 
+plt.figure()
+plt.subplot(1, 1, 1)   
 
+#Initialplot set-up
+plt.title = "Exoplanet transit light curve"
+plt.xlabel(r'Time (hrs)')
+plt.ylabel(r'Relative flux')
+#xMin = 
+#xMax = 
+#plt.xlim(xMin, xMax)
+yMinUV = min(bandFluxTransit2[0])/bandFluxTransit2[0][0] #minimum UV flux during transit
+yMinIR = min(bandFluxTransit2[numBands-1])/bandFluxTransit2[numBands-1][0] #minimum IR flux during transit
+yMin = min([yMinUV, yMinIR]) # minimum of the two
+
+yMax = 1.0 + (1.0 - yMin)
+textStep = (yMax-yMin)/10.0
+#print("yminUV ", yMinUV, " yminIR ", yMinIR, " ymin ", yMin, " yMax ", yMax, " textStep ", textStep)
+plt.ylim(yMin, yMax)
+    
+#transit2Hrs = [x/3600.0 for x in transit2] #s to hours 
+ephemTHrs = [x/3600.0 for x in ephemT] #s to hours    
+
+"""
+#For monochromatic tesing:
+transLight = [numpy.double(1.0) for i in range(numTransThetas2)]
+logTransLight = [numpy.double(0.0) for i in range(numTransThetas2)]
+print("lambda ", lambdaScale[130])
+#for iT in range(numThetas):
+#    #transLight[iT] = masterFluxTrans[100][iT]/masterFlux[0][100]    
+#    ##print("theta (time) ", iT, " ", transit[1][iT], " ratio ", masterFluxTrans[100][iT]/masterFlux[0][100])
+#    logTransLight[iT] = math.log(contFluxTrans[100][iT]) - contFlux[1][100]
+#    #transLight[iT] = contFluxTrans[100][iT]/contFlux[0][100] 
+#    transLight[iT] = math.exp(logTransLight[iT])
+#    #print("theta (time) ", iT, " ", transit[1][iT], " ratio ", transLight[iT])
+#print("transit ", transit)
+#print("contFluxTrans[1][150] ", contFluxTrans[1][150])
+logTransLight = [(contFluxTrans2[1][130][x] - contFlux[1][130]) for x in range(numTransThetas2)]
+transLight = [math.exp(x) for x in logTransLight]    
+#print("logTransLight ", logTransLight, " transLight ", transLight)
+
+      
+#plt.plot(transit[1], logTransLight, 'o')
+plt.plot(transit2, transLight, 'o')
+plt.plot(transit2, transLight)
+"""
+
+whichBands = [0, 1, 3, 4, 5, 8]
+numPlotBands = len(whichBands)
+bandLbls = ["U", "B", "V", "R", "I", "K"]
+transPalette = ['violet', 'blue', 'green', 'red', 'brown', 'black']
+#transPalette = ['violet', 'blue', 'blue', 'green', 'orange', 'red', 'brown', 'gray', 'black', '']
+#normFluxTransit = [[0.0 for i in range(numTransThetas2)] for j in range(numBands)]
+#for iB in range(numBands):
+#    for iE in range(numTransThetas2):
+#        #Normalize by untransited flux:
+#        normFluxTransit[iB][iE] = bandFluxTransit[iB][iE]/bandFluxTransit[iB][0]
+#    #plt.plot(transit2, bandFluxTransit[0]/bandFluxTransit[0][0], 'o')
+#    plt.plot(transit2Hrs, normFluxTransit[iB], color = transPalette[iB])
+normFluxTransit = [[0.0 for i in range(numEpochs)] for j in range(numPlotBands)]
+for iB in range(numPlotBands):
+    for iE in range(numEpochs):
+        #Normalize by untransited flux:
+        normFluxTransit[iB][iE] = bandFluxTransit2[whichBands[iB]][iE]/bandFluxTransit2[whichBands[iB]][0]
+    plt.plot(ephemTHrs, normFluxTransit[iB], color = transPalette[iB])
+    plt.text(0.0, 1.0+(textStep*iB), bandLbls[iB], color = transPalette[iB])
+    #plt.plot(ephemTHrs, bandFluxTransit2[whichBands[iB]], color = transPalette[iB])
 #print(" ")       
 #print(" ************** ")
 #print(" ")
@@ -4675,7 +5046,7 @@ if makePlot == "tlaLine":
     plt.plot(lineWave, lineFlux2[0])
     
 
-     
+    
 dbgHandle.close()
         
         
