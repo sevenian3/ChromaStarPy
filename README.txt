@@ -1,6 +1,7 @@
 
    ChromaStarPy README:  Getting Started quickly:
 
+   Updated April 2020
    Updated July 2019
    December 2017
 
@@ -275,7 +276,7 @@ All output files have the *.txt extension so as to be recognizable by simple edi
 different outputs depending on the choice of the input parameters makePlot (see "Input parameters:" under
 "Setting up a modeling run").
  
-   All variables declared in the main ChromaStarPy.py file are available for printing or plotting at the
+   All variables declared in the main ChromaStarGasPy.py file are available for printing or plotting at the
 console prompt, and the most useful ones have been given descriptive names using camelCase (note that
 python names are case-sensitive).  The user can identify the names of variables that hold the crucial 
 distributions by inspection of the output blocks of code that write the standard output files (see "Output 
@@ -321,25 +322,29 @@ Sample Input.py file for the Sun (see "Setting up a modeling run" section)
 #
 #
 #Custom filename tags to distinguish from other runs
-project = "Project"
-runVers = "Run"
+project = "Check"
+runVers = "Run3"
 
 #Default plot
 #Select ONE only:
 
 #makePlot = "structure"
 #makePlot = "sed"
-makePlot = "spectrum"
+#makePlot = "spectrum"
 #makePlot = "ldc"
 #makePlot = "ft"
 #makePlot = "tlaLine" 
-###The following two plot variables refer to the partial pressure outpue ("Report 6")
-#makePlot = "ppress"
-#plotSpec = "H"
+
+#Chemical species for partial rpessure plot:
+plotSpec = "TiO"
 
 #Spectrum synthesis mode
 # - uses model in Restart.py with minimal structure calculation
-specSynMode = False
+#specSynMode = False
+specSynMode = True
+
+if (specSynMode):
+    runVers += "SS"
 
 #Model atmosphere
 teff = 5777.0  #,    K
@@ -353,8 +358,8 @@ logAlphaFe = 0.0   #,   [alpha-elements/Fe]
 
 
 #Spectrum synthesis
-lambdaStart = 390.0  #,       nm    
-lambdaStop = 400.0  #,     nm
+lambdaStart = 712.0  #,       nm    
+lambdaStop = 713.0  #,     nm
 
 fileStem = project + "-"\
  + str(round(teff, 7)) + "-" + str(round(logg, 3)) + "-" + str(round(log10ZScale, 3))\
@@ -373,12 +378,12 @@ vacAir = "vacuum"
 sampling = "fine"
 
 #Performance vs realism
-nOuterIter = 12   #,     no of outer Pgas(HSE) - EOS - kappa iterations
-nInnerIter = 12   #,    no of inner (ion fraction) - Pe iterations
-ifTiO = 1   #,     where to include TiO JOLA bands in synthesis 
+nOuterIter = 20   #,     no of outer Pgas(HSE) - EOS - kappa iterations
+nInnerIter = 20  #,    no of inner (ion fraction) - Pe iterations
+ifMols = 1   #,     where to include TiO JOLA bands in synthesis 
 
 #Gaussian filter for limb darkening curve, fourier transform
-diskLambda = 500.0  #,      nm
+diskLambda = 1000.0  #,      nm
 diskSigma = 0.01  #,     nm
 
 #Two-level atom and spectral line
@@ -399,3 +404,13 @@ userGwL = 2  #,   lower E-level state. weight - unitless
 userMass = 22.9   #,  amu
 userLogGammaCol = 1.0   #,  log_10 Lorentzian broadening enhancement factor
 
+#Planetary transit parameters for transit light curve modelling
+# ** Also depends on rotI chosen above!!
+# Oribital period is not a free parameter - it is set by the 
+# size of the orbit and the planet's mass by basic form of 
+#Kepler's 3rd law
+ifTransit = True
+rOrbit = 1.0 # AU
+rPlanet = 1.0 #Earth radii
+(Also uses rotI (defined above) as angle of orbital axis wrt to line-of-sight) 
+#mPlanet = 1.0 #Earth masses #not needed (yet?)

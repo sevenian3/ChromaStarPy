@@ -96,11 +96,3 @@ def TransLight2(radius, cosTheta, vTrans, iFirstTheta, numTransThetas, impct):
 
     return transit
 
-        
-    
-    
-    
-    
-    
-     
-     

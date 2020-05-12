@@ -988,8 +988,8 @@ rOrbitSol = rOrbit * Useful.AU2cm() / Useful.rSun()
 if (rOrbitSol < radius):
     rOrbitSol = radius
     rOrbit = rOrbitSol * Useful.rSun() / Useful.AU2cm()
-if (rOrbit > 100.0*Useful.AU2cm()):
-    rOrbitSol = 100.0*Useful.AU2cm() 
+if (rOrbit > 100.0):
+    rOrbit = 100.0 
 
 logMassStar = math.log(massStar) + Useful.logMSun() #MSun to g
 #print("MassStar ", math.exp(logMassStar))
@@ -1016,7 +1016,8 @@ print("Planetary orbital period (s) ", pPlanet)  # in s
 #Establish ephemeris with zero epoch (phase = 0) at mid-transit
 #time interval should be equal to or less than time taken for plane to
 #move through its own diameter - time interval of ingress or egress 
-ingressT = ( 2.0*rPlanet*Useful.rEarth() ) / vTrans
+#ingressT = ( 2.0*rPlanet*Useful.rEarth() ) / vTrans
+#print("Old ingressT ", ingressT)
 
 #//double logNH = 17.0
 
@@ -3053,45 +3054,87 @@ iPrimeRad = iPrime * math.pi / numpy.double(180.0)
 impct = rOrbit * math.sin(iPrimeRad)
 #impact parameter in solar radii
 impct = impct * Useful.AU2cm() / Useful.rSun()
+if ( impct >= (radius-(2*rPlanetSol)) ):
+    #There is no eclipse (transit)
+    ifTransit = False
 #print("rotI ", rotI, " iPrime ", iPrime, " iPrimeRad ", iPrimeRad,\
 #      " impct/radius ", impct/radius)
 #thetaMinRad is also the minimum theta of the eclipse path chord, in RAD
-thetaMinRad =  math.asin(impct/radius)
-#cos(theta) *decreases* with increasing theta in Quadrant I:
-cosThetaMax = math.cos(thetaMinRad)
 
-print(" thetaMinRad ", thetaMinRad,\
+#Initialization:
+#Duration of ingress (and egress) from 1st contact to planetary mid-point contact     
+ingressT1 = 0.0 
+#Duration of ingress (and egress) from planetary mid-point contact to 2nd contact     
+ingressT2 = 0.0
+numTransThetas = 0.0
+thetaMinRad = 1.0
+iFirstTheta = 0
+contact1x = 0.0
+contact2x = 0.0
+contactMidx = 0.0
+cosThetaMax = 0.0
+midContAngle = 0.0
+halfHelpAngle = 0.0
+logOmegaLens = logTiny
+#omegaLens = 0.0
+if (ifTransit):
+    #First contact position along cord, in solar radii:
+    contact1x = math.sqrt( (radius + rPlanetSol)**2 - impct**2 )
+    #Planetary mid-point contact
+    contactMidx = math.sqrt(radius**2 - impct**2)
+    #Second contact position along cord in solar radii:
+    contact2x = math.sqrt( (radius - rPlanetSol)**2 - impct**2 ) 
+    #ingressT = ( (contact1x - contact2x)*Useful.rSun() ) / vTrans
+    ingressT1 = ( (contact1x - contactMidx)*Useful.rSun() ) / vTrans
+    ingressT2 = ( (contactMidx - contact2x)*Useful.rSun() ) / vTrans    
+    #print("New ingressT1 ", ingressT1, " ingressT2 ", ingressT2)
+    #cos(theta) *decreases* with increasing theta in Quadrant I:
+    thetaMinRad =  math.asin(impct/radius)
+    cosThetaMax = math.cos(thetaMinRad) 
+
+    print(" thetaMinRad ", thetaMinRad,\
           " cosThetaMax ", cosThetaMax)
    
-#Find out how many input cosTheta values from Gaussian quadrature are on
-# the half-transit semi-chord:
-numThetas = len(cosTheta[0])
-
+    #quantities for computing the blocking factor at planetary mid-point contact 
+    #Angle at planet's centre of lens-shaped occultation area:
+    halfHelpAngle = math.atan( (rPlanetSol/2.0)/radius )
+    midContAngle = ( math.pi - (2.0*halfHelpAngle) ) / 2.0
+    #Area of lens-shaped area occulted at planetary mid-point contact in solar-radii^2
+    # - (2*angle/2*Pi) * Pi*rPlanet^2 = angle*rPlanet^2 
+    logOmegaLens = math.log(midContAngle) + 2.0*math.log(rPlanetSol)
+    #As fraction of host star projected radius
+    logOmegaLens = logOmegaLens - math.log(math.pi) - 2.0*math.log(radius)
+    #print("log midContBlock/radius^2 ", logOmegaLens)
+    #omegaLens = math.exp(logOmegaLens)       
+            
 i = 0
-iFirstTheta = 0
+
 #ifFirst = False
 #for i in range(numThetas):
 #cosTheta[1] *decreases* (ie. theta increases) with increasing array number 
-while ( (cosTheta[1][i] >= cosThetaMax)
-       & (i < numThetas) ):
-    #print("In while loop: i ", i, " cosTheta[1] ", cosTheta[1][i])
-    #if (ifFirst == False):
-    #    iFirstTheta = i
-    #    ifFirst = True
-    # We are on the eclipse semi-chord:
-    i+=1
-iFirstTheta = i
+if (ifTransit):
+    while ( (cosTheta[1][i] >= cosThetaMax)
+           & (i < numThetas) ):
+        #print("In while loop: i ", i, " cosTheta[1] ", cosTheta[1][i])
+        #if (ifFirst == False):
+        #    iFirstTheta = i
+        #    ifFirst = True
+        # We are on the eclipse semi-chord:
+        i+=1
+    iFirstTheta = i
+    
 numTransThetas = numThetas - i
-numTransThetas2 = (2*numTransThetas + 2)
-#print("iFirstTheta ", iFirstTheta, " numTransThetas ", numTransThetas) 
+numTransThetas2 = (2*numTransThetas + 4)
+#print("iFirstTheta ", iFirstTheta, " numTransThetas ", numTransThetas, " numTransThetas2 ", numTransThetas2) 
 transit = [0.0 for i in range(numTransThetas)]
 transit2 = [0.0 for i in range(numTransThetas2)]
-
-if (impct >= radius):
-    #There is no eclipse (transit)
-    numTransThetas = 0
-    ifTransit = False
-    
+transDuration = 0.0
+transTime0 = 0.0
+transTime1 = 0.0
+totalDuration = 0.0
+deltaT = 0.0
+numEpochs = 0
+ephemT = [ 0.0 for x in range(numEpochs) ] 
 
 # blocking factor should be projected planet area over that annulus area 
 #transit[][] is array of distances traveled, r, along semi-chord from position of
@@ -3111,29 +3154,31 @@ if (ifTransit):
     #reflect the half-transit profile and add the first and last points just before
     #ingress and just after egress    
     for i in range(numTransThetas):
-        transit2[1+i] = -1.0 * transit[(numTransThetas-1)-i]
+        transit2[2+i] = -1.0 * transit[(numTransThetas-1)-i]
         #print("1st half: i ", i, " (numTransThetas-1)-i ", (numTransThetas-1)-i)
     for i in range(numTransThetas):
-        transit2[1+(numTransThetas+i)] = transit[i]
+        transit2[2+(numTransThetas+i)] = transit[i]
         #print("2nd half: i ", i)
-    transit2[0] = transit2[1] - ingressT
-    transit2[numTransThetas2-1] = transit2[numTransThetas2-2] + ingressT 
+    transit2[1] = transit2[2] - ingressT2    
+    transit2[0] = transit2[1] - ingressT1
+    transit2[numTransThetas2-2] = transit2[numTransThetas2-3] + ingressT2
+    transit2[numTransThetas2-1] = transit2[numTransThetas2-2] + ingressT1
 
-transDuration = transit2[numTransThetas2-1] - transit2[0]
-#print("transit2[0] ", transit2[0], " transit2[numTransThetas2-1] ", transit2[numTransThetas2-1])
-transTime0 = transit2[0] - transDuration/2
-transTime1 = transit2[numTransThetas2-1] + transDuration/2
-totalDuration = transTime1 - transTime0
-#print("transTime0 ", transTime0, " transTime1 ", transTime1)
-#print("transDuration ", transDuration, " totalDuration ", totalDuration)
-#numEpochs = 200
-#deltaT = transDuration / numEpochs
-#Make time sampling interval equal to the time of ingress/egress
-deltaT = ingressT
-numEpochs = int(totalDuration / deltaT)
-#print("deltaT ", deltaT, " numEpochs ", numEpochs)
-#ephemeris in time units (s)
-ephemT = [ ((x*deltaT)+transTime0) for x in range(numEpochs) ]  
+    transDuration = transit2[numTransThetas2-1] - transit2[0]
+    #print("transit2[0] ", transit2[0], " transit2[numTransThetas2-1] ", transit2[numTransThetas2-1])
+    transTime0 = transit2[0] - transDuration/2
+    transTime1 = transit2[numTransThetas2-1] + transDuration/2
+    totalDuration = transTime1 - transTime0
+    #print("transTime0 ", transTime0, " transTime1 ", transTime1)
+    #print("transDuration ", transDuration, " totalDuration ", totalDuration)
+    #numEpochs = 200
+    #deltaT = transDuration / numEpochs
+    #Make time sampling interval equal to the time of ingress/egress
+    deltaT = min(ingressT1, ingressT2) #/ 2.0
+    numEpochs = int(totalDuration / deltaT)
+    #print("deltaT ", deltaT, " numEpochs ", numEpochs)
+    #ephemeris in time units (s)
+    ephemT = [ ((x*deltaT)+transTime0) for x in range(numEpochs) ]  
          
     
 #boolean lineMode;
@@ -4126,23 +4171,35 @@ contFluxTrans = [ [ [ numpy.double(0.0) for i in range(numTransThetas) ] for k i
 contFluxTrans2 = [ [ [ numpy.double(0.0) for i in range(numTransThetas2) ] for k in range(numLams) ] for j in range(2) ]
 
 if (ifTransit):               
-    contFluxTrans = FluxTrans.fluxTrans(contIntens, contFlux, lambdaScale, cosTheta, phi,
-          radius, omegaSini, macroV,
-             iFirstTheta, numTransThetas, rPlanet)
-    #reflect the half-transit profile and add the first and last points just before
-    #ingress and just after egress
+    contFluxTrans = FluxTrans.fluxTrans(contIntens, contFlux, lambdaScale, cosTheta, 
+          radius, iFirstTheta, numTransThetas, rPlanet)
+    #reflect the half-transit profile and add the first and last points for
+    #ingress and egress
     for j in range(numLams):
+        #lens-shaped occultation area at planetary mid-point contact:
+        #Ingress:
+        #Subtracting the very small from the very large - let's be sophisticated about it:
+        logHelper = math.log(contIntens[j][numThetas-1]) + logOmegaLens - contFlux[1][j]
+        helper = numpy.double(1.0) - math.exp(logHelper)        
         contFluxTrans2[1][j][0] = contFlux[1][j]
-        contFluxTrans2[0][j][0] = contFlux[0][j]        
+        contFluxTrans2[0][j][0] = contFlux[0][j]
+        contFluxTrans2[1][j][1] = contFlux[1][j] + math.log(helper)
+        contFluxTrans2[0][j][1] = math.exp(contFluxTrans2[1][j][1]) 
+        #Full occultation:
+        #Ingress to minimum impact parameter          
         for i in range(numTransThetas):
             indx = ( (numTransThetas-1)-i )
-            contFluxTrans2[1][j][1+i] = contFluxTrans[1][j][indx]
-            contFluxTrans2[0][j][1+i] = contFluxTrans[0][j][indx]
+            contFluxTrans2[1][j][2+i] = contFluxTrans[1][j][indx]
+            contFluxTrans2[0][j][2+i] = contFluxTrans[0][j][indx]
+        #Minimum impact parameter to egress
         for i in range(numTransThetas):
-            contFluxTrans2[1][j][1+(numTransThetas+i)] = contFluxTrans[1][j][i]
-            contFluxTrans2[0][j][1+(numTransThetas+i)] = contFluxTrans[0][j][i]
+            contFluxTrans2[1][j][2+(numTransThetas+i)] = contFluxTrans[1][j][i]
+            contFluxTrans2[0][j][2+(numTransThetas+i)] = contFluxTrans[0][j][i]
+        #Egress:
+        contFluxTrans2[1][j][numTransThetas2-2] = contFlux[1][j] + math.log(helper)
+        contFluxTrans2[0][j][numTransThetas2-2] = math.exp(contFluxTrans2[1][j][numTransThetas2-2])
         contFluxTrans2[1][j][numTransThetas2-1] = contFlux[1][j]
-        contFluxTrans2[0][j][numTransThetas2-1] = contFlux[0][j]        
+        contFluxTrans2[0][j][numTransThetas2-1] = contFlux[0][j]                
 
         
 logTauMaster = LineTau2.tauLambda(numKept, sweptLams, logSweptKaps,
@@ -4188,30 +4245,37 @@ for il in range(numKept):
 
 #Untransited flux
 masterFlux = Flux.flux3(masterIntens, sweptLams, cosTheta, phi, cgsRadius, omegaSini, macroVkm)
-### CAUTION  
-#contIntensTrans[][] is recycled - one theta "column" at a time is replaced by its
-# transited I_lambda value - the rest have their un-transited values  
-#The flux will only affected by one of these theta "columns" at a time
-#Transited I_lambda(cosTheta)
 
 masterFluxTrans = [ [ [ numpy.double(0.0) for i in range(numTransThetas) ] for k in range(numKept) ] for j in range(2) ]
 masterFluxTrans2 = [ [ [ numpy.double(0.0) for i in range(numTransThetas2) ] for k in range(numKept) ] for j in range(2) ]
 
 if (ifTransit):
-    masterFluxTrans = FluxTrans.fluxTrans(masterIntens, masterFlux, sweptLams, cosTheta, phi,
-          radius, omegaSini, macroV,
-             iFirstTheta, numTransThetas, rPlanet)
+    masterFluxTrans = FluxTrans.fluxTrans(masterIntens, masterFlux, sweptLams, cosTheta, 
+          radius, iFirstTheta, numTransThetas, rPlanet)
     #reflect the half-transit profile and add the first and last points just before
     #ingress and just after egress    
     for j in range(numKept):  
+        #lens-shaped occultation area at planetary mid-point contact:
+        #Ingress:
+        #Subtracting the very small from the very large - let's be sophisticated about it:        
+        logHelper = math.log(masterIntens[j][numThetas-1]) + logOmegaLens - masterFlux[1][j]
+        helper = numpy.double(1.0) - math.exp(logHelper)                
         masterFluxTrans2[1][j][0] = masterFlux[1][j]
-        masterFluxTrans2[0][j][0] = masterFlux[0][j]                   
+        masterFluxTrans2[0][j][0] = masterFlux[0][j] 
+        masterFluxTrans2[1][j][1] = masterFlux[1][j] + math.log(helper)
+        masterFluxTrans2[0][j][1] = math.exp(masterFluxTrans2[1][j][1])  
+        #Full occultation:
+        #Ingress to minimum impact parameter                 
         for i in range(numTransThetas):
-            masterFluxTrans2[1][j][1+i] = masterFluxTrans[1][j][(numTransThetas-1)-i]
-            masterFluxTrans2[0][j][1+i] = masterFluxTrans[0][j][(numTransThetas-1)-i]
+            masterFluxTrans2[1][j][2+i] = masterFluxTrans[1][j][(numTransThetas-1)-i]
+            masterFluxTrans2[0][j][2+i] = masterFluxTrans[0][j][(numTransThetas-1)-i]
+        #Minimum impact parameter to egress
         for i in range(numTransThetas):
-            masterFluxTrans2[1][j][1+(numTransThetas+i)] = masterFluxTrans[1][j][i]
-            masterFluxTrans2[0][j][1+(numTransThetas+i)] = masterFluxTrans[0][j][i]
+            masterFluxTrans2[1][j][2+(numTransThetas+i)] = masterFluxTrans[1][j][i]
+            masterFluxTrans2[0][j][2+(numTransThetas+i)] = masterFluxTrans[0][j][i]
+        #Egress:
+        masterFluxTrans2[1][j][numTransThetas2-2] = masterFlux[1][j] + math.log(helper)
+        masterFluxTrans2[0][j][numTransThetas2-2] = math.exp(masterFluxTrans2[1][j][numTransThetas2-2])            
         masterFluxTrans2[1][j][numTransThetas2-1] = masterFlux[1][j]
         masterFluxTrans2[0][j][numTransThetas2-1] = masterFlux[0][j]              
             
@@ -4725,11 +4789,15 @@ plt.ylabel(r'Relative flux')
 #xMin = 
 #xMax = 
 #plt.xlim(xMin, xMax)
-yMinUV = min(bandFluxTransit2[0])/bandFluxTransit2[0][0] #minimum UV flux during transit
-yMinIR = min(bandFluxTransit2[numBands-1])/bandFluxTransit2[numBands-1][0] #minimum IR flux during transit
-yMin = min([yMinUV, yMinIR]) # minimum of the two
+yMin = 0.0
+yMax = 1.0
 
-yMax = 1.0 + (1.0 - yMin)
+if (ifTransit):
+    yMinUV = min(bandFluxTransit2[0])/bandFluxTransit2[0][0] #minimum UV flux during transit
+    yMinIR = min(bandFluxTransit2[numBands-1])/bandFluxTransit2[numBands-1][0] #minimum IR flux during transit
+    yMin = min([yMinUV, yMinIR]) # minimum of the two
+    yMax = 1.0 + (1.0 - yMin)
+    
 textStep = (yMax-yMin)/10.0
 #print("yminUV ", yMinUV, " yminIR ", yMinIR, " ymin ", yMin, " yMax ", yMax, " textStep ", textStep)
 plt.ylim(yMin, yMax)
@@ -4763,6 +4831,7 @@ plt.plot(transit2, transLight)
 
 whichBands = [0, 1, 3, 4, 5, 8]
 numPlotBands = len(whichBands)
+#numPlotBands = 1
 bandLbls = ["U", "B", "V", "R", "I", "K"]
 transPalette = ['violet', 'blue', 'green', 'red', 'brown', 'black']
 #transPalette = ['violet', 'blue', 'blue', 'green', 'orange', 'red', 'brown', 'gray', 'black', '']

@@ -16,15 +16,12 @@ import ToolBox
 
 
 #//
-def fluxTrans(intens, flx, lambdas, cosTheta, phi,
-          radius, omegaSini, macroV,
+def fluxTrans(intens, flx, lambdas, cosTheta, radius, 
              iFirstTheta, numTransThetas, rPlanet):
     #print("iFirstTheta ", iFirstTheta, " numTransThetas ", numTransThetas,\
     #      " rPlanet ", rPlanet)
    
     #//console.log("Entering flux3");
-    
-    #//System.out.println("radius " + radius + " omegaSini " + omegaSini + " macroV " + macroV);
 
     logTiny = -49.0
     tiny = math.exp(logTiny)
@@ -42,8 +39,8 @@ def fluxTrans(intens, flx, lambdas, cosTheta, phi,
     #subtract off flux eclipsed by transiting planet:
     #thisImpct = rPlanet  #Default
     ##Can it really be this simple??:
-    logOmega = numpy.double(2.0) * ( math.log(rPlanet) - math.log(radius) )
-    omega = math.pi * math.exp(logOmega)
+    logOmega = math.log(math.pi) + ( numpy.double(2.0) * ( math.log(rPlanet) - math.log(radius) ) )
+    #omega = math.exp(logOmega)
     #print("omega ", omega)
     helper = 0.0
     logHelper = 0.0
