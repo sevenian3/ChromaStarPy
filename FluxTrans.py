@@ -26,6 +26,8 @@ def fluxTrans(intens, flx, lambdas, cosTheta, radius,
     logTiny = -49.0
     tiny = math.exp(logTiny)
     
+    logPi = math.log(math.pi)
+    
     numLams = len(lambdas)
     numThetas = len(cosTheta[0])
     fluxTransSpec = [ [ [ numpy.double(0.0) for i in range(numTransThetas) ] for k in range(numLams) ] for j in range(2) ]
@@ -50,7 +52,7 @@ def fluxTrans(intens, flx, lambdas, cosTheta, radius,
         for il in range(numLams):
  
             #Subtracting the very small from the very large - let's be sophisticated about it:
-            logHelper = math.log(intens[il][it]) + logOmega - flx[1][il]
+            logHelper = logPi + math.log(intens[il][it]) + logOmega - flx[1][il]
             helper = numpy.double(1.0) - math.exp(logHelper)
             #if (fluxTransSpec[0][il][it-iFirstTheta] > tiny):
             fluxTransSpec[1][il][it-iFirstTheta] = flx[1][il] + math.log(helper) 
