@@ -12,7 +12,7 @@ This is the main source file for ChromaStarPy.  We start here.
  *
  * ChromaStarPy
  *
- * Version 2020-04-10
+ * Version 2020-05-15
  * Use date based versioning with ISO 8601 date (YYYY-MM-DD)
  *
  * December 2017
@@ -132,6 +132,8 @@ import PostProcess
 
 #Integrated Planetary transit light curve modelling
 import TransitLightCurve2
+#No - only valid for ingress and egress
+import TransitLightCurveAnlytc2
 
 # GAS ESO/checmial equilibrium package, ported from Phil Bennett/Athena
 #Requires special python ports of some blas and lapack routines - part of CSPy distribution
@@ -151,7 +153,7 @@ import CSGas
 import matplotlib
 import matplotlib.pyplot as plt
 
-#Type %matplotlib qt5 at python IDE prompt before running to get multiple plot sin different qt windows.
+#Type %matplotlib qt5 at python IDE prompt before running to get multiple plots in different qt windows.
 
 import math
 import numpy
@@ -244,8 +246,17 @@ absPath = absPath0 + '/'
 #print("")
 #print("Will make plot: ", makePlot)
 #print("")
+makePlotStruc = Input.makePlotStruc
+makePlotSED = Input.makePlotSED
+makePlotSpec = Input.makePlotSpec
+makePlotLDC = Input.makePlotLDC
+makePlotFT = Input.makePlotFT
+makePlotTLA = Input.makePlotTLA
+makePlotTrans = Input.makePlotTrans
+makePlotPPress = Input.makePlotPPress
+
 print("")
-print("Type %matplotlib qt5 at python IDE prompt before running to get multiple plot sin different qt windows")
+print("Type %matplotlib qt5 at python IDE prompt before running to get multiple plots in different qt windows")
 print("")
 
 #stop
@@ -273,7 +284,7 @@ outPath = absPath + "/Outputs/"
 fileStem = Input.fileStem+"Gas"
 #Not usedoutFileString = outPath+fileStem+"Gas.*"
 print(" ")
-print("Writing to files ", fileStem)
+print("Writing to files ", outPath + fileStem)
 print(" ")
 
 
@@ -3057,6 +3068,8 @@ impct = impct * Useful.AU2cm() / Useful.rSun()
 if ( impct >= (radius-(2*rPlanetSol)) ):
     #There is no eclipse (transit)
     ifTransit = False
+    print("TRANSIT FALSE triggered:")
+    print("radius ", radius, " rPlanetSol ", rPlanetSol, " impct ", impct)
 #print("rotI ", rotI, " iPrime ", iPrime, " iPrimeRad ", iPrimeRad,\
 #      " impct/radius ", impct/radius)
 #thetaMinRad is also the minimum theta of the eclipse path chord, in RAD
@@ -3092,19 +3105,18 @@ if (ifTransit):
     thetaMinRad =  math.asin(impct/radius)
     cosThetaMax = math.cos(thetaMinRad) 
 
-    print(" thetaMinRad ", thetaMinRad,\
-          " cosThetaMax ", cosThetaMax)
+    #print(" thetaMinRad ", thetaMinRad,\
+    #      " cosThetaMax ", cosThetaMax)
    
     #quantities for computing the blocking factor at planetary mid-point contact 
-    #Angle at planet's centre of lens-shaped occultation area:
-    halfHelpAngle = math.atan( (rPlanetSol/2.0)/radius )
-    midContAngle = ( math.pi - (2.0*halfHelpAngle) ) / 2.0
+    #Angle at planet's centre of lens-like occultation sector area:
+    midContAngle = 2.0 * math.atan(radius/rPlanetSol)
     #Area of lens-shaped area occulted at planetary mid-point contact in solar-radii^2
     # - (2*angle/2*Pi) * Pi*rPlanet^2 = angle*rPlanet^2 
     logOmegaLens = math.log(midContAngle) + 2.0*math.log(rPlanetSol)
     #As fraction of host star projected radius
     logOmegaLens = logOmegaLens - math.log(math.pi) - 2.0*math.log(radius)
-    #print("log midContBlock/radius^2 ", logOmegaLens)
+    #print("midContAngle ", midContAngle, " logOmegaLens ", logOmegaLens)
     #omegaLens = math.exp(logOmegaLens)       
             
 i = 0
@@ -3136,6 +3148,9 @@ deltaT = 0.0
 numEpochs = 0
 ephemT = [ 0.0 for x in range(numEpochs) ] 
 
+#Mandel & Agol (2002)'s "p" parameter
+pMA = rPlanetSol / radius
+
 # blocking factor should be projected planet area over that annulus area 
 #transit[][] is array of distances traveled, r, along semi-chord from position of
 #minimum impact parameter, and corresponding theta values:
@@ -3148,8 +3163,9 @@ ephemT = [ 0.0 for x in range(numEpochs) ]
 #Row 0 is logarithmic ratio of planet area to annulus area 
 # - set default value to log of neglible value:
 #transit[0] = [logTiny for i in range(numThetas)]
+print("ifTransit ", ifTransit)
 if (ifTransit):
-    transit = TransitLightCurve2.TransLight2(radius, cosTheta, vTrans, iFirstTheta, numTransThetas, impct)
+    transit = TransitLightCurve2.transLight2(radius, cosTheta, vTrans, iFirstTheta, numTransThetas, impct)
     #print("numTransThetas ", numTransThetas)
     #reflect the half-transit profile and add the first and last points just before
     #ingress and just after egress    
@@ -3166,8 +3182,8 @@ if (ifTransit):
 
     transDuration = transit2[numTransThetas2-1] - transit2[0]
     #print("transit2[0] ", transit2[0], " transit2[numTransThetas2-1] ", transit2[numTransThetas2-1])
-    transTime0 = transit2[0] - transDuration/2
-    transTime1 = transit2[numTransThetas2-1] + transDuration/2
+    transTime0 = transit2[0] - transDuration/4
+    transTime1 = transit2[numTransThetas2-1] + transDuration/4
     totalDuration = transTime1 - transTime0
     #print("transTime0 ", transTime0, " transTime1 ", transTime1)
     #print("transDuration ", transDuration, " totalDuration ", totalDuration)
@@ -4169,17 +4185,27 @@ contFlux = Flux.flux3(contIntens, lambdaScale, cosTheta, phi, cgsRadius, omegaSi
    
 contFluxTrans = [ [ [ numpy.double(0.0) for i in range(numTransThetas) ] for k in range(numLams) ] for j in range(2) ]
 contFluxTrans2 = [ [ [ numpy.double(0.0) for i in range(numTransThetas2) ] for k in range(numLams) ] for j in range(2) ]
+#fluxTransMA hold the monochromatic "F(z)" lightcurve from Mandel & Agol (2002) for test comparison
+#  at arbitrary wavelength of choice
+fluxTransMA = [0.0 for i in range(numTransThetas)]
+fluxTransMA2 = [0.0 for i in range(numTransThetas2)]
+#Index of comparison wavelength
+ilMA = ToolBox.lamPoint(numLams, lambdaScale, 5.51e-5)
+print("MA lamba ", lambdaScale[ilMA])
+#In Mandel & Agol (2002), "I" is intensity relative to disk centre:
+relContIntens = [x/contIntens[ilMA][0] for x in contIntens[ilMA]]
 
 if (ifTransit):               
     contFluxTrans = FluxTrans.fluxTrans(contIntens, contFlux, lambdaScale, cosTheta, 
           radius, iFirstTheta, numTransThetas, rPlanet)
+    fluxTransMA = TransitLightCurveAnlytc2.transLightAnlytc2(relContIntens, radius, pMA, cosTheta, vTrans, iFirstTheta, numTransThetas, impct)
     #reflect the half-transit profile and add the first and last points for
     #ingress and egress
     for j in range(numLams):
         #lens-shaped occultation area at planetary mid-point contact:
         #Ingress:
         #Subtracting the very small from the very large - let's be sophisticated about it:
-        logHelper = math.log(contIntens[j][numThetas-1]) + logOmegaLens - contFlux[1][j]
+        logHelper = math.log(math.pi) + math.log(contIntens[j][numThetas-1]) + logOmegaLens - contFlux[1][j]
         helper = numpy.double(1.0) - math.exp(logHelper)        
         contFluxTrans2[1][j][0] = contFlux[1][j]
         contFluxTrans2[0][j][0] = contFlux[0][j]
@@ -4199,8 +4225,27 @@ if (ifTransit):
         contFluxTrans2[1][j][numTransThetas2-2] = contFlux[1][j] + math.log(helper)
         contFluxTrans2[0][j][numTransThetas2-2] = math.exp(contFluxTrans2[1][j][numTransThetas2-2])
         contFluxTrans2[1][j][numTransThetas2-1] = contFlux[1][j]
-        contFluxTrans2[0][j][numTransThetas2-1] = contFlux[0][j]                
+        contFluxTrans2[0][j][numTransThetas2-1] = contFlux[0][j]  
 
+#Comparison light curve from Mandel & Agol formula
+    #Ingress
+    fluxTransMA2[0] = 1.0
+    fluxTransMA2[1] = 1.0
+    #Full occultation:
+    #Ingress to minimum impact parameter          
+    for i in range(numTransThetas):
+        indx = ( (numTransThetas-1)-i )
+        fluxTransMA2[2+i] = fluxTransMA[indx]
+        fluxTransMA2[2+i] = fluxTransMA[indx]
+        #print("2+i ", 2+i, " fluxTransMA2 ", fluxTransMA2[2+i])
+    #Minimum impact parameter to egress
+    for i in range(numTransThetas):
+        fluxTransMA2[2+(numTransThetas+i)] = fluxTransMA[i]
+        fluxTransMA2[2+(numTransThetas+i)] = fluxTransMA[i]
+        #print("2+(numTransThetas+i) ", 2+(numTransThetas+i), " fluxTransMA2 ", fluxTransMA2[2+(numTransThetas+i)])
+    #Egress        
+    fluxTransMA2[numTransThetas2-2] = 1.0
+    fluxTransMA2[numTransThetas2-1] = 1.0            
         
 logTauMaster = LineTau2.tauLambda(numKept, sweptLams, logSweptKaps,
                 numDeps, kappa500, tauRos, logTotalFudge)
@@ -4418,25 +4463,33 @@ tuneBandIntens = PostProcess.tuneColor(masterLams2, masterIntens, numThetas, num
 ft = PostProcess.fourier(numThetas, cosTheta, tuneBandIntens)
 numK = len(ft[0])
 
-#Planetary transit light curves as seen through photometric filters:
-numBands = len(bandFlux)
-bandFluxTransit = [[0.0 for i in range(numTransThetas2)] for j in range(numBands)]
-#Sign - I don't know how to directly assign a 2D list column slice (2nd index):
-helpBandFlux = [0.0 for i in range(numBands)]
-helpMasterFlux = [[0.0 for i in range(numKept)] for j in range(2)]
+if ifTransit:
+    #Planetary transit light curves as seen through photometric filters:
+    numBands = len(bandFlux)
+    bandFluxTransit = [[0.0 for i in range(numTransThetas2)] for j in range(numBands)]
+    #Sign - I don't know how to directly assign a 2D list column slice (2nd index):
+    helpBandFlux = [0.0 for i in range(numBands)]
+    helpMasterFlux = [[0.0 for i in range(numKept)] for j in range(2)]
 
-for iEpoch in range(numTransThetas2):
-    for il in range(numKept):
-        helpMasterFlux[1][il] = masterFluxTrans2[1][il][iEpoch]
-        helpMasterFlux[0][il] = masterFluxTrans2[0][il][iEpoch]
-    helpBandFlux = PostProcess.UBVRIraw(masterLams2, helpMasterFlux)
+    for iEpoch in range(numTransThetas2):
+        for il in range(numKept):
+            helpMasterFlux[1][il] = masterFluxTrans2[1][il][iEpoch]
+            helpMasterFlux[0][il] = masterFluxTrans2[0][il][iEpoch]
+        helpBandFlux = PostProcess.UBVRIraw(masterLams2, helpMasterFlux)
+        for iBand in range(numBands):
+            bandFluxTransit[iBand][iEpoch] = helpBandFlux[iBand]
+
+    bandFluxTransit2 = [[0.0 for i in range(numEpochs)] for j in range(numBands)]        
+    #Interpolate transit light curves onto total duration we are following: 
     for iBand in range(numBands):
-        bandFluxTransit[iBand][iEpoch] = helpBandFlux[iBand]
+        bandFluxTransit2[iBand] = ToolBox.interpolV(bandFluxTransit[iBand], transit2, ephemT) 
 
-bandFluxTransit2 = [[0.0 for i in range(numEpochs)] for j in range(numBands)]        
-#Interpolate transit light curves onto total duration we are following: 
-for iBand in range(numBands):
-    bandFluxTransit2[iBand] = ToolBox.interpolV(bandFluxTransit[iBand], transit2, ephemT)       
+    #Interpolate reference light curve from Mandel & Agol (2002) too:
+
+    fluxTransMA2i =  ToolBox.interpolV(fluxTransMA2, transit2, ephemT)
+
+    #for i in range(numEpochs):
+    #    print("i ", i, " fluxTransMA2i ", fluxTransMA2i[i])      
         
 #
 #
@@ -4503,8 +4556,7 @@ with open(outFile, 'w') as strucHandle:
     #                  str(log10kappaRos[i]) + " " + str(log10kappa500[i]) + "\n" for i in range(numDeps) ]
     #strucHandle.write(outLine)
 
-makePlot = "structure"   
-if makePlot == "structure":
+if makePlotStruc:
     
     plt.figure()
     plt.subplot(1, 1, 1)
@@ -4549,8 +4601,8 @@ log10Flux = [ round(log10e * x, 4) for x in masterFlux[1] ]
 #log10WaveCI = [ round(math.log10(x), 4) for x in sweptLams ]
 #log10FluxCI = [ round(log10e * x, 4) for x in logContFluxI ]
 
-makePlot = "sed"
-if makePlot == "sed":
+
+if makePlotSED:
 
     plt.figure()
     plt.subplot(1, 1, 1)    
@@ -4626,8 +4678,7 @@ with open(outFile, 'w') as specHandle:
         specHandle.write(outLine)    
 
 
-makePlot = "spectrum"
-if makePlot == "spectrum":
+if makePlotSpec:
 
     plt.figure()
     plt.subplot(1, 1, 1)    
@@ -4689,9 +4740,11 @@ with open(outFile, 'w') as ldcHandle:
         outLine = str(wave[i]) + "   " + str(round(ldc[i], 4)) + "\n"
         ldcHandle.write(outLine)
         
+
+
 #narrow band limb darkening curve (LDC)
-makePlot = "ldc"        
-if makePlot == "ldc":        
+
+if makePlotLDC:        
 
     plt.figure()
     plt.subplot(1, 1, 1)    
@@ -4704,8 +4757,8 @@ if makePlot == "ldc":
     plt.plot(cosTheta[1], normTuneBandIntens)
     
 #discrete fourier cosine transform of LDC
-makePlot = "ft"    
-if makePlot == "ft":
+
+if makePlotFT:
     
     plt.figure()
     plt.subplot(1, 1, 1)    
@@ -4748,9 +4801,10 @@ with open(outFile, 'w') as ppHandle:
         ppHandle.write("\n")
         #print("R6 ", (10.0**log10MasterGsPp[0][iD])/(10.0**log10pgas[iD]))
         
+        
 #spectral line of user-defined 2-level atom
-makePlot = "ppress"
-if makePlot == "ppress":
+
+if makePlotPPress:
 
     plt.figure()
     plt.subplot(1, 1, 1)    
@@ -4777,79 +4831,91 @@ if makePlot == "ppress":
 #
 # Report 7:
 #
-#   
-#//Exo-planet Transit light curves through UBVRIK 
-plt.figure()
-plt.subplot(1, 1, 1)   
+if (ifTransit and makePlotTrans):
+    #   
+    #//Exo-planet Transit light curves through UBVRIK 
+    plt.figure()
+    plt.subplot(1, 1, 1)   
 
-#Initialplot set-up
-plt.title = "Exoplanet transit light curve"
-plt.xlabel(r'Time (hrs)')
-plt.ylabel(r'Relative flux')
-#xMin = 
-#xMax = 
-#plt.xlim(xMin, xMax)
-yMin = 0.0
-yMax = 1.0
+    #Initialplot set-up
+    plt.title = "Exoplanet transit light curve"
+    plt.xlabel(r'Time (hrs)')
+    plt.ylabel(r'Relative flux')
+    #xMin = 
+    #xMax = 
+    #plt.xlim(xMin, xMax)
+    yMin = 0.0
+    yMax = 1.0
 
-if (ifTransit):
     yMinUV = min(bandFluxTransit2[0])/bandFluxTransit2[0][0] #minimum UV flux during transit
     yMinIR = min(bandFluxTransit2[numBands-1])/bandFluxTransit2[numBands-1][0] #minimum IR flux during transit
-    yMin = min([yMinUV, yMinIR]) # minimum of the two
+    yMinMA = min(fluxTransMA2i)
+    yMin = min([yMinUV, yMinIR, yMinMA]) # minimum of the two
     yMax = 1.0 + (1.0 - yMin)
     
-textStep = (yMax-yMin)/10.0
-#print("yminUV ", yMinUV, " yminIR ", yMinIR, " ymin ", yMin, " yMax ", yMax, " textStep ", textStep)
-plt.ylim(yMin, yMax)
+    textStep = (xMax-xMin)/10.0
+    #print("yminUV ", yMinUV, " yminIR ", yMinIR, " ymin ", yMin, " yMax ", yMax, " textStep ", textStep)
+    plt.ylim(yMin, yMax)
     
-#transit2Hrs = [x/3600.0 for x in transit2] #s to hours 
-ephemTHrs = [x/3600.0 for x in ephemT] #s to hours    
+    #transit2Hrs = [x/3600.0 for x in transit2] #s to hours 
+    ephemTHrs = [x/3600.0 for x in ephemT] #s to hours    
 
-"""
-#For monochromatic tesing:
-transLight = [numpy.double(1.0) for i in range(numTransThetas2)]
-logTransLight = [numpy.double(0.0) for i in range(numTransThetas2)]
-print("lambda ", lambdaScale[130])
-#for iT in range(numThetas):
-#    #transLight[iT] = masterFluxTrans[100][iT]/masterFlux[0][100]    
-#    ##print("theta (time) ", iT, " ", transit[1][iT], " ratio ", masterFluxTrans[100][iT]/masterFlux[0][100])
-#    logTransLight[iT] = math.log(contFluxTrans[100][iT]) - contFlux[1][100]
-#    #transLight[iT] = contFluxTrans[100][iT]/contFlux[0][100] 
-#    transLight[iT] = math.exp(logTransLight[iT])
-#    #print("theta (time) ", iT, " ", transit[1][iT], " ratio ", transLight[iT])
-#print("transit ", transit)
-#print("contFluxTrans[1][150] ", contFluxTrans[1][150])
-logTransLight = [(contFluxTrans2[1][130][x] - contFlux[1][130]) for x in range(numTransThetas2)]
-transLight = [math.exp(x) for x in logTransLight]    
-#print("logTransLight ", logTransLight, " transLight ", transLight)
+    whichBands = [0, 1, 3, 4, 5, 8]
+    numPlotBands = len(whichBands)
+    #numPlotBands = 1
+    bandLbls = ["U", "B", "V", "R", "I", "K"]
+    transPalette = ['violet', 'blue', 'green', 'red', 'brown', 'black']
+    #transPalette = ['violet', 'blue', 'blue', 'green', 'orange', 'red', 'brown', 'gray', 'black', '']
+    #normFluxTransit = [[0.0 for i in range(numTransThetas2)] for j in range(numBands)]
+    #for iB in range(numBands):
+        #for iE in range(numTransThetas2):
+            ##Normalize by untransited flux:
+            #normFluxTransit[iB][iE] = bandFluxTransit[iB][iE]/bandFluxTransit[iB][0]
+            ##plt.plot(transit2, bandFluxTransit[0]/bandFluxTransit[0][0], 'o')
+            #plt.plot(transit2Hrs, normFluxTransit[iB], color = transPalette[iB])
+    normFluxTransit = [[0.0 for i in range(numEpochs)] for j in range(numPlotBands)]
+    for iB in range(numPlotBands):
+        for iE in range(numEpochs):
+            #Normalize by untransited flux:
+            normFluxTransit[iB][iE] = bandFluxTransit2[whichBands[iB]][iE]/bandFluxTransit2[whichBands[iB]][0]
+        plt.plot(ephemTHrs, normFluxTransit[iB], color = transPalette[iB])
+        plt.text(ephemTHrs[10]+(textStep*iB), 1.0, bandLbls[iB], color = transPalette[iB])
+        #plt.plot(ephemTHrs, bandFluxTransit2[whichBands[iB]], color = transPalette[iB])
+    #Overplot "F(z)" lightcurve from Mandel & Agol (2002) Section 5 Eq.
+    plt.plot(ephemTHrs, fluxTransMA2i, '--', color='black')
+    #plt.plot(ephemTHrs, normFluxTransit[0], 'o')
+    #for i in range(numEpochs):
+        #    print("i ", i, " normFluxTransit[0] ", normFluxTransit[0][i], " fluxTransMA2i ", fluxTransMA2i[i])
 
-      
-#plt.plot(transit[1], logTransLight, 'o')
-plt.plot(transit2, transLight, 'o')
-plt.plot(transit2, transLight)
-"""
+if (ifTransit):
+    
+    outFile = outPath + fileStem + ".trans.txt"
+    #print vertical atmospheric structure
+    #with open(outFile, 'w', encoding='utf-8') as strucHandle:
+    with open(outFile, 'w') as strucHandle:
+        #with open(strucFile, 'w') as strucHandle:    
+        strucHandle.write(inputParamString + "\n")
+        strucHandle.write("numBands " + str(7) + " numEpochs " + str(numEpochs) + "\n")
+        strucHandle.write("t (s), F^transit_band(t)/F_band" + "\n")
+        #Not trivially pythonizable - each time through it writes a line to an output file
+        outLine = "t(s) "\
+            + "   " + str(bandLbls[0]) + "   " + str(bandLbls[1])\
+            + "   " + str(bandLbls[2]) + "   " + str(bandLbls[3])\
+            + "   " + str(bandLbls[4]) + "   " + str(bandLbls[5])\
+            + "   " + "M&A02\n"
+        strucHandle.write(outLine)
+        for iE in range(numEpochs):
+            #Transited flux already normalized to untransited flux above
+            outLine = str(round(ephemT[iE], 4)) + "   "\
+                + str(normFluxTransit[whichBands[0]][iE]) + "   "\
+                + str(normFluxTransit[1][iE]) + "   "\
+                + str(normFluxTransit[2][iE]) + "   "\
+                + str(normFluxTransit[3][iE]) + "   "\
+                + str(normFluxTransit[4][iE]) + "   "\
+                + str(normFluxTransit[5][iE]) + "   "\
+                + str(fluxTransMA2i[iE]) + "\n"
+            strucHandle.write(outLine)
 
-whichBands = [0, 1, 3, 4, 5, 8]
-numPlotBands = len(whichBands)
-#numPlotBands = 1
-bandLbls = ["U", "B", "V", "R", "I", "K"]
-transPalette = ['violet', 'blue', 'green', 'red', 'brown', 'black']
-#transPalette = ['violet', 'blue', 'blue', 'green', 'orange', 'red', 'brown', 'gray', 'black', '']
-#normFluxTransit = [[0.0 for i in range(numTransThetas2)] for j in range(numBands)]
-#for iB in range(numBands):
-#    for iE in range(numTransThetas2):
-#        #Normalize by untransited flux:
-#        normFluxTransit[iB][iE] = bandFluxTransit[iB][iE]/bandFluxTransit[iB][0]
-#    #plt.plot(transit2, bandFluxTransit[0]/bandFluxTransit[0][0], 'o')
-#    plt.plot(transit2Hrs, normFluxTransit[iB], color = transPalette[iB])
-normFluxTransit = [[0.0 for i in range(numEpochs)] for j in range(numPlotBands)]
-for iB in range(numPlotBands):
-    for iE in range(numEpochs):
-        #Normalize by untransited flux:
-        normFluxTransit[iB][iE] = bandFluxTransit2[whichBands[iB]][iE]/bandFluxTransit2[whichBands[iB]][0]
-    plt.plot(ephemTHrs, normFluxTransit[iB], color = transPalette[iB])
-    plt.text(0.0, 1.0+(textStep*iB), bandLbls[iB], color = transPalette[iB])
-    #plt.plot(ephemTHrs, bandFluxTransit2[whichBands[iB]], color = transPalette[iB])
 #print(" ")       
 #print(" ************** ")
 #print(" ")
@@ -5099,8 +5165,8 @@ with open(outFile, 'w') as tlaHandle:
 
 
 #spectral line of user-defined 2-level atom
-makePlot = "tlaLine"
-if makePlot == "tlaLine":
+
+if makePlotTLA:
 
     plt.figure()
     plt.subplot(1, 1, 1)    

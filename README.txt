@@ -1,7 +1,6 @@
 
    ChromaStarPy README:  Getting Started quickly:
 
-   Updated April 2020
    Updated July 2019
    December 2017
 
@@ -17,7 +16,7 @@ This is the python V. 3 port of the Java atmospheric modeling and spectrum synth
 code ChromaStarServer, formerly known as GrayStarServer,
 supplemented with the two-level-atom facility of ChromaStar (formerly GrayStar).
 
-July 2019 - Equation sof state (EOS) and chemical/ionization equilibrium now computed
+July 2019 - Equation of state (EOS) and chemical/ionization equilibrium now computed
 with Phil Bennett's "GAS" package.  Includes 51 molecules, including 16 polyatomic
 molecules
 
@@ -111,7 +110,7 @@ directory called InputData/*.dat.  A default line list ships with the tarball.
    ** Running
    **
 
-    ChromaStarPy is known to run in Python V. 3.6 in the spYder V. 3.2.3 IDE under Windows 10, and is python 
+    ChromaStarPy is known to run as of Python V. 3.6 in the spYder V. 3.2.3 IDE under Windows 10, and as of python 
 V. 2.7 under linux (see the note about required python modules in "Installation and initial set-up").  The main 
 program resides in source file ChromaStarGasPy.py and all other source files are 'import'ed here - the user must 
 "run" this file in the IDE to run the code.  
@@ -175,8 +174,8 @@ with a descriptive header that begins with a hash (#) symbol.
 
 #Custom filename, #Default plot, #Spectrum synthesis mode
 
-        Includes two string variables, project, and runVers, that the user can use to create distinct file 
-names to distinguish model runs that woudl otherwise have indistinct names (see "Outputs" section).  
+        Includes two string variables, project, and runVers, that the user can set to create distinct file 
+names to distinguish model runs that would otherwise have indistinct names (see "Outputs" section).  
 Includes a string variable, makePlot, that determines which of six build-in plotting routines will be
 executed for the default graphical display.  If specSynMode = True, ChromaStarPy will adopt the atmospheric
 structure in input module Restart.py and only perform one structure iteration before computing the synthetic
@@ -211,6 +210,11 @@ narrow band filter.  The wavelength and band-width of the filter may be adjusted
 transition thereof.  All atomic data that specify the energy level structure, the ionization stage, 
 and the line transition parameters.
 
+#
+Planetary transit parameters
+
+     Parameters that determine with exo-planet transit lightcurve
+
 Spectrum synthesis mode:
 
 If the parameter specSynMode = False ChromaStar.py will perform the number of outer and inner iterations of
@@ -244,10 +248,11 @@ environment variable in "Installation and initial set-up").
    ChromaStarPy automatically creates six output files for each run.  Each of these has several lines of 
 header that specify the modeling parameters, describe the units, and label the columns.  The filenames for a 
 given run are distinguished from each other by the filename stem, as described below, and are generally 
-distinguished from those of other runs by a string that contains the main atmospheric modeling parameters 
-(Teff, logg, [A/H]) and spectrum synthesis parameters (starting and ending wavelengths), and by the user-defined 
-value of the project and runVers string variables (see "Input parameters" under "Setting up a modeling run").
-All output files have the *.txt extension so as to be recognizable by simple editors under Windows.
+distinguished from those of other runs by a string that contains the user-defined values of the 'project' 
+and 'runVers' string variables (see "Input parameters" under "Setting up a modeling run"), and by the values 
+of the main atmospheric modeling parameters (Teff, logg, [A/H]) and spectrum synthesis parameters (starting 
+and ending wavelengths).  All output files have the *.txt extension so as to be recognizable by simple editors 
+under Windows.
  
    File: *.struc.txt:  The tabulated atmospheric structure ("Report 1")
          *.sed.txt:  The absolute overall spectral energy distribution (SED) ("Report 2")
@@ -264,8 +269,10 @@ All output files have the *.txt extension so as to be recognizable by simple edi
 		     This file is automatically input as a module, and whether the structure it contains is
 		     used depends on the value of the input parameter specSynMode (see "Input parameters:" 
  		     under ("Setting up a modeling run").  
-	*.ppress.txt	Partial pressures of all atmoic, ionic, and molecular species that are treated in
-			Phil Bennett's integrated EOS/Checmical Equilibrium package "GAS"
+	 *.ppress.txt	Partial pressures of all atmoic, ionic, and molecular species that are treated in
+			Phil Bennett's integrated EOS/Checmical Equilibrium package "GAS" ("Report 6")
+         *.trans.txt   Lightcurves in the Johnson-Cousins UBVRIK bands and the analytic lightcurve
+                     of Mandel & Agol 2002 for comparison
 
    **
    ** Integrated post-processing, reporting, and visualization
@@ -281,21 +288,24 @@ console prompt, and the most useful ones have been given descriptive names using
 python names are case-sensitive).  The user can identify the names of variables that hold the crucial 
 distributions by inspection of the output blocks of code that write the standard output files (see "Output 
 files"). These output blocks can be found by searching for the string "Report n", where "n" currently 
-ranges from 1 to 5.   
+ranges from 1 to 7.   
 
 
    Four output blocks are located after the main atmospheric and spectrum modeling code: 
-   Report 1 block: Atmospheric structure distributions (writes to *.struc.txt file).  
-   Report 2 block: Spectral energy distribution (SED) (writes to *.sed.txt file).
-   Report 3 block: Synthetic spectrum and line identifications (writes to *.spec.txt file)
-   Report 4 block: Tuneable narrow-band limb darkening curve and its Fourier transform (writes to
+   Report 1 block:  Atmospheric structure distributions (writes to *.struc.txt file).  
+   Report 2 block:  Spectral energy distribution (SED) (writes to *.sed.txt file).
+   Report 3 block:  Synthetic spectrum and line identifications (writes to *.spec.txt file)
+   Report 4 block:  Tuneable narrow-band limb darkening curve and its Fourier transform (writes to
      *.ldc.txt file), and spectrum of monochromatic linear limb darkening coefficients (LDCs)
 
    One output block is found after the user-defined two-level atom section of the code:
-   Report 5 block: Spectral line profile and atomic energy level populations of user-defined two-level
+   Report 5 block:  Spectral line profile and atomic energy level populations of user-defined two-level
      atom (writes to *.tla.txt file) 
-   Report 6 block: Found after Report 4 block: Log10 partial pressures for 105 species, including 51 molecules
+   Report 6 block:  Found after Report 4 block: Log10 partial pressures for 105 species, including 51 molecules
      computed by Phil Bennett's multi-D linearization package "GAS" - now integrated with ChromaStarPy
+     (writes to *.ppress.txt file)
+   Report 7 block:   Lightcurves in the Johnson-Cousins UBVRIK bands and the analytic lightcurve
+      of Mandel & Agol 2002 for comparison (writes to *.trans.txt file)
 
 
    **
@@ -316,31 +326,40 @@ CAUTION: The output options of the NIST database interface must be selected so a
 fields and units that match the ascii sample.  Additionally, special characters that appear in some output
 fields of the raw NIST ascii output (eg. '[', ']', '(', ')', '+', etc.) must be manually removed. 
 
+--------------------------------------------------------------------------------------
 
-Sample Input.py file for the Sun (see "Setting up a modeling run" section) 
+Sample Input.py file for the Sun and Earth (see "Setting up a modeling run" section) 
 
 #
 #
 #Custom filename tags to distinguish from other runs
-project = "Check"
-runVers = "Run3"
+project = "SunEarth"
+runVers = "Test"
+
+#Project specific notes:
+# Test case:  
+# Star:  Sun 
+# Spectrum:  Na I D region
+# Lightcurve: Earth, in plane of ecliptic
+
 
 #Default plot
-#Select ONE only:
+#Select ONE only if plotting 'inline' - 
 
-#makePlot = "structure"
-#makePlot = "sed"
-#makePlot = "spectrum"
-#makePlot = "ldc"
-#makePlot = "ft"
-#makePlot = "tlaLine" 
+makePlotStruc = True
+makePlotSED = True
+makePlotSpec = True
+makePlotLDC = True
+makePlotFT = True
+makePlotTLA = True
+makePlotTrans = True
 
+makePlotPPress = True
 #Chemical species for partial rpessure plot:
-plotSpec = "TiO"
+plotSpec = "H"
 
 #Spectrum synthesis mode
 # - uses model in Restart.py with minimal structure calculation
-#specSynMode = False
 specSynMode = True
 
 if (specSynMode):
@@ -349,8 +368,8 @@ if (specSynMode):
 #Model atmosphere
 teff = 5777.0  #,    K
 logg = 4.44 #,      cgs
-log10ZScale = 0.0     # [A/H]
-massStar = 1.0 #,      solar masses
+log10ZScale = -0.0     # [A/H]
+massStar = 1.00 #,      solar masses
 xiT = 1.0  #,       km/s
 logHeFe = 0.0  #,   [He/Fe]
 logCO = 0.0  #,   [C/O]
@@ -358,8 +377,8 @@ logAlphaFe = 0.0   #,   [alpha-elements/Fe]
 
 
 #Spectrum synthesis
-lambdaStart = 712.0  #,       nm    
-lambdaStop = 713.0  #,     nm
+lambdaStart = 588.5  #,       nm    
+lambdaStop = 589.5  #,     nm
 
 fileStem = project + "-"\
  + str(round(teff, 7)) + "-" + str(round(logg, 3)) + "-" + str(round(log10ZScale, 3))\
@@ -368,25 +387,26 @@ fileStem = project + "-"\
 
 lineThresh = -3.0  #,    min log(KapLine/kapCnt) for inclusion at all - areally, being used as "lineVoigt" for now
 voigtThresh = -3.0  #,     min log(KapLine/kapCnt) for treatment as Voigt - currently not used - all lines get Voigt
-logGammaCol = 0.5
-logKapFudge = 0.0
-macroV = 1.0  #,     km/s
-rotV = 2.0  #,   km/s
-rotI = 90.0 #,    degrees
-RV = 0.0 #,   km/s
-vacAir = "vacuum"    
-sampling = "fine"
+logGammaCol = 0.5  #      Logarithmic VdW damping enhancement
+logKapFudge = 0.0  #     continuum opacity fudge factor
+macroV = 1.0  #,      macroscopic broadening dispersion  km/s
+rotV = 2.0  #,      equatorial surface rotational velocity   km/s
+rotI = 90.0 #,      inclination of rotational axis AND orbital axis   degrees
+RV = 0.0 #,         system radial velocity    km/s
+vacAir = "vacuum"   # wavelength scale ('air' OR 'vacuum')      
+sampling = "fine"   # density of freq points in spectrum synthesis ('fine' is useful, 'coarse' for quick checking)
 
 #Performance vs realism
-nOuterIter = 20   #,     no of outer Pgas(HSE) - EOS - kappa iterations
-nInnerIter = 20  #,    no of inner (ion fraction) - Pe iterations
-ifMols = 1   #,     where to include TiO JOLA bands in synthesis 
+nOuterIter = 12   #,     no of outer Pgas(HSE) - EOS - kappa iterations
+nInnerIter = 12   #,    no of inner (ion fraction) - Pe iterations
+ifMols = 1   #,     whether to include TiO JOLA bands in synthesis 
 
-#Gaussian filter for limb darkening curve, fourier transform
-diskLambda = 1000.0  #,      nm
-diskSigma = 0.01  #,     nm
+#Gaussian filter for limb darkening curve (LDC), fourier transform (FT)
+diskLambda = 500.0  #,  Band centre wavelength     nm
+diskSigma = 0.01  #,   Band dispersion   nm
 
 #Two-level atom and spectral line
+#Example: NaI D lambda 5896:
 userLam0 = 589.592  #,   nm 
 userA12 = 6.24  #,    A_12 logarithmic abundance = log_10(N/H_H) = 12
 userLogF = -0.495   #,  log(f) oscillaotr strength // saturated line
@@ -409,8 +429,9 @@ userLogGammaCol = 1.0   #,  log_10 Lorentzian broadening enhancement factor
 # Oribital period is not a free parameter - it is set by the 
 # size of the orbit and the planet's mass by basic form of 
 #Kepler's 3rd law
-ifTransit = True
-rOrbit = 1.0 # AU
-rPlanet = 1.0 #Earth radii
-(Also uses rotI (defined above) as angle of orbital axis wrt to line-of-sight) 
+rJupiter = 11.21 # Earth radii - handy reference
+ifTransit = True   # set to True if we want an exoplanet lightcurve
+#Data source:  Wikipedia for now...
+rOrbit = 1.00 # AU
+rPlanet = 1.00 #Earth radii
 #mPlanet = 1.0 #Earth masses #not needed (yet?)
